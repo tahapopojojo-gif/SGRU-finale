@@ -1,34 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { User, Compass, Shield, Search } from 'lucide-react'
 import api from '../services/api'
-
-const MOROCCAN_CITIES = [
-  { value: 'casablanca', label: 'Casablanca', emoji: '🏙️' },
-  { value: 'rabat', label: 'Rabat', emoji: '🏛️' },
-  { value: 'fes', label: 'Fès', emoji: '🏺' },
-  { value: 'marrakesh', label: 'Marrakesh', emoji: '🕌' },
-  { value: 'agadir', label: 'Agadir', emoji: '🌊' },
-  { value: 'tanger', label: 'Tanger', emoji: '⚓' },
-  { value: 'meknes', label: 'Meknès', emoji: '🏰' },
-  { value: 'oujda', label: 'Oujda', emoji: '🕌' },
-  { value: 'kenitra', label: 'Kénitra', emoji: '🏭' },
-  { value: 'tetouan', label: 'Tétouan', emoji: '🏘️' },
-  { value: 'mohammedia', label: 'Mohammédia', emoji: '🏖️' },
-  { value: 'safi', label: 'Safi', emoji: '🏺' },
-  { value: 'eljadida', label: 'El Jadida', emoji: '🏖️' },
-  { value: 'nador', label: 'Nador', emoji: '⚓' },
-  { value: 'settat', label: 'Settat', emoji: '🌾' },
-  { value: 'benimellal', label: 'Béni Mellal', emoji: '🏞️' },
-  { value: 'khouribga', label: 'Khouribga', emoji: '⛏️' },
-  { value: 'taza', label: 'Taza', emoji: '🏔️' },
-  { value: 'laayoune', label: 'Laâyoune', emoji: '🏜️' },
-  { value: 'dakhla', label: 'Dakhla', emoji: '🏄' },
-  { value: 'taroudant', label: 'Taroudant', emoji: '🍊' },
-  { value: 'khemisset', label: 'Khémisset', emoji: '🐎' },
-  { value: 'chefchaouen', label: 'Chefchaouen', emoji: '💙' },
-  { value: 'alhoceima', label: 'Al Hoceima', emoji: '🌊' },
-]
 
 const QUARTIERS = {
   casablanca: ['Maarif', 'Anfa', 'Ain Diab', 'Hay Hassani', 'Sidi Bernoussi', 'Ain Sebaa', 'Roches Noires', 'Derb Sultan', 'Gauthier', 'Bourgogne', 'Californie', 'Sidi Maarouf', 'Oulfa', 'Habous'],
@@ -96,8 +69,6 @@ export default function Register() {
   const [searchTerm, setSearchTerm] = useState('')
   const [regionFilter, setRegionFilter] = useState('all')
   const [regionSearch, setRegionSearch] = useState('')
-  const [citySuggestions, setCitySuggestions] = useState([])
-  const [regionSuggestions, setRegionSuggestions] = useState([])
   const [deptSuggestions, setDeptSuggestions] = useState([])
   
   const [form, setForm] = useState({
@@ -114,47 +85,16 @@ export default function Register() {
     setStep(2)
   }
 
-  // --- Step 2: City Autocomplete ---
-  const handleCitySearch = (e) => {
-    const val = e.target.value
-    setSearchTerm(val)
-    if (val.length > 0) {
-      const filtered = MOROCCAN_CITIES.filter(c => 
-        c.label.toLowerCase().includes(val.toLowerCase())
-      )
-      setCitySuggestions(filtered)
-    } else {
-      setCitySuggestions([])
-    }
-  }
-
-  const handleCitySelect = (city) => {
-    setForm({ ...form, city: city.value, region: '' })
-    setSearchTerm(city.label)
-    setCitySuggestions([])
-    setStep(3)
-  }
-
   // --- Step 3: Region Autocomplete ---
   const handleRegionSearch = (e) => {
     const val = e.target.value
     setRegionSearch(val)
-    const availableQuartiers = QUARTIERS[form.city] || []
-    if (val.length > 0) {
-      const filtered = availableQuartiers.filter(q => 
-        q.toLowerCase().includes(val.toLowerCase())
-      )
-      setRegionSuggestions(filtered)
-    } else {
-      setRegionSuggestions([])
-    }
     setForm({ ...form, region: val }) // Keep whatever they typed even if no match
   }
 
   const handleRegionSelect = (q) => {
     setForm({ ...form, region: q })
     setRegionSearch(q)
-    setRegionSuggestions([])
   }
 
   // --- Admin: Dept Suggestions ---
@@ -1036,27 +976,4 @@ export default function Register() {
       </main>
     </div>
   )
-}
-
-
-const styles = {
-  container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' },
-  card: { background: 'white', padding: '40px', borderRadius: '16px', width: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
-  title: { textAlign: 'center', marginBottom: '8px', fontSize: '28px', color: '#0f3460', fontWeight: 'bold' },
-  progressBar: { display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '28px' },
-  progressDot: { width: '40px', height: '6px', borderRadius: '3px', transition: 'background 0.3s' },
-  stepTitle: { fontSize: '18px', fontWeight: '600', marginBottom: '20px', color: '#1e293b', textAlign: 'center' },
-  roleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' },
-  roleBtn: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 12px', border: '2px solid #e5e7eb', borderRadius: '12px', background: 'white', cursor: 'pointer', transition: 'all 0.2s', gap: '6px' },
-  roleEmoji: { fontSize: '32px' },
-  roleName: { fontWeight: '700', fontSize: '15px', color: '#1e293b' },
-  roleDesc: { fontSize: '12px', color: '#64748b', textAlign: 'center', lineHeight: '1.4' },
-  searchContainer: { position: 'relative', width: '100%' },
-  suggestionsList: { position: 'absolute', top: 'calc(100% - 14px)', left: 0, right: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '180px', overflowY: 'auto' },
-  suggestionItem: { padding: '10px 12px', cursor: 'pointer', transition: 'background 0.2s', borderBottom: '1px solid #f1f5f9', fontSize: '14px' },
-  input: { width: '100%', padding: '12px', marginBottom: '14px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' },
-  button: { width: '100%', padding: '13px', background: '#0f3460', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' },
-  backBtn: { width: '100%', padding: '10px', background: 'transparent', color: '#64748b', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', marginTop: '4px' },
-  error: { color: 'red', marginBottom: '12px', fontSize: '14px', textAlign: 'center' },
-  loginLink: { textAlign: 'center', marginTop: '16px', fontSize: '14px', color: '#666' },
 }
