@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ToastProvider, ToastContext } from './context/ToastContext.jsx'
 import Toast from './components/Toast.jsx'
 import { useContext } from 'react'
+import HomePage from './pages/HomePage.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
@@ -35,8 +36,10 @@ function RoleRedirect() {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Root: smart redirect based on role */}
-      <Route path="/" element={<RoleRedirect />} />
+      {/* Root: public landing page */}
+      <Route path="/" element={<HomePage />} />
+      {/* Dashboard redirect for authenticated users */}
+      <Route path="/dashboard" element={<RoleRedirect />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/registre" element={<Register />} />

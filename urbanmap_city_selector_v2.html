@@ -1,0 +1,449 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body { background: #0E0B08; }
+
+  .cs-root {
+    font-family: 'DM Sans', sans-serif;
+    background: #0E0B08;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+  }
+  .cs-pattern {
+    position: fixed; inset: 0; opacity: 0.03; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23F2EDE6' stroke-width='0.5'%3E%3Cpolygon points='30,2 58,16 58,44 30,58 2,44 2,16'/%3E%3Cpolygon points='30,10 50,20 50,40 30,50 10,40 10,20'/%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .cs-wrap {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 560px;
+  }
+
+  /* Header */
+  .cs-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 0.5px solid rgba(193,68,14,0.35);
+    border-radius: 100px; padding: 5px 12px;
+    font-size: 10px; color: #C1440E;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: rgba(193,68,14,0.07); margin-bottom: 20px;
+  }
+  .cs-title {
+    font-family: 'Amiri', serif; font-size: 34px;
+    color: #F2EDE6; font-weight: 700; margin-bottom: 8px; line-height: 1.2;
+  }
+  .cs-sub {
+    font-size: 13px; color: rgba(242,237,230,0.4);
+    font-weight: 300; line-height: 1.6; margin-bottom: 28px;
+  }
+
+  /* Search box — command palette style */
+  .cs-search-wrap {
+    position: relative; margin-bottom: 4px;
+  }
+  .cs-search-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: rgba(242,237,230,0.25);
+  }
+  .cs-search {
+    width: 100%;
+    padding: 13px 44px 13px 42px;
+    background: rgba(255,255,255,0.05);
+    border: 0.5px solid rgba(242,237,230,0.2);
+    border-radius: 8px;
+    color: #F2EDE6; font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .cs-search:focus {
+    border-color: rgba(193,68,14,0.6);
+    background: rgba(255,255,255,0.06);
+  }
+  .cs-search::placeholder { color: rgba(242,237,230,0.22); }
+  .cs-kbd {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 10px; color: rgba(242,237,230,0.2);
+    border: 0.5px solid rgba(242,237,230,0.12);
+    border-radius: 3px; padding: 2px 6px; letter-spacing: 0.05em;
+  }
+
+  /* Region tabs */
+  .cs-tabs {
+    display: flex; gap: 6px; margin: 14px 0 10px;
+    flex-wrap: wrap;
+  }
+  .cs-tab {
+    padding: 5px 12px; border-radius: 100px;
+    font-size: 11px; font-family: 'DM Sans', sans-serif;
+    border: 0.5px solid rgba(242,237,230,0.12);
+    color: rgba(242,237,230,0.4);
+    background: transparent; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.03em;
+  }
+  .cs-tab:hover { border-color: rgba(193,68,14,0.4); color: rgba(242,237,230,0.8); }
+  .cs-tab.active {
+    border-color: rgba(193,68,14,0.6);
+    background: rgba(193,68,14,0.1);
+    color: #F2EDE6;
+  }
+
+  /* City list */
+  .cs-list {
+    background: rgba(255,255,255,0.025);
+    border: 0.5px solid rgba(242,237,230,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  .cs-list::-webkit-scrollbar { width: 3px; }
+  .cs-list::-webkit-scrollbar-track { background: transparent; }
+  .cs-list::-webkit-scrollbar-thumb { background: rgba(193,68,14,0.3); border-radius: 2px; }
+
+  .cs-section-label {
+    padding: 8px 16px 6px;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(242,237,230,0.2); font-weight: 500;
+    border-bottom: 0.5px solid rgba(242,237,230,0.05);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .cs-item {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: center; gap: 12px;
+    padding: 13px 16px;
+    cursor: pointer;
+    border-bottom: 0.5px solid rgba(242,237,230,0.04);
+    transition: all 0.15s;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    text-align: left; width: 100%; border-left: none; border-right: none; border-top: none;
+  }
+  .cs-item:last-child { border-bottom: none; }
+  .cs-item:hover { background: rgba(255,255,255,0.03); }
+  .cs-item.selected {
+    background: rgba(193,68,14,0.08);
+    border-bottom-color: rgba(193,68,14,0.1);
+  }
+
+  .cs-item-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; margin: 0 auto;
+  }
+  .cs-item-main {}
+  .cs-item-name {
+    font-size: 13px; font-weight: 500;
+    color: rgba(242,237,230,0.85);
+    margin-bottom: 2px; transition: color 0.15s;
+  }
+  .cs-item.selected .cs-item-name { color: #F2EDE6; }
+  .cs-item-meta {
+    font-size: 11px; color: rgba(242,237,230,0.28);
+    font-weight: 300; display: flex; gap: 10px; align-items: center;
+  }
+  .cs-item-meta span { display: flex; align-items: center; gap: 4px; }
+  .cs-item-right {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;
+  }
+  .cs-item-status {
+    font-size: 10px; padding: 2px 8px; border-radius: 100px;
+    border: 0.5px solid; white-space: nowrap;
+  }
+  .st-active { border-color: rgba(82,190,128,0.4); color: rgba(82,190,128,0.8); background: rgba(82,190,128,0.06); }
+  .st-beta   { border-color: rgba(232,184,122,0.4); color: rgba(232,184,122,0.7); background: rgba(232,184,122,0.06); }
+  .st-soon   { border-color: rgba(242,237,230,0.15); color: rgba(242,237,230,0.3); }
+  .cs-item-check {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 0.5px solid rgba(242,237,230,0.15);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .cs-item.selected .cs-item-check {
+    background: #C1440E; border-color: #C1440E;
+  }
+
+  .cs-empty {
+    padding: 32px; text-align: center;
+    font-size: 13px; color: rgba(242,237,230,0.25);
+  }
+
+  /* Selected city preview */
+  .cs-preview {
+    display: none;
+    margin-top: 10px;
+    border: 0.5px solid rgba(193,68,14,0.35);
+    border-radius: 8px;
+    padding: 14px 18px;
+    background: rgba(193,68,14,0.05);
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .cs-preview.visible { display: flex; }
+  .cs-preview-left { display: flex; align-items: center; gap: 12px; }
+  .cs-preview-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .cs-preview-name { font-size: 14px; font-weight: 500; color: #F2EDE6; }
+  .cs-preview-region { font-size: 11px; color: rgba(242,237,230,0.35); margin-top: 1px; }
+  .cs-preview-clear {
+    font-size: 11px; color: rgba(242,237,230,0.3);
+    cursor: pointer; background: none; border: none;
+    font-family: 'DM Sans', sans-serif; padding: 4px 8px;
+    border-radius: 4px; transition: all 0.2s;
+  }
+  .cs-preview-clear:hover { color: rgba(242,237,230,0.7); background: rgba(255,255,255,0.05); }
+
+  /* Activity bar */
+  .cs-activity-bar {
+    width: 50px; height: 3px; border-radius: 2px; margin-top: 3px;
+  }
+
+  /* Buttons */
+  .cs-actions { margin-top: 20px; display: flex; gap: 10px; }
+  .cs-btn-primary {
+    flex: 1; padding: 13px;
+    background: #C1440E; color: #fff;
+    border: none; border-radius: 6px;
+    font-size: 14px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+    opacity: 0.4; pointer-events: none;
+  }
+  .cs-btn-primary.ready { opacity: 1; pointer-events: all; }
+  .cs-btn-primary.ready:hover { background: #A8380C; }
+  .cs-btn-back {
+    padding: 13px 20px;
+    background: transparent; color: rgba(242,237,230,0.4);
+    border: 0.5px solid rgba(242,237,230,0.12);
+    border-radius: 6px; font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .cs-btn-back:hover { border-color: rgba(242,237,230,0.3); color: rgba(242,237,230,0.7); }
+
+  .cs-results-count {
+    font-size: 11px; color: rgba(242,237,230,0.2);
+    text-align: right; padding: 6px 2px 0;
+    letter-spacing: 0.04em;
+  }
+</style>
+
+<div class="cs-root">
+  <div class="cs-pattern"></div>
+  <div class="cs-wrap">
+
+    <div class="cs-tag">
+      <span style="width:5px;height:5px;background:#C1440E;border-radius:50%;display:inline-block;"></span>
+      Étape 2 sur 3
+    </div>
+    <h2 class="cs-title">Ville d'affectation</h2>
+    <p class="cs-sub">Sélectionnez la ville principale de votre activité. Vous aurez accès aux zones et données de cette ville.</p>
+
+    <!-- Search -->
+    <div class="cs-search-wrap">
+      <svg class="cs-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input class="cs-search" id="csSearch" type="text" placeholder="Rechercher une ville..." oninput="filterCS(this.value)" autocomplete="off" />
+      <span class="cs-kbd">⌘K</span>
+    </div>
+
+    <!-- Region filter tabs -->
+    <div class="cs-tabs" id="csTabs">
+      <button class="cs-tab active" onclick="filterRegion('all',this)">Toutes</button>
+      <button class="cs-tab" onclick="filterRegion('nord',this)">Nord</button>
+      <button class="cs-tab" onclick="filterRegion('centre',this)">Centre</button>
+      <button class="cs-tab" onclick="filterRegion('sud',this)">Sud</button>
+      <button class="cs-tab" onclick="filterRegion('oriental',this)">Oriental</button>
+    </div>
+
+    <!-- Results count -->
+    <div class="cs-results-count" id="csCount">24 villes disponibles</div>
+
+    <!-- City list -->
+    <div class="cs-list" id="csList"></div>
+
+    <!-- Selected preview -->
+    <div class="cs-preview" id="csPreview">
+      <div class="cs-preview-left">
+        <div class="cs-preview-dot" id="previewDot"></div>
+        <div>
+          <div class="cs-preview-name" id="previewName">—</div>
+          <div class="cs-preview-region" id="previewRegion">—</div>
+        </div>
+      </div>
+      <button class="cs-preview-clear" onclick="clearCity()">Changer ×</button>
+    </div>
+
+    <!-- Actions -->
+    <div class="cs-actions">
+      <button class="cs-btn-back">← Retour</button>
+      <button class="cs-btn-primary" id="csNext">Continuer vers l'étape 3 →</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CITIES_DATA = [
+  // Centre-Ouest
+  { v:'casablanca', l:'Casablanca', pop:'3.7M hab.', zones:'18 zones', region:'centre', regionLabel:'Centre-Ouest', status:'active', color:'#1A5276', activity: 85 },
+  { v:'rabat',      l:'Rabat',      pop:'577K hab.', zones:'12 zones', region:'centre', regionLabel:'Centre-Ouest', status:'active', color:'#1A5276', activity: 72 },
+  { v:'mohammedia', l:'Mohammédia', pop:'208K hab.', zones:'6 zones',  region:'centre', regionLabel:'Centre-Ouest', status:'active', color:'#1A5276', activity: 45 },
+  { v:'kenitra',    l:'Kénitra',    pop:'431K hab.', zones:'8 zones',  region:'centre', regionLabel:'Centre-Ouest', status:'beta',   color:'#E8B87A', activity: 30 },
+  // Sud
+  { v:'marrakesh',  l:'Marrakech',  pop:'928K hab.', zones:'14 zones', region:'sud',    regionLabel:'Sud',          status:'active', color:'#C1440E', activity: 91 },
+  { v:'agadir',     l:'Agadir',     pop:'421K hab.', zones:'9 zones',  region:'sud',    regionLabel:'Souss-Massa',  status:'active', color:'#C1440E', activity: 60 },
+  { v:'taroudant',  l:'Taroudant',  pop:'80K hab.',  zones:'3 zones',  region:'sud',    regionLabel:'Souss-Massa',  status:'beta',   color:'#E8B87A', activity: 20 },
+  { v:'laayoune',   l:'Laâyoune',   pop:'217K hab.', zones:'4 zones',  region:'sud',    regionLabel:'Laâyoune-Sakia', status:'beta', color:'#E8B87A', activity: 15 },
+  // Nord
+  { v:'tanger',     l:'Tanger',     pop:'947K hab.', zones:'11 zones', region:'nord',   regionLabel:'Tanger-Tétouan', status:'active', color:'#5DADE2', activity: 68 },
+  { v:'tetouan',    l:'Tétouan',    pop:'380K hab.', zones:'7 zones',  region:'nord',   regionLabel:'Tanger-Tétouan', status:'active', color:'#5DADE2', activity: 42 },
+  { v:'chefchaouen',l:'Chefchaouen',pop:'45K hab.',  zones:'4 zones',  region:'nord',   regionLabel:'Tanger-Tétouan', status:'beta',  color:'#5DADE2', activity: 22 },
+  { v:'alhoceima',  l:'Al Hoceima', pop:'56K hab.',  zones:'3 zones',  region:'nord',   regionLabel:'Tanger-Tétouan', status:'soon',  color:'#5DADE2', activity: 0 },
+  // Centre (Fès / Meknès)
+  { v:'fes',        l:'Fès',        pop:'1.1M hab.', zones:'10 zones', region:'centre', regionLabel:'Fès-Meknès',   status:'active', color:'#E8B87A', activity: 78 },
+  { v:'meknes',     l:'Meknès',     pop:'632K hab.', zones:'8 zones',  region:'centre', regionLabel:'Fès-Meknès',   status:'active', color:'#E8B87A', activity: 55 },
+  { v:'taza',       l:'Taza',       pop:'147K hab.', zones:'3 zones',  region:'centre', regionLabel:'Fès-Meknès',   status:'soon',   color:'#E8B87A', activity: 0 },
+  // Oriental
+  { v:'oujda',      l:'Oujda',      pop:'494K hab.', zones:'7 zones',  region:'oriental',regionLabel:'Oriental',   status:'active', color:'#52BE80', activity: 48 },
+  { v:'nador',      l:'Nador',      pop:'162K hab.', zones:'4 zones',  region:'oriental',regionLabel:'Oriental',   status:'beta',   color:'#52BE80', activity: 18 },
+  // Centre / Settat
+  { v:'eljadida',   l:'El Jadida',  pop:'194K hab.', zones:'5 zones',  region:'centre', regionLabel:'Casablanca-Settat', status:'active', color:'#1A5276', activity: 35 },
+  { v:'settat',     l:'Settat',     pop:'142K hab.', zones:'3 zones',  region:'centre', regionLabel:'Casablanca-Settat', status:'soon',   color:'#1A5276', activity: 0 },
+  { v:'benimellal', l:'Béni Mellal',pop:'192K hab.', zones:'4 zones',  region:'centre', regionLabel:'Béni Mellal-Khénifra', status:'beta', color:'#1A5276', activity: 12 },
+  { v:'khouribga',  l:'Khouribga',  pop:'196K hab.', zones:'3 zones',  region:'centre', regionLabel:'Béni Mellal-Khénifra', status:'soon', color:'#1A5276', activity: 0 },
+  { v:'safi',       l:'Safi',       pop:'308K hab.', zones:'5 zones',  region:'centre', regionLabel:'Marrakech-Safi', status:'beta', color:'#C1440E', activity: 25 },
+  { v:'khemisset',  l:'Khémisset',  pop:'131K hab.', zones:'2 zones',  region:'centre', regionLabel:'Rabat-Salé',  status:'soon',   color:'#1A5276', activity: 0 },
+  { v:'dakhla',     l:'Dakhla',     pop:'106K hab.', zones:'2 zones',  region:'sud',    regionLabel:'Dakhla-Oued',  status:'soon',  color:'#C1440E', activity: 0 },
+];
+
+let selectedCity = null;
+let currentRegion = 'all';
+let currentSearch = '';
+
+const STATUS_LABELS = { active: 'Actif', beta: 'Bêta', soon: 'Bientôt' };
+const STATUS_CLASS  = { active: 'st-active', beta: 'st-beta', soon: 'st-soon' };
+
+function checkMark(selected) {
+  if (!selected) return `<div class="cs-item-check"></div>`;
+  return `<div class="cs-item-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></div>`;
+}
+
+function activityBar(city) {
+  if (city.activity === 0) return '';
+  return `<div class="cs-activity-bar" style="width:${city.activity}%;background:${city.color};opacity:0.5;"></div>`;
+}
+
+function renderList(list) {
+  const el = document.getElementById('csList');
+  if (!list.length) {
+    el.innerHTML = `<div class="cs-empty">Aucune ville trouvée pour "<strong>${currentSearch}</strong>"</div>`;
+    document.getElementById('csCount').textContent = '0 résultats';
+    return;
+  }
+
+  // Group by region
+  const groups = {};
+  list.forEach(c => {
+    if (!groups[c.regionLabel]) groups[c.regionLabel] = [];
+    groups[c.regionLabel].push(c);
+  });
+
+  let html = '';
+  Object.entries(groups).forEach(([region, cities]) => {
+    html += `<div class="cs-section-label">${region}</div>`;
+    cities.forEach(c => {
+      const sel = selectedCity === c.v;
+      html += `
+        <button class="cs-item${sel ? ' selected' : ''}" onclick="selectCity('${c.v}')">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div class="cs-item-dot" style="background:${c.color};"></div>
+          </div>
+          <div class="cs-item-main">
+            <div class="cs-item-name">${c.l}</div>
+            <div class="cs-item-meta">
+              <span>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                ${c.pop}
+              </span>
+              <span>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
+                ${c.zones}
+              </span>
+            </div>
+            ${activityBar(c)}
+          </div>
+          <div class="cs-item-right">
+            <span class="cs-item-status ${STATUS_CLASS[c.status]}">${STATUS_LABELS[c.status]}</span>
+            ${checkMark(sel)}
+          </div>
+        </button>`;
+    });
+  });
+
+  el.innerHTML = html;
+  document.getElementById('csCount').textContent = `${list.length} ville${list.length>1?'s':''} trouvée${list.length>1?'s':''}`;
+}
+
+function getFiltered() {
+  return CITIES_DATA.filter(c => {
+    const matchRegion = currentRegion === 'all' || c.region === currentRegion;
+    const matchSearch = c.l.toLowerCase().includes(currentSearch.toLowerCase());
+    return matchRegion && matchSearch;
+  });
+}
+
+function filterCS(q) {
+  currentSearch = q;
+  renderList(getFiltered());
+}
+
+function filterRegion(r, btn) {
+  currentRegion = r;
+  document.querySelectorAll('.cs-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderList(getFiltered());
+}
+
+function selectCity(v) {
+  selectedCity = selectedCity === v ? null : v;
+  const city = CITIES_DATA.find(c => c.v === selectedCity);
+  
+  // Update preview
+  const preview = document.getElementById('csPreview');
+  const nextBtn = document.getElementById('csNext');
+  if (city) {
+    document.getElementById('previewDot').style.background = city.color;
+    document.getElementById('previewName').textContent = city.l;
+    document.getElementById('previewRegion').textContent = `${city.regionLabel} · ${city.pop} · ${city.zones}`;
+    preview.classList.add('visible');
+    nextBtn.classList.add('ready');
+    nextBtn.textContent = `Continuer avec ${city.l} →`;
+  } else {
+    preview.classList.remove('visible');
+    nextBtn.classList.remove('ready');
+    nextBtn.textContent = 'Continuer vers l\'étape 3 →';
+  }
+  renderList(getFiltered());
+}
+
+function clearCity() {
+  selectedCity = null;
+  document.getElementById('csPreview').classList.remove('visible');
+  const nextBtn = document.getElementById('csNext');
+  nextBtn.classList.remove('ready');
+  nextBtn.textContent = 'Continuer vers l\'étape 3 →';
+  renderList(getFiltered());
+}
+
+renderList(CITIES_DATA);
+</script>
