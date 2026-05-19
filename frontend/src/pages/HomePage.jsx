@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { User, Shield, Compass, Crown } from 'lucide-react'
 
 const R = '#C1440E', G = '#E8B87A', T = '#F2EDE6'
 const amiri = { fontFamily:"'Amiri',serif" }
@@ -232,10 +233,10 @@ function HowItWorks() {
 /* ─── ROLES ─── */
 function Roles() {
   const roles=[
-    {bg:'rgba(193,68,14,0.15)',ic:'#C1440E',emoji:'🗺',name:'Citoyen',desc:"Signalez des problèmes urbains géolocalisés et suivez leur statut en temps réel.",tag:'Accès public',to:'/register'},
-    {bg:'rgba(26,82,118,0.25)',ic:'#5DADE2',emoji:'🛡',name:'Administrateur',desc:"Gérez les zones, modérez les signalements et administrez le territoire assigné.",tag:'Accès restreint',to:null},
-    {bg:'rgba(232,184,122,0.15)',ic:'#E8B87A',emoji:'📊',name:'Urbaniste',desc:"Analysez les heatmaps, synthétisez les données IA et générez des rapports professionnels.",tag:'Professionnel',to:null},
-    {bg:'rgba(39,174,96,0.12)',ic:'#52BE80',emoji:'👑',name:'Super Admin',desc:"Validez les comptes, auditez le système et supervisez l'ensemble de la plateforme.",tag:'Système',to:null},
+    {bg:'rgba(193,68,14,0.15)',ic:'#C1440E',Icon:User,name:'Citoyen',desc:"Signalez des problèmes urbains géolocalisés et suivez leur statut en temps réel.",tag:'Accès public',to:'/register'},
+    {bg:'rgba(26,82,118,0.25)',ic:'#5DADE2',Icon:Shield,name:'Administrateur',desc:"Gérez les zones, modérez les signalements et administrez le territoire assigné.",tag:'Accès restreint',to:null},
+    {bg:'rgba(232,184,122,0.15)',ic:'#E8B87A',Icon:Compass,name:'Urbaniste',desc:"Analysez les heatmaps, synthétisez les données IA et générez des rapports professionnels.",tag:'Professionnel',to:null},
+    {bg:'rgba(39,174,96,0.12)',ic:'#52BE80',Icon:Crown,name:'Super Admin',desc:"Validez les comptes, auditez le système et supervisez l'ensemble de la plateforme.",tag:'Système',to:null},
   ]
   const cardBase={ background:'transparent', border:'0.5px solid rgba(242,237,230,0.1)',
     borderRadius:10, padding:28, cursor:'pointer', transition:'all .18s' }
@@ -246,14 +247,16 @@ function Roles() {
         <p style={{ ...dm, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:R, marginBottom:16 }}>Accès par rôle</p>
         <h2 style={{ ...amiri, fontSize:42, color:T }}>Un outil pour chaque acteur de la ville</h2>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginTop:48 }}>
-          {roles.map(({bg,emoji,name,desc,tag,to})=>{
+          {roles.map(({bg,ic,Icon,name,desc,tag,to})=>{
             const card=(
               <div style={cardBase}
                 onMouseEnter={e=>{ e.currentTarget.style.borderColor='rgba(193,68,14,0.5)'; e.currentTarget.style.background='rgba(193,68,14,0.06)'; e.currentTarget.style.transform='translateY(-3px)' }}
                 onMouseLeave={e=>{ e.currentTarget.style.borderColor='rgba(242,237,230,0.1)'; e.currentTarget.style.background='transparent'; e.currentTarget.style.transform='translateY(0)' }}>
                 <div style={{ width:44, height:44, borderRadius:8, background:bg,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:20, marginBottom:20 }}>{emoji}</div>
+                  marginBottom:20 }}>
+                  <Icon size={20} strokeWidth={1.5} color={ic} />
+                </div>
                 <div style={{ ...dm, fontSize:13, fontWeight:500, color:T, marginBottom:8 }}>{name}</div>
                 <div style={{ ...dm, fontSize:12, color:'rgba(242,237,230,0.42)', lineHeight:1.7, fontWeight:300 }}>{desc}</div>
                 <span style={{ marginTop:16, display:'inline-block', ...dm, fontSize:10,
