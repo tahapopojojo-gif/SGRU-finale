@@ -20,15 +20,15 @@ const CAT_EMOJI = {
 const UrbanBarChartMemo = React.memo(({ data }) => (
   <ResponsiveContainer width="100%" height="100%">
     <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }} role="img" aria-label="Graphique en barres des remarques par catégorie">
-      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
-      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
-      <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(242, 237, 230, 0.08)" />
+      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(242, 237, 230, 0.4)', fontSize: 12 }} />
+      <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(242, 237, 230, 0.4)', fontSize: 12 }} />
+      <Tooltip cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }} contentStyle={{ borderRadius: '8px', border: '0.5px solid rgba(242, 237, 230, 0.08)', background: '#080605', color: '#F2EDE6' }} />
       <Bar dataKey="value" radius={[6, 6, 0, 0]}>
         {data.map((entry, index) => (
           <Cell key={`cell-${index}`} fill={entry.color} />
         ))}
-        <LabelList dataKey="value" position="top" style={{ fill: '#4B5563', fontSize: 12, fontWeight: 'bold' }} />
+        <LabelList dataKey="value" position="top" style={{ fill: '#F2EDE6', fontSize: 12, fontWeight: 'bold' }} />
       </Bar>
     </BarChart>
   </ResponsiveContainer>
@@ -39,15 +39,15 @@ const UrbanAreaChartMemo = React.memo(({ data }) => (
     <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} role="img" aria-label="Graphique d'évolution temporelle des soumissions">
       <defs>
         <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
-          <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+          <stop offset="5%" stopColor="#C1440E" stopOpacity={0.3}/>
+          <stop offset="95%" stopColor="#C1440E" stopOpacity={0}/>
         </linearGradient>
       </defs>
-      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
-      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
-      <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-      <Area type="monotone" dataKey="count" stroke="#6366F1" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" activeDot={{ r: 6, fill: '#6366F1', stroke: 'white', strokeWidth: 2 }} />
+      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(242, 237, 230, 0.08)" />
+      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'rgba(242, 237, 230, 0.4)', fontSize: 12 }} />
+      <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(242, 237, 230, 0.4)', fontSize: 12 }} />
+      <Tooltip contentStyle={{ borderRadius: '8px', border: '0.5px solid rgba(242, 237, 230, 0.08)', background: '#080605', color: '#F2EDE6' }} />
+      <Area type="monotone" dataKey="count" stroke="#C1440E" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" activeDot={{ r: 6, fill: '#C1440E', stroke: '#060403', strokeWidth: 2 }} />
     </AreaChart>
   </ResponsiveContainer>
 ));
@@ -71,8 +71,8 @@ const UrbanPieChartMemo = React.memo(({ data }) => (
           <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
         ))}
       </Pie>
-      <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-      <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" wrapperStyle={{ fontSize: '13px', color: '#4B5563' }} />
+      <Tooltip contentStyle={{ borderRadius: '8px', border: '0.5px solid rgba(242, 237, 230, 0.08)', background: '#080605', color: '#F2EDE6' }} />
+      <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" wrapperStyle={{ fontSize: '13px', color: 'rgba(242, 237, 230, 0.5)' }} />
     </PieChart>
   </ResponsiveContainer>
 ));
@@ -215,36 +215,77 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
   };
 
   const getStyles = (isMobile, isTablet) => ({
-    page: { padding: isMobile ? '16px' : '24px', background: '#F9FAFB', fontFamily: "'Segoe UI', sans-serif", color: '#1e293b' },
+    page: { padding: isMobile ? '16px' : '24px', background: 'transparent', fontFamily: "'DM Sans', sans-serif", color: '#F2EDE6' },
     banner: (color, isSelected) => ({
-      background: isSelected ? 'white' : '#F3F4F6',
+      background: 'rgba(255,255,255,0.03)',
+      border: '0.5px solid rgba(242,237,230,0.08)',
       borderLeft: `4px solid ${color}`,
       padding: isMobile ? '12px 16px' : '16px 24px',
-      borderRadius: '8px',
+      borderRadius: '10px',
       marginBottom: '24px',
-      boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+      boxShadow: 'none'
     }),
-    bannerTitle: { fontSize: isMobile ? '16px' : '18px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#111827' },
-    bannerSubtitle: { fontSize: isMobile ? '12px' : '14px', color: '#6B7280', margin: 0 },
+    bannerTitle: { fontSize: isMobile ? '16px' : '18px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#F2EDE6' },
+    bannerSubtitle: { fontSize: isMobile ? '12px' : '14px', color: 'rgba(242,237,230,0.4)', margin: 0 },
     kpiRow: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '20px', marginBottom: '24px' },
-    kpiCard: { background: 'white', padding: isMobile ? '16px' : '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '16px' },
-    kpiIcon: (bg, color) => ({ width: '48px', height: '48px', borderRadius: '12px', background: bg, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }),
+    kpiCard: {
+      background: 'rgba(255,255,255,0.03)',
+      border: '0.5px solid rgba(242,237,230,0.08)',
+      borderRadius: '10px',
+      padding: '16px',
+      position: 'relative',
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px'
+    },
+    kpiIcon: (bg, color) => ({
+      width: '48px',
+      height: '48px',
+      borderRadius: '12px',
+      background: 'rgba(255, 255, 255, 0.04)',
+      color: '#E8B87A',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '24px'
+    }),
     kpiContent: { flex: 1 },
-    kpiLabel: { fontSize: isMobile ? '11px' : '13px', color: '#6B7280', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' },
-    kpiValue: { fontSize: isMobile ? '20px' : '24px', fontWeight: 'bold', color: '#111827', margin: 0 },
-    chartCard: { background: 'white', borderRadius: '12px', padding: isMobile ? '16px' : '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px' },
+    kpiLabel: {
+      fontSize: '10px',
+      color: 'rgba(242,237,230,0.3)',
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      marginBottom: '8px',
+      fontWeight: '600'
+    },
+    kpiValue: {
+      fontFamily: 'DM Mono, monospace',
+      fontSize: '28px',
+      color: '#E8B87A',
+      fontWeight: 500,
+      lineHeight: 1,
+      margin: 0
+    },
+    chartCard: {
+      background: 'rgba(255,255,255,0.03)',
+      border: '0.5px solid rgba(242,237,230,0.08)',
+      borderRadius: '10px',
+      padding: '16px',
+      marginBottom: '24px'
+    },
     chartHeader: { display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '20px', gap: isMobile ? '12px' : '0' },
-    chartTitle: { fontSize: isMobile ? '16px' : '18px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#111827' },
-    chartSubtitle: { fontSize: isMobile ? '12px' : '14px', color: '#6B7280', margin: 0 },
+    chartTitle: { fontSize: '12px', fontWeight: 500, color: 'rgba(242,237,230,0.7)', marginBottom: '16px', margin: '0 0 16px 0' },
+    chartSubtitle: { fontSize: isMobile ? '11px' : '12px', color: 'rgba(242,237,230,0.4)', margin: 0 },
     bottomRow: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '24px' },
     table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '400px' },
-    th: { padding: '12px 16px', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase' },
-    td: { padding: '12px 16px', borderBottom: '1px solid #F3F4F6', fontSize: '14px', color: '#374151', fontWeight: '500' },
+    th: { padding: '12px 16px', borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)', color: 'rgba(242, 237, 230, 0.4)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase' },
+    td: { padding: '12px 16px', borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)', fontSize: '14px', color: '#F2EDE6', fontWeight: '500' },
     tr: (isHighlighted, color) => ({
       background: isHighlighted ? `${color}20` : 'transparent',
       transition: 'background 0.2s'
     }),
-    badge: (bg, color) => ({ padding: '4px 10px', borderRadius: '20px', background: bg, color, fontSize: '12px', fontWeight: '700' })
+    badge: (bg, color) => ({ padding: '4px 10px', borderRadius: '20px', background: 'rgba(255, 255, 255, 0.04)', border: '0.5px solid rgba(242,237,230,0.12)', color: '#E8B87A', fontSize: '12px', fontWeight: '700' })
   });
 
   const s = useMemo(() => getStyles(isMobile, isTablet), [isMobile, isTablet]);
@@ -292,46 +333,82 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
     <div style={s.page}>
       
       {/* Zone Selector Header */}
-      <div style={s.banner(isZoneSelected ? selectedZone.couleur : '#9CA3AF', isZoneSelected)} role="status" aria-live="polite">
-        <h2 style={s.bannerTitle}><span aria-hidden="true">📊</span> Statistiques — {selectedZoneName}</h2>
-        <p style={s.bannerSubtitle}>
-          {isZoneSelected 
-            ? `${stats.totalRemarks} remarque(s) analysée(s)` 
-            : "Vue globale de toutes les zones (remarques validées)"}
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '0.5px solid rgba(242,237,230,0.07)',
+        borderLeft: '3px solid #C1440E',
+        borderRadius: '8px', padding: '14px 18px',
+        marginBottom: '20px',
+      }} role="status" aria-live="polite">
+        <h3 style={{
+          fontFamily: 'Amiri, serif', fontSize: '18px',
+          color: '#F2EDE6', margin: '0 0 4px 0',
+        }}>
+          📊 Statistiques — {selectedZoneName}
+        </h3>
+        <p style={{
+          fontSize: '12px',
+          color: 'rgba(242,237,230,0.4)',
+          margin: 0,
+        }}>
+          {isZoneSelected
+            ? `${stats.totalRemarks} remarque(s) analysée(s)`
+            : 'Vue globale de toutes les zones (remarques validées)'}
         </p>
       </div>
 
       {/* KPI Indicators Row */}
       <div style={s.kpiRow} role="region" aria-label="Indicateurs clés">
-        <div style={s.kpiCard} role="group" aria-label="Total Remarques">
-          <div style={s.kpiIcon('#DBEAFE', '#1E40AF')} aria-hidden="true">📝</div>
-          <div style={s.kpiContent}>
-            <div style={s.kpiLabel}>Total Remarques</div>
-            <div style={s.kpiValue}>{memoizedStats.totalRemarks}</div>
-          </div>
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.08)',
+          borderRadius: '10px', padding: '16px',
+          position: 'relative', overflow: 'hidden',
+          transition: 'all 0.2s',
+        }} role="group" aria-label="Total Remarques">
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #C1440E, transparent)' }} />
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Total Remarques</div>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '28px', color: '#E8B87A', fontWeight: 500, lineHeight: 1 }}>{memoizedStats.totalRemarks}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>remarques validées</div>
         </div>
-        <div style={s.kpiCard} role="group" aria-label="Cas Urgents">
-          <div style={s.kpiIcon('#FEE2E2', '#991B1B')} aria-hidden="true">🚨</div>
-          <div style={s.kpiContent}>
-            <div style={s.kpiLabel}>Cas Urgents</div>
-            <div style={s.kpiValue}>{memoizedStats.urgentCount}</div>
-          </div>
+
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.08)',
+          borderRadius: '10px', padding: '16px',
+          position: 'relative', overflow: 'hidden',
+          transition: 'all 0.2s',
+        }} role="group" aria-label="Cas Urgents">
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #ef4444, transparent)' }} />
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Cas Urgents</div>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '28px', color: '#E8B87A', fontWeight: 500, lineHeight: 1 }}>{memoizedStats.urgentCount}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>nécessitent attention</div>
         </div>
-        <div style={s.kpiCard} role="group" aria-label="Urgence Moyenne">
-          <div style={s.kpiIcon('#FEF9C3', '#854D0E')} aria-hidden="true">⚡</div>
-          <div style={s.kpiContent}>
-            <div style={s.kpiLabel}>Urgence Moyenne</div>
-            <div style={s.kpiValue}>{memoizedStats.avgUrgency} / 5</div>
-          </div>
+
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.08)',
+          borderRadius: '10px', padding: '16px',
+          position: 'relative', overflow: 'hidden',
+          transition: 'all 0.2s',
+        }} role="group" aria-label="Urgence Moyenne">
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #E8B87A, transparent)' }} />
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Urgence Moyenne</div>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '28px', color: '#E8B87A', fontWeight: 500, lineHeight: 1 }}>{memoizedStats.avgUrgency} / 5</div>
+          <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>indice moyen</div>
         </div>
-        <div style={s.kpiCard} role="group" aria-label="Catégorie Dominante">
-          <div style={s.kpiIcon('#DCFCE7', '#166534')} aria-hidden="true">
-            {CAT_EMOJI[memoizedStats.dominantCategory] || '📌'}
-          </div>
-          <div style={s.kpiContent}>
-            <div style={s.kpiLabel}>Catégorie Dominante</div>
-            <div style={s.kpiValue}>{memoizedStats.dominantCategory}</div>
-          </div>
+
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.08)',
+          borderRadius: '10px', padding: '16px',
+          position: 'relative', overflow: 'hidden',
+          transition: 'all 0.2s',
+        }} role="group" aria-label="Catégorie Dominante">
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #52BE80, transparent)' }} />
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Catégorie Dominante</div>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '28px', color: '#E8B87A', fontWeight: 500, lineHeight: 1 }}>{memoizedStats.dominantCategory}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>catégorie principale</div>
         </div>
       </div>
 
@@ -360,7 +437,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
               onClick={() => setPeriod('week')}
               role="radio"
               aria-checked={period === 'week'}
-              style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', border: period === 'week' ? 'none' : '1px solid #E5E7EB', background: period === 'week' ? '#6366F1' : 'white', color: period === 'week' ? 'white' : '#4B5563' }}
+              style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', border: period === 'week' ? '0.5px solid #C1440E' : '0.5px solid rgba(242,237,230,0.12)', background: period === 'week' ? 'rgba(193,68,14,0.15)' : 'rgba(255,255,255,0.03)', color: period === 'week' ? '#F2EDE6' : 'rgba(242,237,230,0.4)', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
             >
               Semaine
             </button>
@@ -368,7 +445,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
               onClick={() => setPeriod('month')}
               role="radio"
               aria-checked={period === 'month'}
-              style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', border: period === 'month' ? 'none' : '1px solid #E5E7EB', background: period === 'month' ? '#6366F1' : 'white', color: period === 'month' ? 'white' : '#4B5563' }}
+              style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', border: period === 'month' ? '0.5px solid #C1440E' : '0.5px solid rgba(242,237,230,0.12)', background: period === 'month' ? 'rgba(193,68,14,0.15)' : 'rgba(255,255,255,0.03)', color: period === 'month' ? '#F2EDE6' : 'rgba(242,237,230,0.4)', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
             >
               Mois
             </button>

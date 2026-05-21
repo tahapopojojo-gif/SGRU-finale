@@ -32,6 +32,15 @@ function MapController({ center, zoom, bounds, minZoom }) {
   return null;
 }
 
+// Forces Leaflet to recalculate container size after mount
+function InvalidateSize() {
+  const map = useMap();
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 100);
+  }, [map]);
+  return null;
+}
+
 const CAT_EMOJI = {
   hopital: '🏥', ecole: '🏫', parc: '🌳', route: '🛣️', autre: '❓'
 };
@@ -65,13 +74,13 @@ function MapLegend() {
       const div = L.DomUtil.create('div');
       div.setAttribute('role', 'region');
       div.setAttribute('aria-label', 'Légende de la carte');
-      div.style.cssText = 'background:white;padding:10px 14px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);font-size:12px;line-height:1.6;';
+      div.style.cssText = 'background:rgba(8,6,3,0.9);padding:12px 14px;border-radius:8px;border:0.5px solid rgba(242,237,230,0.08);backdrop-filter:blur(8px);font-size:12px;line-height:1.8;';
       div.innerHTML = `
-        <div style="font-weight:700;margin-bottom:6px;color:#374151">Légende</div>
-        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF4444;margin-right:6px;" aria-hidden="true"></span>Urgent</div>
-        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3B82F6;margin-right:6px;" aria-hidden="true"></span>Actif</div>
-        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#F59E0B;margin-right:6px;" aria-hidden="true"></span>Planifié</div>
-        <div style="margin-top:6px;border-top:1px solid #f3f4f6;padding-top:6px;">
+        <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,237,230,0.22);margin-bottom:10px;font-weight:600;">Légende</div>
+        <div style="color:rgba(242,237,230,0.45);font-size:11px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EF4444;margin-right:6px;" aria-hidden="true"></span>Urgent</div>
+        <div style="color:rgba(242,237,230,0.45);font-size:11px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3B82F6;margin-right:6px;" aria-hidden="true"></span>Actif</div>
+        <div style="color:rgba(242,237,230,0.45);font-size:11px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#F59E0B;margin-right:6px;" aria-hidden="true"></span>Planifié</div>
+        <div style="margin-top:8px;border-top:0.5px solid rgba(242,237,230,0.08);padding-top:8px;color:rgba(242,237,230,0.35);font-size:10px;">
           🏥 Hôpital &nbsp; 🏫 École<br/>🌳 Parc &nbsp;&nbsp;&nbsp; 🛣️ Route &nbsp; ❓ Autre
         </div>
       `;
@@ -213,65 +222,89 @@ export default function UrbanCarteTab({ onSwitchTab }) {
   };
 
   const getStyles = (isMobile) => ({
-    page: { fontFamily: "'Segoe UI', sans-serif", color: '#1e293b' },
+    page: { fontFamily: "'DM Sans', sans-serif", color: '#F2EDE6' },
     banner: (color) => ({
       padding: isMobile ? '12px 16px' : '12px 20px',
-      borderRadius: 8,
-      background: 'white',
-      borderLeft: `4px solid ${color || '#6366F1'}`,
+      borderRadius: 10,
+      background: 'rgba(255,255,255,0.03)',
+      border: '0.5px solid rgba(242,237,230,0.08)',
+      borderLeft: `4px solid ${color || '#C1440E'}`,
       marginBottom: 16,
       display: 'flex',
       flexDirection: isMobile ? 'column' : 'row',
       alignItems: isMobile ? 'flex-start' : 'center',
       justifyContent: 'space-between',
       gap: isMobile ? '12px' : '0',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
     }),
-    bannerText: { fontWeight: 600, fontSize: 14, color: '#374151' },
+    bannerText: { fontWeight: 600, fontSize: 14, color: '#F2EDE6' },
     clearBtn: {
-      background: 'transparent', border: '1px solid #e5e7eb',
+      background: 'transparent', border: '0.5px solid rgba(242,237,230,0.12)',
       padding: '8px 12px', borderRadius: 6, cursor: 'pointer',
-      fontSize: 13, fontWeight: 600, color: '#ef4444',
+      fontSize: 13, fontWeight: 500, color: '#ef4444',
       width: isMobile ? '100%' : 'auto',
       minHeight: isMobile ? '48px' : 'auto',
-      display: 'flex', justifyContent: 'center', alignItems: 'center'
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
+      fontFamily: 'DM Sans, sans-serif',
     },
     toggleRow: { display: 'flex', gap: 8, marginBottom: 12 },
     toggleBtn: (active) => ({
       flex: isMobile ? 1 : 'none',
-      padding: isMobile ? '12px 16px' : '8px 20px', 
-      borderRadius: 6, cursor: 'pointer', fontSize: 14, fontWeight: 600,
-      border: active ? '1px solid #6366F1' : '1px solid #e5e7eb',
-      background: active ? '#6366F1' : 'white',
-      color: active ? 'white' : '#374151',
+      padding: '7px 14px',
+      borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 500,
+      border: active ? 'none' : '0.5px solid rgba(242,237,230,0.12)',
+      background: active ? '#C1440E' : 'transparent',
+      color: active ? '#fff' : 'rgba(242,237,230,0.5)',
       transition: 'all 0.2s',
-      minHeight: isMobile ? '48px' : 'auto',
-      display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
+      minHeight: isMobile ? '44px' : 'auto',
+      display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
+      fontFamily: 'DM Sans, sans-serif',
     }),
     mapPanelRow: { display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16 },
-    mapWrapper: { flex: 1, borderRadius: 12, overflow: 'hidden', minHeight: isMobile ? 350 : 500, position: 'relative', width: '100%' },
+    mapWrapper: {
+      flex: 1,
+      width: '100%',
+      height: '420px',
+      borderRadius: '10px',
+      overflow: 'hidden',
+      border: '0.5px solid rgba(242,237,230,0.08)',
+      background: '#080604',
+      position: 'relative',
+    },
     infoPanel: {
-      width: isMobile ? '100%' : 280, flexShrink: 0, background: 'white', borderRadius: 12,
-      padding: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+      width: isMobile ? '100%' : 280,
+      flexShrink: 0,
+      background: 'rgba(255,255,255,0.03)',
+      border: '0.5px solid rgba(242,237,230,0.08)',
+      borderRadius: 10,
+      padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
       boxSizing: 'border-box'
     },
     zoneName: (couleur) => ({
-      fontSize: 20, fontWeight: 900, color: couleur, marginBottom: 4
+      fontSize: 18, fontWeight: 700, color: couleur, marginBottom: 4
     }),
-    statRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f3f4f6' },
-    statLabel: { fontSize: 13, color: '#6b7280', fontWeight: 500 },
-    urgentBadge: { padding: '3px 10px', borderRadius: 20, background: '#FEE2E2', color: '#991B1B', fontSize: 12, fontWeight: 700 },
+    statRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '0.5px solid rgba(242,237,230,0.08)' },
+    statLabel: { fontSize: 13, color: 'rgba(242,237,230,0.4)', fontWeight: 500 },
+    urgentBadge: { padding: '3px 10px', borderRadius: 20, background: 'rgba(193,68,14,0.15)', color: '#C1440E', fontSize: 12, fontWeight: 700, border: '0.5px solid rgba(193,68,14,0.3)' },
     actionBtn: (bg, color) => ({
-      width: '100%', padding: '12px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-      background: bg, color, fontWeight: 700, fontSize: 13, textAlign: 'center',
-      minHeight: isMobile ? '48px' : 'auto',
-      display: 'flex', justifyContent: 'center', alignItems: 'center'
+      width: '100%', padding: '10px 16px', borderRadius: 8,
+      border: '0.5px solid rgba(242,237,230,0.08)',
+      cursor: 'pointer',
+      background: bg, color: color || '#F2EDE6', fontWeight: 500, fontSize: 13, textAlign: 'center',
+      minHeight: isMobile ? '44px' : 'auto',
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
+      fontFamily: 'DM Sans, sans-serif',
     }),
-    instructionPanel: { textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: 12, width: isMobile ? '100%' : 280, boxSizing: 'border-box' },
+    instructionPanel: {
+      textAlign: 'center', padding: '32px 16px',
+      background: 'rgba(255,255,255,0.03)',
+      border: '0.5px solid rgba(242,237,230,0.08)',
+      borderRadius: 10,
+      width: isMobile ? '100%' : 280, boxSizing: 'border-box'
+    },
     popupGrid: { display: 'grid', gap: 4 },
     popupRow: { fontSize: 13 },
-    loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: '#6b7280' },
+    loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'rgba(242,237,230,0.4)' },
   });
 
   const s = useMemo(() => getStyles(isMobile), [isMobile]);
@@ -322,9 +355,10 @@ export default function UrbanCarteTab({ onSwitchTab }) {
             minZoom={cityMinZoom}
             maxBounds={cityBounds}
             maxBoundsViscosity={1.0}
-            style={{ height: '100%', minHeight: isMobile ? 350 : 500, width: '100%', zIndex: 1 }}
+            style={{ width: '100%', height: '100%', zIndex: 1 }}
             scrollWheelZoom={true}
           >
+            <InvalidateSize />
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -383,12 +417,12 @@ export default function UrbanCarteTab({ onSwitchTab }) {
             <>
               <div>
                 <div style={s.zoneName(selectedZone.couleur)}>{selectedZone.nom}</div>
-                <div style={{ fontSize: 12, color: '#9ca3af' }}>Marrakech</div>
+                <div style={{ fontSize: 12, color: 'rgba(242,237,230,0.35)' }}>{selectedZone.ville || 'Marrakech'}</div>
               </div>
 
               <div style={s.statRow}>
                 <span style={s.statLabel}>Total Remarques</span>
-                <span style={{ fontWeight: 800, fontSize: 18, color: '#1e293b' }}>{selectedZone.totalRemarks}</span>
+                <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 600, fontSize: 18, color: '#E8B87A' }}>{selectedZone.totalRemarks}</span>
               </div>
 
               <div style={s.statRow}>
@@ -398,7 +432,7 @@ export default function UrbanCarteTab({ onSwitchTab }) {
 
               <div style={s.statRow}>
                 <span style={s.statLabel}>Catégorie Dom.</span>
-                <span style={{ fontWeight: 700, fontSize: 13 }}>
+                <span style={{ fontWeight: 500, fontSize: 13, color: '#F2EDE6' }}>
                   <span aria-hidden="true">{CAT_EMOJI[selectedZone.dominantCategory?.toLowerCase()] || '📌'}</span> {selectedZone.dominantCategory}
                 </span>
               </div>
@@ -409,27 +443,27 @@ export default function UrbanCarteTab({ onSwitchTab }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-                <button style={s.actionBtn(selectedZone.couleur + '18', selectedZone.couleur)} onClick={() => onSwitchTab && onSwitchTab('statistiques')} aria-label={`Voir les statistiques pour ${selectedZone.nom}`}>
+                <button style={s.actionBtn('rgba(193,68,14,0.15)', '#C1440E')} onClick={() => onSwitchTab && onSwitchTab('statistiques')} aria-label={`Voir les statistiques pour ${selectedZone.nom}`}>
                   Voir les statistiques →
                 </button>
-                <button style={s.actionBtn('#f3f4f6', '#374151')} onClick={clearSelectedZone} aria-label="Désélectionner la zone">
+                <button style={s.actionBtn('transparent', 'rgba(242,237,230,0.4)')} onClick={clearSelectedZone} aria-label="Désélectionner la zone">
                   ✕ Désélectionner
                 </button>
               </div>
             </>
           ) : (
             <div style={s.instructionPanel}>
-              <div style={{ fontSize: 36, marginBottom: 12 }} aria-hidden="true">🗺️</div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#374151', marginBottom: 8 }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }} aria-hidden="true">🗺️</div>
+              <div style={{ fontWeight: 500, fontSize: 14, color: '#F2EDE6', marginBottom: 8 }}>
                 Sélectionnez une zone
               </div>
-              <div style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 12, color: 'rgba(242,237,230,0.4)', lineHeight: 1.5 }}>
                 Cliquez sur une zone colorée sur la carte pour afficher ses détails et filtrer tous les onglets.
               </div>
 
               {/* Zone quick-select list */}
-              <nav style={{ marginTop: 20, textAlign: 'left' }} aria-label="Sélection rapide de zone">
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+              <nav style={{ marginTop: 14, textAlign: 'left' }} aria-label="Sélection rapide de zone">
+                <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(242,237,230,0.22)', margin: '14px 0 8px', fontWeight: 600 }}>
                   Zones disponibles
                 </div>
                 {zones.map(z => (
@@ -439,17 +473,20 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                     aria-label={`Sélectionner la zone ${z.nom}, ${z.totalRemarks} remarques`}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
-                      width: '100%', padding: '8px 12px', borderRadius: 6,
-                      border: '1px solid #f3f4f6', background: 'white', cursor: 'pointer',
-                      marginBottom: 6, textAlign: 'left', fontSize: 13, fontWeight: 600,
-                      color: '#374151',
+                      width: '100%', padding: '6px 0',
+                      border: 'none',
+                      borderBottom: '0.5px solid rgba(242,237,230,0.05)',
+                      background: 'transparent', cursor: 'pointer',
+                      textAlign: 'left', fontSize: 12, fontWeight: 400,
+                      color: 'rgba(242,237,230,0.6)',
+                      fontFamily: 'DM Sans, sans-serif',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                    onMouseEnter={e => e.currentTarget.style.color = '#F2EDE6'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(242,237,230,0.6)'}
                   >
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: z.couleur, flexShrink: 0 }} aria-hidden="true"></span>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: z.couleur, flexShrink: 0 }} aria-hidden="true"></span>
                     {z.nom}
-                    <span style={{ marginLeft: 'auto', color: '#9ca3af', fontWeight: 400 }}>{z.totalRemarks}</span>
+                    <span style={{ marginLeft: 'auto', color: 'rgba(242,237,230,0.3)', fontFamily: 'DM Mono, monospace', fontSize: 11 }}>{z.totalRemarks}</span>
                   </button>
                 ))}
               </nav>

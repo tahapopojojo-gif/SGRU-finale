@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
             [
                 'nom' => 'Gueliz',
                 'ville' => 'Marrakesh',
-                'couleur' => '#3b82f6',
+                'couleur' => '#C1440E',
                 'coordonnees_geojson' => json_encode([[31.635, -8.01], [31.635, -8.00], [31.625, -8.00], [31.625, -8.01]]),
                 'centre_lat' => 31.6300000,
                 'centre_lng' => -8.0050000,
@@ -49,7 +49,7 @@ class DatabaseSeeder extends Seeder
             [
                 'nom' => 'Medina',
                 'ville' => 'Marrakesh',
-                'couleur' => '#ef4444',
+                'couleur' => '#1A5276',
                 'coordonnees_geojson' => json_encode([[31.635, -7.995], [31.635, -7.98], [31.625, -7.98], [31.625, -7.995]]),
                 'centre_lat' => 31.6300000,
                 'centre_lng' => -7.9870000,

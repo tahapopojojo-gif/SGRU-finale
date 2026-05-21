@@ -1,0 +1,501 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .lg-root {
+    font-family: 'DM Sans', sans-serif;
+    background: #0E0B08;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 480px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── LEFT: Ambient map panel ── */
+  .lg-ambient {
+    position: relative;
+    overflow: hidden;
+    background: #080604;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 48px;
+  }
+
+  /* zellige overlay */
+  .lg-ambient::before {
+    content: '';
+    position: absolute; inset: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23F2EDE6' stroke-width='0.5'%3E%3Cpolygon points='30,2 58,16 58,44 30,58 2,44 2,16'/%3E%3Cpolygon points='30,10 50,20 50,40 30,50 10,40 10,20'/%3E%3Cline x1='30' y1='2' x2='30' y2='10'/%3E%3Cline x1='58' y1='16' x2='50' y2='20'/%3E%3Cline x1='58' y1='44' x2='50' y2='40'/%3E%3Cline x1='30' y1='58' x2='30' y2='50'/%3E%3Cline x1='2' y1='44' x2='10' y2='40'/%3E%3Cline x1='2' y1='16' x2='10' y2='20'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* gradient vignette over map */
+  .lg-ambient::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(8,6,4,0.3) 0%, transparent 50%, rgba(8,6,4,0.6) 100%);
+    pointer-events: none;
+  }
+
+  .lg-map-svg {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+  }
+
+  .lg-ambient-top { position: relative; z-index: 2; }
+  .lg-ambient-bottom { position: relative; z-index: 2; }
+
+  .lg-brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Amiri', serif; font-size: 20px; color: #E8B87A;
+  }
+  .lg-brand-dot {
+    width: 8px; height: 8px; background: #C1440E; border-radius: 50%;
+    animation: blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+
+  .lg-tagline {
+    font-family: 'Amiri', serif;
+    font-size: 52px; line-height: 1.1; font-weight: 700;
+    color: #F2EDE6; margin-bottom: 16px;
+  }
+  .lg-tagline span { color: #C1440E; }
+  .lg-tagline-sub {
+    font-size: 14px; color: rgba(242,237,230,0.45);
+    font-weight: 300; line-height: 1.7; max-width: 380px;
+  }
+
+  /* Live stats strip */
+  .lg-stats {
+    display: flex; gap: 0;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(242,237,230,0.08);
+    border-radius: 8px; overflow: hidden;
+  }
+  .lg-stat {
+    flex: 1; padding: 14px 18px;
+    border-right: 0.5px solid rgba(242,237,230,0.06);
+  }
+  .lg-stat:last-child { border-right: none; }
+  .lg-stat-num {
+    font-family: 'Amiri', serif; font-size: 24px;
+    color: #E8B87A; line-height: 1;
+  }
+  .lg-stat-lbl { font-size: 10px; color: rgba(242,237,230,0.3); margin-top: 3px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  /* Live indicator */
+  .lg-live {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 11px; color: rgba(242,237,230,0.35);
+    letter-spacing: 0.06em; margin-bottom: 16px;
+  }
+  .lg-live-dot {
+    width: 6px; height: 6px; background: #52BE80; border-radius: 50%;
+    animation: blink 1.5s infinite;
+  }
+
+  /* ── RIGHT: Login form ── */
+  .lg-form-panel {
+    background: #0E0B08;
+    border-left: 0.5px solid rgba(242,237,230,0.07);
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 56px 48px;
+    position: relative; z-index: 1;
+  }
+
+  /* zellige on right panel too */
+  .lg-form-panel::before {
+    content: '';
+    position: absolute; inset: 0; opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23F2EDE6' stroke-width='0.5'%3E%3Cpolygon points='30,2 58,16 58,44 30,58 2,44 2,16'/%3E%3Cpolygon points='30,10 50,20 50,40 30,50 10,40 10,20'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  .lg-form-inner { position: relative; z-index: 1; }
+
+  .lg-form-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 0.5px solid rgba(193,68,14,0.35);
+    border-radius: 100px; padding: 5px 12px;
+    font-size: 10px; color: #C1440E;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: rgba(193,68,14,0.07); margin-bottom: 20px;
+  }
+  .lg-form-title {
+    font-family: 'Amiri', serif; font-size: 30px;
+    color: #F2EDE6; font-weight: 700; margin-bottom: 6px;
+  }
+  .lg-form-sub {
+    font-size: 13px; color: rgba(242,237,230,0.38);
+    font-weight: 300; margin-bottom: 36px; line-height: 1.6;
+  }
+
+  /* Role pills */
+  .lg-role-pills {
+    display: flex; gap: 6px; margin-bottom: 28px;
+  }
+  .lg-role-pill {
+    flex: 1; padding: 7px 10px; text-align: center;
+    border: 0.5px solid rgba(242,237,230,0.1);
+    border-radius: 6px; font-size: 11px;
+    color: rgba(242,237,230,0.35);
+    background: transparent; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .lg-role-pill:hover { border-color: rgba(193,68,14,0.4); color: rgba(242,237,230,0.7); }
+  .lg-role-pill.active {
+    border-color: rgba(193,68,14,0.6);
+    background: rgba(193,68,14,0.1);
+    color: #F2EDE6;
+  }
+  .lg-role-pill-icon { font-size: 14px; display: block; margin-bottom: 3px; }
+
+  /* Field */
+  .lg-field { margin-bottom: 16px; }
+  .lg-field-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 7px;
+  }
+  .lg-field-label {
+    font-size: 11px; letter-spacing: 0.07em;
+    text-transform: uppercase; color: rgba(242,237,230,0.4);
+  }
+  .lg-field-link {
+    font-size: 11px; color: rgba(193,68,14,0.8);
+    cursor: pointer; text-decoration: none;
+    transition: color 0.2s;
+  }
+  .lg-field-link:hover { color: #C1440E; }
+
+  .lg-input-wrap { position: relative; }
+  .lg-input-icon {
+    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    color: rgba(242,237,230,0.2); pointer-events: none;
+  }
+  .lg-input {
+    width: 100%; padding: 11px 14px 11px 40px;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(242,237,230,0.14);
+    border-radius: 6px; color: #F2EDE6; font-size: 13px;
+    font-family: 'DM Sans', sans-serif; outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .lg-input:focus {
+    border-color: rgba(193,68,14,0.55);
+    background: rgba(255,255,255,0.055);
+  }
+  .lg-input::placeholder { color: rgba(242,237,230,0.18); }
+
+  /* show/hide password toggle */
+  .lg-eye {
+    position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+    color: rgba(242,237,230,0.2); cursor: pointer; transition: color 0.2s;
+  }
+  .lg-eye:hover { color: rgba(242,237,230,0.5); }
+
+  /* Error */
+  .lg-error {
+    display: flex; align-items: flex-start; gap: 9px;
+    background: rgba(220,38,38,0.08);
+    border: 0.5px solid rgba(220,38,38,0.3);
+    border-radius: 6px; padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 12px; color: rgba(252,165,165,0.9); line-height: 1.5;
+  }
+  .lg-error-icon { flex-shrink: 0; margin-top: 1px; }
+
+  /* Submit */
+  .lg-submit {
+    width: 100%; padding: 13px;
+    background: #C1440E; color: #fff;
+    border: none; border-radius: 6px;
+    font-size: 14px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer; letter-spacing: 0.02em;
+    transition: all 0.2s; margin-top: 6px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .lg-submit:hover { background: #A8380C; }
+  .lg-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Loading dots */
+  .lg-loading { display: inline-flex; gap: 4px; }
+  .lg-loading span {
+    width: 5px; height: 5px; border-radius: 50%; background: #fff;
+    animation: ldot 0.9s infinite;
+  }
+  .lg-loading span:nth-child(2) { animation-delay: 0.15s; }
+  .lg-loading span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes ldot { 0%,100%{opacity:0.3;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+
+  /* Divider */
+  .lg-divider {
+    display: flex; align-items: center; gap: 12px; margin: 20px 0;
+  }
+  .lg-divider-line { flex: 1; height: 0.5px; background: rgba(242,237,230,0.07); }
+  .lg-divider-text { font-size: 11px; color: rgba(242,237,230,0.2); white-space: nowrap; }
+
+  /* Footer */
+  .lg-form-footer {
+    margin-top: 24px; text-align: center;
+    font-size: 12px; color: rgba(242,237,230,0.28); line-height: 1.6;
+  }
+  .lg-form-footer a { color: #E8B87A; text-decoration: none; font-weight: 500; }
+  .lg-form-footer a:hover { color: #F2EDE6; }
+
+  /* Security note */
+  .lg-security {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 11px; color: rgba(242,237,230,0.18);
+    margin-top: 16px;
+  }
+
+  /* Pending badge */
+  .lg-pending-badge {
+    display: none;
+    align-items: center; gap: 8px;
+    background: rgba(245,158,11,0.07);
+    border: 0.5px solid rgba(245,158,11,0.25);
+    border-radius: 6px; padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 12px; color: rgba(245,158,11,0.8); line-height: 1.5;
+  }
+  .lg-pending-badge.visible { display: flex; }
+</style>
+
+<div class="lg-root">
+
+  <!-- LEFT: Ambient Map Panel -->
+  <div class="lg-ambient">
+    <!-- Background SVG map -->
+    <svg class="lg-map-svg" viewBox="0 0 700 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <!-- base dark -->
+      <rect width="700" height="900" fill="#060403"/>
+      <!-- street grid faint -->
+      <g stroke="#120E09" stroke-width="0.8" opacity="0.8">
+        <line x1="0" y1="100" x2="700" y2="100"/><line x1="0" y1="200" x2="700" y2="200"/>
+        <line x1="0" y1="300" x2="700" y2="300"/><line x1="0" y1="400" x2="700" y2="400"/>
+        <line x1="0" y1="500" x2="700" y2="500"/><line x1="0" y1="600" x2="700" y2="600"/>
+        <line x1="0" y1="700" x2="700" y2="700"/><line x1="0" y1="800" x2="700" y2="800"/>
+        <line x1="100" y1="0" x2="100" y2="900"/><line x1="200" y1="0" x2="200" y2="900"/>
+        <line x1="300" y1="0" x2="300" y2="900"/><line x1="400" y1="0" x2="400" y2="900"/>
+        <line x1="500" y1="0" x2="500" y2="900"/><line x1="600" y1="0" x2="600" y2="900"/>
+        <!-- diagonal streets -->
+        <line x1="0" y1="0" x2="700" y2="700" opacity="0.4"/>
+        <line x1="0" y1="200" x2="500" y2="700" opacity="0.3"/>
+        <line x1="200" y1="0" x2="700" y2="500" opacity="0.3"/>
+      </g>
+      <!-- Zone polygons -->
+      <polygon points="120,180 280,150 320,300 140,330" fill="rgba(193,68,14,0.18)" stroke="#C1440E" stroke-width="1.5" opacity="0.9"/>
+      <polygon points="300,160 460,140 500,280 320,310" fill="rgba(26,82,118,0.18)" stroke="#1A5276" stroke-width="1.5" opacity="0.9"/>
+      <polygon points="130,350 290,320 310,460 110,480" fill="rgba(232,184,122,0.14)" stroke="#E8B87A" stroke-width="1" opacity="0.8"/>
+      <polygon points="400,300 560,270 590,420 370,450" fill="rgba(82,190,128,0.12)" stroke="#52BE80" stroke-width="1" opacity="0.7"/>
+      <polygon points="180,500 360,475 380,600 155,625" fill="rgba(193,68,14,0.1)" stroke="#C1440E" stroke-width="0.8" opacity="0.6"/>
+      <polygon points="420,480 580,450 600,570 400,600" fill="rgba(26,82,118,0.1)" stroke="#1A5276" stroke-width="0.8" opacity="0.5"/>
+      <!-- Glow markers -->
+      <circle cx="220" cy="245" r="5" fill="#C1440E" opacity="1"/>
+      <circle cx="220" cy="245" r="12" fill="#C1440E" opacity="0.15"/>
+      <circle cx="220" cy="245" r="20" fill="#C1440E" opacity="0.06"/>
+      <circle cx="400" cy="215" r="4" fill="#5DADE2" opacity="0.9"/>
+      <circle cx="400" cy="215" r="10" fill="#5DADE2" opacity="0.12"/>
+      <circle cx="220" cy="395" r="3" fill="#E8B87A" opacity="0.8"/>
+      <circle cx="490" cy="365" r="4" fill="#52BE80" opacity="0.8"/>
+      <circle cx="490" cy="365" r="9" fill="#52BE80" opacity="0.1"/>
+      <circle cx="280" cy="545" r="3" fill="#C1440E" opacity="0.6"/>
+      <circle cx="510" cy="520" r="3" fill="#1A5276" opacity="0.6"/>
+      <!-- Zone labels -->
+      <text x="215" y="242" text-anchor="middle" fill="#C1440E" font-size="9" font-family="DM Sans" opacity="0.8">Gueliz</text>
+      <text x="400" y="212" text-anchor="middle" fill="#5DADE2" font-size="9" font-family="DM Sans" opacity="0.8">Médina</text>
+      <text x="220" y="392" text-anchor="middle" fill="#E8B87A" font-size="9" font-family="DM Sans" opacity="0.7">Hivernage</text>
+      <text x="490" y="362" text-anchor="middle" fill="#52BE80" font-size="9" font-family="DM Sans" opacity="0.7">Palmeraie</text>
+      <!-- compass -->
+      <g transform="translate(648,52)">
+        <circle r="18" fill="rgba(6,4,3,0.8)" stroke="rgba(242,237,230,0.12)" stroke-width="0.5"/>
+        <text y="4" text-anchor="middle" fill="#E8B87A" font-size="10" font-family="DM Sans" font-weight="500">N</text>
+      </g>
+    </svg>
+
+    <!-- Top: brand -->
+    <div class="lg-ambient-top">
+      <div class="lg-brand">
+        <div class="lg-brand-dot"></div>
+        UrbanMap <span style="opacity:0.35;margin:0 8px;">|</span> المغرب
+      </div>
+    </div>
+
+    <!-- Bottom: tagline + stats -->
+    <div class="lg-ambient-bottom">
+      <div class="lg-live">
+        <div class="lg-live-dot"></div>
+        Plateforme active — Marrakech, Casablanca, Rabat
+      </div>
+      <h2 class="lg-tagline">La ville,<br>en temps<br><span>réel.</span></h2>
+      <p class="lg-tagline-sub">Données cartographiques citoyennes, analyses IA et planification urbaine intégrée pour le Maroc.</p>
+      <div style="height:28px;"></div>
+      <div class="lg-stats">
+        <div class="lg-stat">
+          <div class="lg-stat-num">1,240</div>
+          <div class="lg-stat-lbl">Citoyens</div>
+        </div>
+        <div class="lg-stat">
+          <div class="lg-stat-num">486</div>
+          <div class="lg-stat-lbl">Signalements</div>
+        </div>
+        <div class="lg-stat">
+          <div class="lg-stat-num">38</div>
+          <div class="lg-stat-lbl">Zones</div>
+        </div>
+        <div class="lg-stat">
+          <div class="lg-stat-num">3</div>
+          <div class="lg-stat-lbl">Villes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Login Form -->
+  <div class="lg-form-panel">
+    <div class="lg-form-inner">
+
+      <div class="lg-form-tag">
+        <span style="width:5px;height:5px;background:#C1440E;border-radius:50%;display:inline-block;"></span>
+        Connexion sécurisée
+      </div>
+      <h2 class="lg-form-title">Bon retour.</h2>
+      <p class="lg-form-sub">Connectez-vous pour accéder à votre espace et reprendre là où vous vous étiez arrêté.</p>
+
+      <!-- Role selector -->
+      <div class="lg-role-pills">
+        <button class="lg-role-pill active" onclick="selectRole(this,'citoyen')">
+          <span class="lg-role-pill-icon">🇲🇦</span>Citoyen
+        </button>
+        <button class="lg-role-pill" onclick="selectRole(this,'urbaniste')">
+          <span class="lg-role-pill-icon">📐</span>Urbaniste
+        </button>
+        <button class="lg-role-pill" onclick="selectRole(this,'admin')">
+          <span class="lg-role-pill-icon">🏛️</span>Admin
+        </button>
+      </div>
+
+      <!-- Pending warning for pro roles -->
+      <div class="lg-pending-badge" id="pendingBadge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;color:rgba(245,158,11,0.8)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Accès soumis à validation Super Admin. Votre compte doit être activé avant de pouvoir vous connecter.
+      </div>
+
+      <!-- Error -->
+      <div class="lg-error" id="lgError" style="display:none;">
+        <svg class="lg-error-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <span id="lgErrorText">Email ou mot de passe incorrect. Veuillez réessayer.</span>
+      </div>
+
+      <!-- Email -->
+      <div class="lg-field">
+        <div class="lg-field-head">
+          <label class="lg-field-label">Email</label>
+        </div>
+        <div class="lg-input-wrap">
+          <svg class="lg-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <input class="lg-input" type="email" placeholder="vous@exemple.ma" id="lgEmail" />
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="lg-field">
+        <div class="lg-field-head">
+          <label class="lg-field-label">Mot de passe</label>
+          <a class="lg-field-link" href="#">Mot de passe oublié ?</a>
+        </div>
+        <div class="lg-input-wrap">
+          <svg class="lg-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input class="lg-input" type="password" placeholder="••••••••" id="lgPwd" />
+          <svg class="lg-eye" id="lgEye" onclick="togglePwd()" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button class="lg-submit" id="lgSubmit" onclick="handleLogin()">
+        <span id="lgBtnText">Se connecter</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="lgArrow"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+
+      <div class="lg-divider">
+        <div class="lg-divider-line"></div>
+        <span class="lg-divider-text">pas encore de compte ?</span>
+        <div class="lg-divider-line"></div>
+      </div>
+
+      <div class="lg-form-footer">
+        <a href="#" onclick="sendPrompt('Design the Register page for UrbanMap Maroc')">Créer un compte →</a>
+      </div>
+
+      <div class="lg-security">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Connexion chiffrée · Laravel Sanctum · TLS 1.3
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let showPwd = false;
+let currentRole = 'citoyen';
+let isLoading = false;
+
+function selectRole(btn, role) {
+  currentRole = role;
+  document.querySelectorAll('.lg-role-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const badge = document.getElementById('pendingBadge');
+  badge.classList.toggle('visible', role !== 'citoyen');
+}
+
+function togglePwd() {
+  showPwd = !showPwd;
+  const input = document.getElementById('lgPwd');
+  input.type = showPwd ? 'text' : 'password';
+  const eye = document.getElementById('lgEye');
+  eye.style.color = showPwd ? 'rgba(193,68,14,0.6)' : 'rgba(242,237,230,0.2)';
+}
+
+function handleLogin() {
+  if (isLoading) return;
+  const email = document.getElementById('lgEmail').value;
+  const pwd = document.getElementById('lgPwd').value;
+  const errEl = document.getElementById('lgError');
+  
+  errEl.style.display = 'none';
+  
+  if (!email || !pwd) {
+    document.getElementById('lgErrorText').textContent = 'Veuillez remplir tous les champs.';
+    errEl.style.display = 'flex';
+    return;
+  }
+
+  // Simulate loading
+  isLoading = true;
+  const btn = document.getElementById('lgSubmit');
+  const txt = document.getElementById('lgBtnText');
+  const arrow = document.getElementById('lgArrow');
+  btn.disabled = true;
+  arrow.style.display = 'none';
+  txt.innerHTML = '<span class="lg-loading"><span></span><span></span><span></span></span>';
+
+  setTimeout(() => {
+    isLoading = false;
+    btn.disabled = false;
+    arrow.style.display = 'block';
+    txt.textContent = 'Se connecter';
+    // Show fake error for demo
+    document.getElementById('lgErrorText').textContent = 'Email ou mot de passe incorrect. Veuillez réessayer.';
+    errEl.style.display = 'flex';
+  }, 1800);
+}
+</script>

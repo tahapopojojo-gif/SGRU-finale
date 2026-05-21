@@ -6,6 +6,7 @@ import SkeletonTable from '../SkeletonTable.jsx';
 import EmptyState from '../EmptyState.jsx';
 import { useAuth } from '../../context/AuthContext';
 import { unwrap } from '../../utils/unwrap';
+import { AiCard, StatusBadge } from './UDComponents';
 
 const CAT_EMOJI = {
   hopital: '🏥', ecole: '🏫', parc: '🌳', route: '🛣️', autre: '❓'
@@ -41,11 +42,13 @@ export default function UrbanOpinionsTab() {
   const { selectedZone, selectedZoneName, isZoneSelected } = useUrbanZone();
   const { user } = useAuth();
   const userCity = user?.city || null;
-  const [opinions, setOpinions] = useState([]);
+  let [opinions, setOpinions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('');
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'urgency'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   // --- Zone Summary State ---
   const [zoneSummary, setZoneSummary] = useState(null);
@@ -186,6 +189,22 @@ export default function UrbanOpinionsTab() {
     : 0;
   const urgentCount = opinions.filter(o => o.urgency >= 4).length;
 
+  const aiSummary = zoneSummary;
+  const displayedOpinions = (opinions || []).filter(op => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const text = (op.opinion || op.description || '').toLowerCase();
+      const cat = (op.categorie || '').toLowerCase();
+      const zone = (op.zone_nom || '').toLowerCase();
+      if (!text.includes(q) && !cat.includes(q) && !zone.includes(q)) return false;
+    }
+    if (filterStatus && filterStatus !== 'all') {
+      if (op.statut !== filterStatus) return false;
+    }
+    return true;
+  });
+  opinions = displayedOpinions;
+
   if (loading) {
     return (
       <div style={{padding: '24px'}}>
@@ -195,200 +214,112 @@ export default function UrbanOpinionsTab() {
   }
 
   return (
-    <div style={s.page}>
-      
-      {/* Banner */}
-      <div style={s.banner} role="status" aria-live="polite">
-        <h2 style={s.bannerTitle}><span aria-hidden="true">💬</span> Opinions Citoyennes — {selectedZoneName}</h2>
-        <p style={s.bannerSub}>
-          {isZoneSelected
-            ? `Opinions recueillies dans la zone ${selectedZone.nom}`
-            : 'Vue globale — toutes les zones'}
-        </p>
-      </div>
-
-      {/* Zone AI Summary Card — only when a zone is selected */}
-      {isZoneSelected && (
-        <section
-          aria-label={`Synthèse IA pour ${selectedZoneName}`}
-          style={{
-            background: 'white',
-            borderLeft: `4px solid ${selectedZone?.couleur || '#6366F1'}`,
-            padding: '20px',
-            borderRadius: 8,
-            marginBottom: 24,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-          }}>
-          {/* Summary card header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>
-              <span aria-hidden="true">🤖</span> Synthèse IA — {selectedZoneName}
-            </span>
-            {summaryGeneratedAt && (
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>
-                Générée le {new Date(summaryGeneratedAt).toLocaleDateString('fr-FR', {
-                  day: '2-digit', month: 'short', year: 'numeric'
-                })}
-              </span>
-            )}
-          </div>
-
-          {/* Loading state */}
-          {summaryLoading && (
-            <div style={{ marginTop: 14 }} aria-live="polite" role="status">
-              <div style={{
-                background: '#E5E7EB', height: 16, borderRadius: 4,
-                width: '100%', opacity: 0.6
-              }} aria-hidden="true" />
-              <p style={{ color: '#9CA3AF', fontStyle: 'italic', fontSize: 13, marginTop: 8 }}>
-                <span aria-hidden="true">⏳</span> Génération en cours...
-              </p>
-            </div>
-          )}
-
-          {/* Summary text */}
-          {!summaryLoading && zoneSummary && (
-            <>
-              <p style={{ color: '#374151', fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>
-                {zoneSummary}
-              </p>
-              {summaryError && (
-                <p role="alert" style={{ color: '#EF4444', fontSize: 13, marginTop: 8 }}>
-                  ❌ Impossible de générer la synthèse. Réessayez.
-                </p>
-              )}
-              <button
-                onClick={handleGenerateSummary}
-                aria-label="Régénérer la synthèse IA"
-                style={{
-                  marginTop: 12, padding: '6px 14px', fontSize: 13, fontWeight: 600,
-                  borderRadius: 6, border: '1px solid #D1D5DB', background: 'white',
-                  color: '#374151', cursor: 'pointer'
-                }}
-              >
-                <span aria-hidden="true">🔄</span> Régénérer
-              </button>
-            </>
-          )}
-
-          {/* No summary yet */}
-          {!summaryLoading && !zoneSummary && (
-            <div style={{ marginTop: 12 }}>
-              {summaryError && (
-                <p role="alert" style={{ color: '#EF4444', fontSize: 13, marginBottom: 8 }}>
-                  ❌ Impossible de générer la synthèse. Réessayez.
-                </p>
-              )}
-              {!summaryError && (
-                <p style={{ color: '#9CA3AF', fontStyle: 'italic', fontSize: 14, marginBottom: 12 }}>
-                  Aucune synthèse générée pour cette zone.
-                </p>
-              )}
-              <button
-                onClick={handleGenerateSummary}
-                aria-label="Générer la synthèse IA pour cette zone"
-                style={{
-                  padding: '8px 16px', background: '#6366F1', color: 'white',
-                  border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                <span aria-hidden="true">✨</span> Générer la synthèse IA
-              </button>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Quick Stats */}
-      <div style={s.statsRow} role="region" aria-label="Statistiques rapides des opinions">
-        <div style={s.statCard}>
-          <span style={s.statNum}>{opinions.length}</span>
-          <span style={s.statLabel}>Opinions recueillies</span>
-        </div>
-        <div style={s.statCard}>
-          <span style={{ ...s.statNum, color: '#EF4444' }}>{urgentCount}</span>
-          <span style={s.statLabel}>Urgence élevée (≥4)</span>
-        </div>
-        <div style={s.statCard}>
-          <span style={{ ...s.statNum, color: '#6366F1' }}>{avgUrgency}</span>
-          <span style={s.statLabel}>Urgence moyenne / 5</span>
-        </div>
-      </div>
-
-      {/* Toolbar: search, category filter, sort */}
-      <div style={s.toolbar} role="search" aria-label="Filtres et recherche d'opinions">
-        <label htmlFor="opinion-search" className="sr-only" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>Rechercher une opinion</label>
+    <div>
+      {/* Filter row */}
+      <div style={{
+        display: 'flex', gap: '6px', marginBottom: '16px',
+        flexWrap: 'wrap', alignItems: 'center',
+      }}>
         <input
-          id="opinion-search"
           type="text"
-          placeholder="🔍 Rechercher une opinion..."
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
-          style={s.input}
-          aria-label="Rechercher une opinion"
+          placeholder="🔍  Chercher dans les opinions..."
+          value={searchQuery || ''}
+          onChange={e => setSearchQuery && setSearchQuery(e.target.value)}
+          style={{
+            padding: '6px 12px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '0.5px solid rgba(242,237,230,0.12)',
+            borderRadius: '6px', color: '#F2EDE6', fontSize: '12px',
+            fontFamily: 'DM Sans, sans-serif', outline: 'none',
+            flex: 1, minWidth: '180px', maxWidth: '260px',
+          }}
+          onFocus={e => e.target.style.borderColor = 'rgba(193,68,14,0.45)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(242,237,230,0.12)'}
         />
-        <label htmlFor="opinion-category-filter" className="sr-only" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>Filtrer par catégorie</label>
-        <select id="opinion-category-filter" value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={s.select} aria-label="Filtrer par catégorie">
-          <option value="">Toutes les catégories</option>
-          {categories.map(c => (
-            <option key={c} value={c}>{CAT_EMOJI[c]} {CAT_LABEL[c]}</option>
-          ))}
-        </select>
-        <div style={{ display: 'flex', gap: 6 }} role="radiogroup" aria-label="Trier les opinions par">
-          <button style={s.sortBtn(sortBy === 'date')} onClick={() => setSortBy('date')} role="radio" aria-checked={sortBy === 'date'}><span aria-hidden="true">🕒</span> Date</button>
-          <button style={s.sortBtn(sortBy === 'urgency')} onClick={() => setSortBy('urgency')} role="radio" aria-checked={sortBy === 'urgency'}><span aria-hidden="true">⚡</span> Urgence</button>
-        </div>
+        {['Toutes','✅ Validées','⏳ En attente','🔴 Urgentes','❌ Rejetées'].map((f,i) => (
+          <button
+            key={i}
+            onClick={() => setFilterStatus && setFilterStatus(
+              ['all','validee','en_attente','urgent','rejete'][i]
+            )}
+            style={{
+              padding: '5px 12px', borderRadius: '100px',
+              fontSize: '11px',
+              border: (filterStatus === ['all','validee','en_attente','urgent','rejete'][i] || (!filterStatus && i===0))
+                ? '0.5px solid rgba(193,68,14,0.5)'
+                : '0.5px solid rgba(242,237,230,0.1)',
+              color: (filterStatus === ['all','validee','en_attente','urgent','rejete'][i] || (!filterStatus && i===0))
+                ? '#F2EDE6' : 'rgba(242,237,230,0.4)',
+              background: (filterStatus === ['all','validee','en_attente','urgent','rejete'][i] || (!filterStatus && i===0))
+                ? 'rgba(193,68,14,0.1)' : 'transparent',
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >{f}</button>
+        ))}
       </div>
 
-      {/* Result count */}
-      <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 16, fontWeight: 500 }} aria-live="polite" role="status">
-        {filteredOpinions.length} opinion{filteredOpinions.length > 1 ? 's' : ''} affichée{filteredOpinions.length > 1 ? 's' : ''}
+      {/* AI summary card */}
+      <AiCard>
+        {aiSummary || 'Sélectionnez une zone sur la carte pour générer une synthèse IA des opinions citoyennes.'}
+      </AiCard>
+
+      {/* Opinion cards list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {(opinions || []).length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '40px',
+            color: 'rgba(242,237,230,0.25)', fontSize: '13px',
+          }}>
+            Aucune opinion trouvée
+          </div>
+        ) : (opinions || []).map(op => (
+          <div
+            key={op.id}
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '0.5px solid rgba(242,237,230,0.07)',
+              borderRadius: '8px', padding: '12px 14px',
+              cursor: 'pointer', transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(193,68,14,0.3)'
+              e.currentTarget.style.background = 'rgba(193,68,14,0.04)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(242,237,230,0.07)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+            }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', marginBottom: '7px',
+            }}>
+              <span style={{
+                fontSize: '12px', fontWeight: 500, color: '#F2EDE6',
+              }}>
+                {op.zone_nom || op.categorie || 'Signalement'}
+              </span>
+              <StatusBadge status={op.statut} />
+            </div>
+            <div style={{
+              fontSize: '12px', color: 'rgba(242,237,230,0.6)',
+              lineHeight: 1.5, fontStyle: 'italic',
+            }}>
+              "{(op.opinion || op.description || '').substring(0, 140)}
+              {(op.opinion || '').length > 140 ? '...' : ''}"
+            </div>
+            <div style={{
+              display: 'flex', gap: '10px', marginTop: '6px',
+              fontSize: '10px', color: 'rgba(242,237,230,0.28)',
+            }}>
+              <span>Urgence {op.urgency}/5</span>
+              <span>{new Date(op.created_at).toLocaleDateString('fr-FR')}</span>
+              {op.categorie && <span>{op.categorie}</span>}
+            </div>
+          </div>
+        ))}
       </div>
-
-      {/* Opinions Grid */}
-      {filteredOpinions.length === 0 ? (
-        <EmptyState 
-          icon="💬"
-          title="Aucune opinion validée"
-          subtitle="Les avis non pertinents sont filtrés par l'IA"
-        />
-      ) : (
-        <div style={s.grid}>
-          {filteredOpinions.map(opinion => (
-            <article key={opinion.id} style={s.card} aria-label={`Opinion de ${PROFILE_LABEL[opinion.profile] || opinion.profile} dans ${opinion.zone_nom}`}>
-              <div style={s.cardHeader}>
-                <span style={s.catBadge(opinion.categorie)}>
-                  <span aria-hidden="true">{CAT_EMOJI[opinion.categorie] || '❓'}</span> {CAT_LABEL[opinion.categorie] || opinion.categorie}
-                </span>
-                <span style={{ fontSize: 13, color: '#6B7280', fontWeight: 600 }}>
-                  {opinion.zone_nom}
-                </span>
-              </div>
-
-              <blockquote style={s.quote}>
-                "{opinion.opinion}"
-              </blockquote>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <UrgencyDots value={opinion.urgency} />
-              </div>
-
-              <div style={s.cardFooter}>
-                <span style={s.profile}>
-                  <span aria-hidden="true">👤</span> {PROFILE_LABEL[opinion.profile] || opinion.profile}
-                </span>
-                <time style={s.date} dateTime={opinion.created_at}>
-                  {new Date(opinion.created_at).toLocaleDateString('fr-FR', {
-                    day: '2-digit', month: 'short', year: 'numeric'
-                  })}
-                </time>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
     </div>
   );
 }

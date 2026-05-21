@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { analyzeOpinion } from '../services/aiService'
-import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap, LayersControl, useMapEvents, Circle } from 'react-leaflet'
+import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap, LayersControl, useMapEvents, Circle, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -18,8 +18,8 @@ import { unwrap } from '../utils/unwrap'
 // Fix Leaflet Default Icon issue in Vite/React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
@@ -36,7 +36,7 @@ const CITY_CENTERS = {
 }
 
 // Forces the map to fly to city center on mount and enforces bounds
-function MapController({ center, zoom, bounds, minZoom }) {
+function MapController({ center, zoom, bounds, minZoom, selectedParcel }) {
   const map = useMap();
   useEffect(() => {
     if (minZoom) map.setMinZoom(minZoom);
@@ -45,25 +45,104 @@ function MapController({ center, zoom, bounds, minZoom }) {
       map.setView(center, zoom, { animate: false });
     }
   }, [map, center, zoom, bounds, minZoom]);
+
+  useEffect(() => {
+    if (selectedParcel) {
+      map.closePopup();
+
+      let pos = null;
+      if (selectedParcel.positions && selectedParcel.positions.length > 0) {
+        if (selectedParcel.positions.length > 1) {
+          const bounds = L.latLngBounds(selectedParcel.positions);
+          pos = bounds.getCenter();
+        } else {
+          pos = L.latLng(selectedParcel.positions[0]);
+        }
+      }
+
+      if (pos) {
+        const targetZoom = Math.max(map.getZoom(), 15);
+        const isMobile = window.innerWidth <= 768;
+
+        if (!isMobile) {
+          // Project to screen pixels to offset the center by 180px to the right,
+          // which centers the marker in the left visible area (avoiding side panel overlap).
+          const point = map.project(pos, targetZoom);
+          point.x += 180;
+          const offsetLatLng = map.unproject(point, targetZoom);
+          map.flyTo(offsetLatLng, targetZoom, { animate: true, duration: 1 });
+        } else {
+          map.flyTo(pos, targetZoom, { animate: true, duration: 1 });
+        }
+      }
+    }
+  }, [selectedParcel, map]);
+
   return null;
 }
 
 const styles = {
-  wrapper: { position: 'relative', height: '100vh', width: '100%', background: '#f8fafc', fontFamily: "'Inter', sans-serif" },
-  map: { height: '100vh', width: '100%', zIndex: 1, paddingTop: '80px' }, // Added padding to push map below fixed navbar
-
-  legend: { position: 'absolute', bottom: '40px', left: '24px', zIndex: 1000, background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(8px)', padding: '16px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', width: '140px' },
-  legendTitle: { fontSize: '11px', fontWeight: '800', marginBottom: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' },
-  legendItem: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' },
-  legendDot: { width: '10px', height: '10px', borderRadius: '50%' },
-  legendText: { fontSize: '12px', fontWeight: '500', color: '#475569' },
-  panel: { position: 'absolute', top: '90px', right: '24px', zIndex: 1000, background: '#fff', width: '380px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', border: '1px solid #f1f5f9', scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' },
-  panelHeader: { padding: '24px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' },
-  panelTitle: { fontSize: '20px', fontWeight: '800', margin: 0, color: '#0f172a', letterSpacing: '-0.5px' },
+  wrapper: {
+    position: 'relative', height: '100vh', width: '100%',
+    background: '#060403',
+    fontFamily: 'DM Sans, sans-serif',
+    overflow: 'hidden',
+  },
+  map: {
+    height: '100vh', width: '100%',
+    zIndex: 1, paddingTop: '52px',
+  },
+  panel: {
+    position: 'absolute', top: 0, right: 0, bottom: 0,
+    width: '360px',
+    background: 'rgba(8,6,3,0.88)',
+    borderLeft: '0.5px solid rgba(242,237,230,0.08)',
+    zIndex: 1500, display: 'flex', flexDirection: 'column',
+    transform: 'translateX(100%)',
+    transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+    backdropFilter: 'blur(18px)',
+    boxShadow: '-4px 0 32px rgba(0,0,0,0.5), -0.5px 0 0 rgba(193,68,14,0.12)',
+  },
+  panelOpen: {
+    transform: 'translateX(0)',
+  },
+  panelHeader: {
+    padding: '16px 18px 12px',
+    borderBottom: '0.5px solid rgba(242,237,230,0.06)',
+    flexShrink: 0,
+  },
+  panelTitle: {
+    fontFamily: 'Amiri, serif', fontSize: '20px',
+    color: '#F2EDE6', fontWeight: 700, lineHeight: 1.2,
+    margin: 0,
+  },
+  panelMeta: {
+    fontSize: '11px', color: 'rgba(242,237,230,0.35)',
+    marginTop: '6px',
+  },
+  legend: {
+    position: 'absolute', bottom: '60px', left: '66px',
+    zIndex: 100,
+    background: 'rgba(8,6,3,0.88)',
+    border: '0.5px solid rgba(242,237,230,0.08)',
+    borderRadius: '10px', padding: '12px 14px',
+    backdropFilter: 'blur(18px)', minWidth: '160px',
+    boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+  },
+  legendTitle: {
+    fontSize: '10px', letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    color: 'rgba(242,237,230,0.22)', marginBottom: '10px',
+  },
+  legendItem: {
+    display: 'flex', alignItems: 'center',
+    gap: '8px', marginBottom: '7px',
+  },
+  legendDot: { width: '8px', height: '8px', borderRadius: '50%' },
+  legendText: { fontSize: '11px', color: 'rgba(242,237,230,0.45)' },
   adminCommentBox: { marginTop: '12px', padding: '10px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '8px' },
   adminCommentLabel: { fontSize: '11px', fontWeight: '800', color: '#92400e', marginBottom: '4px', textTransform: 'uppercase' },
   adminCommentText: { fontSize: '13px', color: '#78350f', fontStyle: 'italic' },
-  panelMeta: { fontSize: '13px', color: '#64748b', marginTop: '6px', fontWeight: '500' },
   successBox: { padding: '40px', textAlign: 'center' },
   bigText: { fontSize: '22px', fontWeight: '800', margin: '16px 0 8px', color: '#0f172a' },
   smallText: { fontSize: '14px', color: '#64748b', marginBottom: '24px', lineHeight: '1.5' },
@@ -76,34 +155,146 @@ const styles = {
 }
 
 const formStyles = {
-  wrapper: { padding: '24px' },
-  progressOuter: { height: '6px', background: '#f1f5f9', borderRadius: '3px', marginBottom: '8px' },
-  progressInner: { height: '6px', background: '#3b82f6', borderRadius: '3px', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)' },
-  stepLabel: { fontSize: '12px', fontWeight: '700', color: '#94a3b8', textAlign: 'right', marginBottom: '20px' },
-  question: { fontSize: '18px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', lineHeight: '1.3' },
-  subQuestion: { fontSize: '14px', fontWeight: '700', margin: '20px 0 12px', color: '#334155' },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
-  grid1: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px' },
-  optionBtn: { padding: '14px 12px', border: '1.5px solid #f1f5f9', borderRadius: '14px', background: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#475569', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
-  optionBtnActive: { borderColor: '#3b82f6', background: '#eff6ff', color: '#1e40af', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.1)', borderWidth: '2px' },
-  textarea: { width: '100%', padding: '14px', border: '1.5px solid #f1f5f9', borderRadius: '12px', marginTop: '15px', boxSizing: 'border-box', fontSize: '14px', outline: 'none', fontFamily: 'inherit' },
-  urgencyRow: { display: 'flex', justifyContent: 'center', gap: '15px', margin: '30px 0' },
-  urgencyBtn: { fontSize: '32px', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.2, transition: 'all 0.2s' },
-  urgencyBtnActive: { opacity: 1, transform: 'scale(1.2)' },
-  urgencyLabel: { textAlign: 'center', fontWeight: '800', color: '#0f172a', fontSize: '16px' },
-  navRow: { display: 'flex', gap: '12px', marginTop: '30px' },
-  backBtn: { flex: 1, padding: '14px', border: 'none', background: '#f1f5f9', color: '#475569', borderRadius: '14px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' },
-  nextBtn: { flex: 2, padding: '14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '14px', cursor: 'pointer', fontWeight: '700', fontSize: '14px', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' },
-  submitBtn: { flex: 2, padding: '14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '14px', cursor: 'pointer', fontWeight: '700', fontSize: '14px', boxShadow: '0 4px 12px rgba(5, 150, 105, 0.2)' },
-  error: { color: '#ef4444', fontSize: '13px', marginTop: '15px', textAlign: 'center', fontWeight: '600' },
-  hint: { fontSize: '12px', color: '#94a3b8', fontWeight: '500' },
-  addressBox: { background: '#f8fafc', padding: '12px', borderRadius: '12px', display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px', border: '1px solid #e2e8f0' },
-  addressIcon: { fontSize: '18px' },
-  addressText: { fontSize: '13px', color: '#475569', fontWeight: '500', lineHeight: '1.4' },
-  uploadArea: { border: '2px dashed #cbd5e1', borderRadius: '14px', padding: '20px', textAlign: 'center', cursor: 'pointer', marginTop: '15px', transition: 'all 0.2s', background: '#f8fafc' },
-  uploadIcon: { fontSize: '24px', display: 'block', marginBottom: '8px' },
-  uploadText: { fontSize: '12px', fontWeight: '700', color: '#64748b' },
-  imagePreview: { width: '100%', height: '120px', objectFit: 'cover', borderRadius: '10px', marginTop: '10px' },
+  wrapper: { padding: '0' },
+
+  progressOuter: {
+    display: 'flex', gap: '8px', marginBottom: '10px',
+    justifyContent: 'center', alignItems: 'center',
+  },
+
+  stepLabel: {
+    fontSize: '10px', color: 'rgba(242,237,230,0.22)',
+    textAlign: 'right', marginBottom: '14px',
+  },
+
+  question: {
+    fontSize: '14px', fontWeight: 500,
+    color: '#F2EDE6', marginBottom: '12px', lineHeight: 1.5,
+  },
+
+  subQuestion: {
+    fontSize: '12px', fontWeight: 500,
+    color: 'rgba(242,237,230,0.5)',
+    margin: '14px 0 8px',
+  },
+
+  grid2: {
+    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px',
+    marginBottom: '12px',
+  },
+  grid1: {
+    display: 'grid', gridTemplateColumns: '1fr', gap: '6px',
+  },
+
+  optionBtn: {
+    padding: '9px 10px',
+    border: '0.5px solid rgba(242,237,230,0.09)',
+    borderRadius: '6px', background: 'transparent',
+    fontSize: '12px', color: 'rgba(242,237,230,0.55)',
+    fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+    textAlign: 'left', transition: 'all 0.2s',
+    display: 'flex', alignItems: 'center', gap: '6px',
+  },
+  optionBtnActive: {
+    borderColor: '#C1440E',
+    background: 'rgba(193,68,14,0.12)',
+    color: '#F2EDE6',
+  },
+
+  textarea: {
+    width: '100%', padding: '9px 11px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '0.5px solid rgba(242,237,230,0.11)',
+    borderRadius: '6px', color: '#F2EDE6',
+    fontSize: '12px', fontFamily: 'DM Sans, sans-serif',
+    outline: 'none', resize: 'none',
+    transition: 'border-color 0.2s', marginBottom: '4px',
+    boxSizing: 'border-box',
+  },
+
+  urgencyRow: {
+    display: 'flex', justifyContent: 'center',
+    gap: '8px', margin: '10px 0 12px',
+  },
+  urgencyBtn: {
+    fontSize: '26px', background: 'none', border: 'none',
+    cursor: 'pointer', opacity: 0.18, transition: 'all 0.2s',
+    color: '#E8B87A',
+  },
+  urgencyBtnActive: {
+    opacity: 1, transform: 'scale(1.12)',
+  },
+  urgencyLabel: {
+    textAlign: 'center', fontWeight: 500,
+    color: 'rgba(242,237,230,0.45)',
+    fontSize: '12px', marginBottom: '12px',
+    fontStyle: 'italic', minHeight: '18px',
+  },
+
+  navRow: {
+    display: 'flex', gap: '8px', marginTop: '20px',
+  },
+  backBtn: {
+    padding: '9px 14px', borderRadius: '6px',
+    background: 'transparent',
+    border: '0.5px solid rgba(242,237,230,0.11)',
+    color: 'rgba(242,237,230,0.38)',
+    fontSize: '12px', fontFamily: 'DM Sans, sans-serif',
+    cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
+  },
+  nextBtn: {
+    flex: 1, padding: '9px', borderRadius: '6px',
+    background: '#C1440E', color: '#fff', border: 'none',
+    fontSize: '13px', fontWeight: 500,
+    fontFamily: 'DM Sans, sans-serif',
+    cursor: 'pointer', transition: 'all 0.2s',
+  },
+  submitBtn: {
+    flex: 1, padding: '9px', borderRadius: '6px',
+    background: '#C1440E', color: '#fff', border: 'none',
+    fontSize: '13px', fontWeight: 500,
+    fontFamily: 'DM Sans, sans-serif',
+    cursor: 'pointer', transition: 'all 0.2s',
+  },
+
+  error: {
+    color: 'rgba(252,165,165,0.9)', fontSize: '12px',
+    marginTop: '10px', textAlign: 'center', fontWeight: 500,
+  },
+  hint: {
+    fontSize: '11px', color: 'rgba(242,237,230,0.28)',
+    fontWeight: 300,
+  },
+
+  addressBox: {
+    display: 'flex', alignItems: 'center', gap: '10px',
+    background: 'rgba(193,68,14,0.07)',
+    border: '0.5px solid rgba(193,68,14,0.2)',
+    borderRadius: '6px', padding: '9px 12px',
+    marginBottom: '14px',
+  },
+  addressIcon: { fontSize: '14px' },
+  addressText: {
+    fontSize: '11px', color: 'rgba(242,237,230,0.45)',
+    lineHeight: 1.5,
+  },
+
+  uploadArea: {
+    border: '0.5px dashed rgba(242,237,230,0.13)',
+    borderRadius: '6px', padding: '16px',
+    textAlign: 'center', cursor: 'pointer',
+    marginTop: '10px', transition: 'all 0.2s',
+  },
+  uploadIcon: {
+    fontSize: '18px', display: 'block', marginBottom: '4px',
+  },
+  uploadText: {
+    fontSize: '11px', color: 'rgba(242,237,230,0.28)',
+  },
+  imagePreview: {
+    width: '100%', height: '100px',
+    objectFit: 'cover', borderRadius: '6px', marginTop: '8px',
+  },
 }
 
 // Custom styles removed since they were for the old navbarObject.assign(styles, customStyles);
@@ -112,22 +303,22 @@ const MOCK_PARCELS = [
   {
     id: 1, name: 'Parcelle A - Zone Gueliz', city: 'marrakesh', region: 'gueliz',
     status: 'urgent', deadline: '5 jours restants', votes: 23,
-    positions: [[31.6295,-8.0083],[31.6315,-8.0083],[31.6315,-8.0063],[31.6295,-8.0063]],
+    positions: [[31.6295, -8.0083], [31.6315, -8.0083], [31.6315, -8.0063], [31.6295, -8.0063]],
   },
   {
     id: 2, name: 'Parcelle B - Zone Hivernage', city: 'marrakesh', region: 'hivernage',
     status: 'active', deadline: '18 jours restants', votes: 45,
-    positions: [[31.6250,-8.0120],[31.6270,-8.0120],[31.6270,-8.0100],[31.6250,-8.0100]],
+    positions: [[31.6250, -8.0120], [31.6270, -8.0120], [31.6270, -8.0100], [31.6250, -8.0100]],
   },
   {
     id: 3, name: 'Zone Sidi Maarouf', city: 'casablanca', region: 'sidi maarouf',
     status: 'planning', deadline: 'Projet futur', votes: 8,
-    positions: [[33.5350,-7.6350],[33.5370,-7.6350],[33.5370,-7.6330],[33.5350,-7.6330]],
+    positions: [[33.5350, -7.6350], [33.5370, -7.6350], [33.5370, -7.6330], [33.5350, -7.6330]],
   },
   {
     id: 4, name: 'Zone Agdal', city: 'rabat', region: 'agdal',
     status: 'urgent', deadline: '2 jours restants', votes: 112,
-    positions: [[34.0050,-6.8500],[34.0070,-6.8500],[34.0070,-6.8480],[34.0050,-6.8480]],
+    positions: [[34.0050, -6.8500], [34.0070, -6.8500], [34.0070, -6.8480], [34.0050, -6.8480]],
   },
 ]
 
@@ -209,19 +400,27 @@ function MapAutoZoom({ city }) {
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}, Maroc`)
         .then(res => res.json())
         .then(data => {
-            if (data.length > 0) {
-                map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 13, { animate: true })
-            }
+          if (data.length > 0) {
+            map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 13, { animate: true })
+          }
         })
     }
   }, [city, map])
 
   useEffect(() => {
     const handleFlyTo = (e) => {
-        map.flyTo(e.detail, 16)
+      map.flyTo(e.detail, 16)
     }
+    const handleZoomIn = () => map.zoomIn()
+    const handleZoomOut = () => map.zoomOut()
     window.addEventListener('fly-to', handleFlyTo)
-    return () => window.removeEventListener('fly-to', handleFlyTo)
+    window.addEventListener('map-zoom-in', handleZoomIn)
+    window.addEventListener('map-zoom-out', handleZoomOut)
+    return () => {
+      window.removeEventListener('fly-to', handleFlyTo)
+      window.removeEventListener('map-zoom-in', handleZoomIn)
+      window.removeEventListener('map-zoom-out', handleZoomOut)
+    }
   }, [map])
 
   return null
@@ -234,8 +433,8 @@ function HeatmapLayer({ points }) {
     if (!window.L.heatLayer || !points.length) return
 
     const heatPoints = points.map(p => {
-        const pos = p.positions[0]
-        return [pos[0], pos[1], 1.0]
+      const pos = p.positions[0]
+      return [pos[0], pos[1], 1.0]
     })
 
     const layer = window.L.heatLayer(heatPoints, {
@@ -286,8 +485,8 @@ function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole 
     click(e) {
       if (mode === 'marker' && isActive) {
         if (userRole === 'citoyen') {
-            alert("Veuillez cliquer sur une zone officielle (polygone coloré) pour soumettre votre avis.")
-            return
+          alert("Veuillez cliquer sur une zone officielle (polygone coloré) pour soumettre votre avis.")
+          return
         }
         onShapeCreated('marker', [e.latlng.lat, e.latlng.lng])
       }
@@ -297,13 +496,13 @@ function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole 
   useEffect(() => {
     let drawer;
     if (isActive && mode === 'polygon') {
-        drawer = new L.Draw.Polygon(map, { 
-            shapeOptions: { color: '#2563eb', weight: 4, fillOpacity: 0.2 },
-            showArea: false,
-            allowIntersection: false,
-            drawError: { color: '#ef4444', message: 'Intersection interdite' }
-        })
-        drawer.enable()
+      drawer = new L.Draw.Polygon(map, {
+        shapeOptions: { color: '#2563eb', weight: 4, fillOpacity: 0.2 },
+        showArea: false,
+        allowIntersection: false,
+        drawError: { color: '#ef4444', message: 'Intersection interdite' }
+      })
+      drawer.enable()
     }
     return () => { if (drawer) drawer.disable() }
   }, [mode, map, isActive])
@@ -311,12 +510,12 @@ function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole 
   useEffect(() => {
     const handleCreated = (e) => {
       if (e.layerType === 'polygon') {
-         const layer = e.layer
-         const latLngs = layer.getLatLngs()
-         const ring = Array.isArray(latLngs[0]) ? latLngs[0] : latLngs
-         const data = ring.map(ll => [ll.lat, ll.lng])
-         onShapeCreated('polygon', data)
-         setMode('marker')
+        const layer = e.layer
+        const latLngs = layer.getLatLngs()
+        const ring = Array.isArray(latLngs[0]) ? latLngs[0] : latLngs
+        const data = ring.map(ll => [ll.lat, ll.lng])
+        onShapeCreated('polygon', data)
+        setMode('marker')
       }
     }
     map.on('draw:created', handleCreated)
@@ -360,8 +559,8 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
       fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
         .then(res => res.json())
         .then(data => {
-            const addr = data.display_name || 'Adresse inconnue'
-            setAddress(addr.split(',').slice(0, 3).join(','))
+          const addr = data.display_name || 'Adresse inconnue'
+          setAddress(addr.split(',').slice(0, 3).join(','))
         })
         .catch(() => setAddress('Localisation sur la carte'))
     }
@@ -397,10 +596,10 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
     if (step === 3) return form.urgency > 0;
     if (step === 4) return form.problems.length > 0;
     if (step === 5) {
-      return form.profile !== '' && 
-             validateRequired(form.residence_duration).valid && 
-             validateRequired(form.name).valid && form.name.length >= 2 &&
-             validateEmail(form.email).valid;
+      return form.profile !== '' &&
+        validateRequired(form.residence_duration).valid &&
+        validateRequired(form.name).valid && form.name.length >= 2 &&
+        validateEmail(form.email).valid;
     }
     return true;
   }
@@ -478,10 +677,14 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
   return (
     <div style={formStyles.wrapper}>
       <div style={formStyles.addressBox}>
-        <span style={formStyles.addressIcon} aria-hidden="true">📍</span>
+        <span style={{ ...formStyles.addressIcon, display: 'inline-flex', alignItems: 'center' }} aria-hidden="true">
+          <svg width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6.5 0C2.91 0 0 2.91 0 6.5C0 10.85 6.5 16 6.5 16C6.5 16 13 10.85 13 6.5C13 2.91 10.09 0 6.5 0ZM6.5 8.75C5.26 8.75 4.25 7.74 4.25 6.5C4.25 5.26 5.26 4.25 6.5 4.25C7.74 4.25 8.75 5.26 8.75 6.5C8.75 7.74 7.74 8.75 6.5 8.75Z" fill="#C1440E"/>
+          </svg>
+        </span>
         <span style={formStyles.addressText}>{address}</span>
       </div>
-      
+
       <div
         style={formStyles.progressOuter}
         role="progressbar"
@@ -490,7 +693,23 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
         aria-valuemax={totalSteps}
         aria-label={`Étape ${step} sur ${totalSteps}`}
       >
-        <div style={{ ...formStyles.progressInner, width: `${progress}%` }} />
+        {[1, 2, 3, 4, 5].map((sIndex) => (
+          <div
+            key={sIndex}
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: step > sIndex
+                ? '#C1440E'
+                : step === sIndex
+                  ? 'rgba(193,68,14,0.55)'
+                  : 'rgba(242,237,230,0.07)',
+              transition: 'background 0.3s, transform 0.3s',
+              transform: step === sIndex ? 'scale(1.2)' : 'scale(1)',
+            }}
+          />
+        ))}
       </div>
       <p style={formStyles.stepLabel} aria-live="polite" aria-atomic="true">Étape {step}/{totalSteps}</p>
 
@@ -536,13 +755,13 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
           <div id="opinion-char-count" style={{ textAlign: 'right', fontSize: '12px', color: '#6B7280', marginTop: '4px' }} aria-live="polite" aria-atomic="true">
             {opinionCharCount}/500
           </div>
-          
+
           <div style={formStyles.uploadArea} onClick={() => document.getElementById('photo-input').click()}>
-            <input 
+            <input
               id="photo-input"
-              type="file" 
-              accept="image/*" 
-              hidden 
+              type="file"
+              accept="image/*"
+              hidden
               onChange={e => {
                 const file = e.target.files[0]
                 if (file) {
@@ -615,8 +834,8 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
               id="citizen-name"
               type="text"
               value={form.name}
-              onChange={e => { setForm({...form, name: e.target.value}); setError('') }}
-              onBlur={() => setTouched({...touched, name: true})}
+              onChange={e => { setForm({ ...form, name: e.target.value }); setError('') }}
+              onBlur={() => setTouched({ ...touched, name: true })}
               style={{ ...formStyles.textarea, marginTop: '4px', padding: '10px', ...(touched.name ? (!validateRequired(form.name).valid || form.name.length < 2 ? validationStyles.errorInput : validationStyles.validInput) : {}) }}
               placeholder="Votre nom"
               required
@@ -633,8 +852,8 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
               id="citizen-email"
               type="email"
               value={form.email}
-              onChange={e => { setForm({...form, email: e.target.value}); setError('') }}
-              onBlur={() => setTouched({...touched, email: true})}
+              onChange={e => { setForm({ ...form, email: e.target.value }); setError('') }}
+              onBlur={() => setTouched({ ...touched, email: true })}
               style={{ ...formStyles.textarea, marginTop: '4px', padding: '10px', ...(touched.email ? (!validateEmail(form.email).valid ? validationStyles.errorInput : validationStyles.validInput) : {}) }}
               placeholder="votre@email.com"
               required
@@ -665,13 +884,13 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
                 <button key={d.value} type="button"
                   aria-pressed={form.residence_duration === d.value}
                   style={{ ...formStyles.optionBtn, ...(form.residence_duration === d.value ? formStyles.optionBtnActive : {}) }}
-                  onClick={() => { setForm({ ...form, residence_duration: d.value }); setError(''); setTouched({...touched, residence_duration: true}); }}>
+                  onClick={() => { setForm({ ...form, residence_duration: d.value }); setError(''); setTouched({ ...touched, residence_duration: true }); }}>
                   {d.label}
                 </button>
               ))}
             </div>
           </fieldset>
-          {touched.residence_duration && !validateRequired(form.residence_duration).valid && <div role="alert" style={{...validationStyles.errorText, textAlign: 'center'}}>Veuillez sélectionner la durée</div>}
+          {touched.residence_duration && !validateRequired(form.residence_duration).valid && <div role="alert" style={{ ...validationStyles.errorText, textAlign: 'center' }}>Veuillez sélectionner la durée</div>}
         </div>
       )}
 
@@ -683,7 +902,7 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
         ) : (
           parcel?.isNew && (
             <button type="button" style={{ ...formStyles.backBtn, color: '#ef4444' }} onClick={onClose}>
-               Annuler
+              Annuler
             </button>
           )
         )}
@@ -716,62 +935,62 @@ function ProfessionalView({ parcel, onClose }) {
   const [note, setNote] = useState(parcel.internal_note || '')
 
   const handleSaveNote = () => {
-      parcel.internal_note = note
-      alert('Note interne sauvegardée avec succès ! (Simulation)')
+    parcel.internal_note = note
+    alert('Note interne sauvegardée avec succès ! (Simulation)')
   }
 
   return (
     <div style={formStyles.wrapper}>
-      <div style={{...formStyles.addressBox, background: '#f1f5f9'}}>
+      <div style={{ ...formStyles.addressBox, background: '#f1f5f9' }}>
         <span style={formStyles.addressIcon}>📊</span>
-        <span style={{...formStyles.addressText, color: '#0f172a'}}>Fiche Technique Urbanistique</span>
+        <span style={{ ...formStyles.addressText, color: '#0f172a' }}>Fiche Technique Urbanistique</span>
       </div>
-      
-      <div style={{marginTop: '20px'}}>
+
+      <div style={{ marginTop: '20px' }}>
         <p style={formStyles.question}>🏢 Détails de la zone</p>
         <div style={styles.parcelStats}>
-            <div style={styles.parcelStat}><span style={styles.parcelStatNum}>{parcel.votes || 0}</span><span style={styles.parcelStatLabel}>Avis Citoyens</span></div>
-            <div style={styles.parcelStat}><span style={styles.parcelStatNum}>{parcel.urgency || 3}/5</span><span style={styles.parcelStatLabel}>Urgence Moy.</span></div>
+          <div style={styles.parcelStat}><span style={styles.parcelStatNum}>{parcel.votes || 0}</span><span style={styles.parcelStatLabel}>Avis Citoyens</span></div>
+          <div style={styles.parcelStat}><span style={styles.parcelStatNum}>{parcel.urgency || 3}/5</span><span style={styles.parcelStatLabel}>Urgence Moy.</span></div>
         </div>
-        
-        <p style={{...formStyles.subQuestion, marginTop: '20px'}}>Type d'équipement suggéré :</p>
-        <div style={{padding: '12px', background: '#f8fafc', borderRadius: '12px', fontWeight: '700', color: '#1e40af', marginBottom: '20px'}}>
-            {BUILDING_TYPES.find(b => b.value === parcel.building_type)?.label || 'Non spécifié'}
+
+        <p style={{ ...formStyles.subQuestion, marginTop: '20px' }}>Type d'équipement suggéré :</p>
+        <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '12px', fontWeight: '700', color: '#1e40af', marginBottom: '20px' }}>
+          {BUILDING_TYPES.find(b => b.value === parcel.building_type)?.label || 'Non spécifié'}
         </div>
 
         {parcel.photo && (
-            <div style={{ marginBottom: '20px' }}>
-                <p style={formStyles.subQuestion}>📸 Photo du terrain :</p>
-                <img src={parcel.photo} style={formStyles.imagePreview} alt="Terrain" />
-            </div>
+          <div style={{ marginBottom: '20px' }}>
+            <p style={formStyles.subQuestion}>📸 Photo du terrain :</p>
+            <img src={parcel.photo} style={formStyles.imagePreview} alt="Terrain" />
+          </div>
         )}
 
         {user?.role === 'urbaniste' && (
-            <div style={{ marginBottom: '20px', padding: '15px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px' }}>
-                <p style={{...formStyles.subQuestion, color: '#991b1b', marginTop: 0}}>📝 Notes Internes (Privé) :</p>
-                <textarea 
-                    style={{...formStyles.textarea, borderColor: '#fecaca'}} 
-                    rows={3} 
-                    value={note}
-                    onChange={e => setNote(e.target.value)}
-                    placeholder="Annotez cette zone pour l'équipe..." 
-                />
-                <button onClick={handleSaveNote} style={{...formStyles.nextBtn, background: '#dc2626', marginTop: '10px', width: '100%'}}>
-                    💾 Sauvegarder la note
-                </button>
-            </div>
+          <div style={{ marginBottom: '20px', padding: '15px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px' }}>
+            <p style={{ ...formStyles.subQuestion, color: '#991b1b', marginTop: 0 }}>📝 Notes Internes (Privé) :</p>
+            <textarea
+              style={{ ...formStyles.textarea, borderColor: '#fecaca' }}
+              rows={3}
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Annotez cette zone pour l'équipe..."
+            />
+            <button onClick={handleSaveNote} style={{ ...formStyles.nextBtn, background: '#dc2626', marginTop: '10px', width: '100%' }}>
+              💾 Sauvegarder la note
+            </button>
+          </div>
         )}
 
-        <button 
-            style={{...formStyles.submitBtn, background: '#0f172a'}} 
-            onClick={() => {
-              if (user?.role === 'admin') navigate('/admin/dashboard')
-              else if (user?.role === 'urbaniste') navigate('/urbaniste/dashboard')
-              else if (user?.role === 'super_admin') navigate('/super-admin/users')
-              else alert("Vous n'avez pas accès au tableau de bord.")
-            }}
+        <button
+          style={{ ...formStyles.submitBtn, background: '#0f172a' }}
+          onClick={() => {
+            if (user?.role === 'admin') navigate('/admin/dashboard')
+            else if (user?.role === 'urbaniste') navigate('/urbaniste/dashboard')
+            else if (user?.role === 'super_admin') navigate('/super-admin/users')
+            else alert("Vous n'avez pas accès au tableau de bord.")
+          }}
         >
-            🔗 Ouvrir dans le Tableau de Bord
+          🔗 Ouvrir dans le Tableau de Bord
         </button>
         <button style={formStyles.backBtn} onClick={onClose}>Fermer</button>
       </div>
@@ -818,6 +1037,9 @@ export default function MapPage() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [pendingZone, setPendingZone] = useState(null)
+  const [zoneName, setZoneName] = useState('')
+  const [zoneColor, setZoneColor] = useState('#C1440E')
 
   const handleSearch = async (e) => {
     if (e.key === 'Enter' && searchQuery.length > 2) {
@@ -834,17 +1056,17 @@ export default function MapPage() {
     const matchCity = p.city === userCity
     const matchStatus = filterStatus === 'all' ? true : p.status === filterStatus
     const matchCategory = filterCategory === 'all' ? true : p.building_type === filterCategory
-    
+
     // Étape 2 — Filtre selon le rôle
     if (user?.role === 'citoyen') {
-        // Citoyen : Validées + Ses propres remarques
-        const isValidated = ['active', 'planning', 'urgent'].includes(p.status)
-        const isMine = p.user_email === user.email
-        return matchCity && matchCategory && (isValidated || isMine)
+      // Citoyen : Validées + Ses propres remarques
+      const isValidated = ['active', 'planning', 'urgent'].includes(p.status)
+      const isMine = p.user_email === user.email
+      return matchCity && matchCategory && (isValidated || isMine)
     } else if (user?.role === 'urbaniste') {
-        // Urbaniste : Seulement Validées
-        const isValidated = ['active', 'planning', 'urgent'].includes(p.status)
-        return matchCity && matchStatus && matchCategory && isValidated
+      // Urbaniste : Seulement Validées
+      const isValidated = ['active', 'planning', 'urgent'].includes(p.status)
+      return matchCity && matchStatus && matchCategory && isValidated
     }
     // Admin voit tout
     return matchCity && matchStatus && matchCategory
@@ -856,24 +1078,30 @@ export default function MapPage() {
   }
 
   const handleShapeCreated = (type, data, extraData = {}) => {
-    const newParcel = {
-        id: Date.now(),
-        name: extraData.zone_nom || 'Nouveau signalement',
-        status: 'pending',
-        deadline: 'À l\'instant',
-        votes: 0,
-        shapeType: type,
-        isNew: true,
-        zone_id: extraData.zone_id || null,
-        zone_nom: extraData.zone_nom || null
+    if (type === 'polygon' && !extraData.zone_nom) {
+      setPendingZone({ positions: data })
+      return // don't open panel yet
     }
-    
+
+    const newParcel = {
+      id: Date.now(),
+      name: extraData.zone_nom || 'Nouveau signalement',
+      status: 'pending',
+      deadline: 'À l\'instant',
+      votes: 0,
+      shapeType: type,
+      isNew: true,
+      zone_id: extraData.zone_id || null,
+      zone_nom: extraData.zone_nom || null,
+      zone_color: extraData.zone_color || '#C1440E',
+    }
+
     if (type === 'marker') {
-        newParcel.positions = [data]
-        newParcel.latitude = data[0]
-        newParcel.longitude = data[1]
+      newParcel.positions = [data]
+      newParcel.latitude = data[0]
+      newParcel.longitude = data[1]
     } else {
-        newParcel.positions = data
+      newParcel.positions = data
     }
 
     setSelectedParcel(newParcel)
@@ -904,7 +1132,7 @@ export default function MapPage() {
       }
 
       await api.createRemark(formData);
-      
+
       fetchData();
       setSubmitted(true);
       toast.success('Remarque soumise avec succès');
@@ -923,58 +1151,237 @@ export default function MapPage() {
   }
 
   return (
-    <div style={styles.wrapper}>
-      {['admin', 'urbaniste'].includes(user?.role) && !isMobile && !selectedParcel && (
-        <div style={{ position: 'absolute', top: '180px', left: '10px', zIndex: 1000 }}>
-            <button 
-              style={{
-                  padding: '12px 20px', 
-                  background: drawMode === 'polygon' ? '#ef4444' : 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(10px)',
-                  color: drawMode === 'polygon' ? 'white' : '#0f172a',
-                  border: '1px solid rgba(0,0,0,0.1)',
-                  borderRadius: '16px',
-                  fontWeight: '900',
-                  boxShadow: '0 12px 30px rgba(0,0,0,0.2)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  transition: 'all 0.3s ease',
-                  fontSize: '13px',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase'
+    <div style={styles.wrapper} className={`${selectedParcel ? 'has-panel-open' : ''} ${drawMode === 'polygon' ? 'draw-mode' : ''}`}>
+      {/* Left toolbar */}
+      <div style={{
+        position: 'absolute', left: '14px', top: '66px',
+        bottom: 'auto', width: '42px',
+        display: 'flex', flexDirection: 'column',
+        gap: '5px', zIndex: 100,
+      }}>
+        {/* Zoom group */}
+        <div style={{
+          background: 'rgba(8,6,3,0.88)',
+          border: '0.5px solid rgba(242,237,230,0.08)',
+          borderRadius: '10px', display: 'flex',
+          flexDirection: 'column', overflow: 'hidden',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+        }}>
+          {[
+            { tip: 'Zoomer', onClick: () => window.dispatchEvent(new Event('map-zoom-in')), svg: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg> },
+            { tip: 'Dézoomer', onClick: () => window.dispatchEvent(new Event('map-zoom-out')), svg: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg> },
+          ].map((t, i) => (
+            <div key={i} style={{
+              width: '42px', height: '42px',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer',
+              color: 'rgba(242,237,230,0.35)',
+              borderBottom: i === 0
+                ? '0.5px solid rgba(242,237,230,0.05)' : 'none',
+              position: 'relative', transition: 'all 0.2s',
+            }}
+              onClick={t.onClick}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.color = 'rgba(242,237,230,0.85)'
+                e.currentTarget.querySelector('.tip').style.opacity = '1'
               }}
-              onClick={() => setDrawMode(drawMode === 'polygon' ? 'marker' : 'polygon')}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'rgba(242,237,230,0.35)'
+                e.currentTarget.querySelector('.tip').style.opacity = '0'
+              }}
             >
-                {drawMode === 'polygon' ? '🛑 Annuler le dessin' : '📐 Dessiner une Zone'}
-            </button>
+              {t.svg}
+              <span className="tip" style={{
+                position: 'absolute', left: 'calc(100% + 8px)',
+                top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(8,6,3,0.95)',
+                border: '0.5px solid rgba(242,237,230,0.12)',
+                borderRadius: '4px', padding: '4px 8px',
+                fontSize: '11px', color: '#F2EDE6',
+                whiteSpace: 'nowrap', opacity: 0,
+                pointerEvents: 'none', transition: 'opacity 0.15s',
+                zIndex: 300,
+              }}>{t.tip}</span>
+            </div>
+          ))}
         </div>
-      )}
+
+        {/* Draw tools group */}
+        <div style={{
+          background: 'rgba(8,6,3,0.88)',
+          border: '0.5px solid rgba(242,237,230,0.08)',
+          borderRadius: '10px', display: 'flex',
+          flexDirection: 'column', overflow: 'hidden',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+        }}>
+          {[
+            {
+              tip: 'Signaler un point', active: drawMode === 'marker',
+              onClick: () => setDrawMode('marker'),
+              svg: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
+            },
+            {
+              tip: 'Dessiner une zone',
+              active: drawMode === 'polygon',
+              onClick: () => setDrawMode(drawMode === 'polygon' ? 'marker' : 'polygon'),
+              svg: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" /></svg>,
+              hidden: !['admin', 'urbaniste'].includes(user?.role),
+            },
+          ].filter(t => !t.hidden).map((t, i, arr) => (
+            <div key={i} style={{
+              width: '42px', height: '42px',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer',
+              background: t.active ? 'rgba(193,68,14,0.18)' : 'transparent',
+              color: t.active ? '#C1440E' : 'rgba(242,237,230,0.35)',
+              border: t.active ? '0.5px solid rgba(193,68,14,0.4)' : 'none',
+              borderBottom: (!t.active && i < arr.length - 1)
+                ? '0.5px solid rgba(242,237,230,0.05)' : 'none',
+              position: 'relative', transition: 'all 0.2s',
+            }}
+              onClick={t.onClick}
+              onMouseEnter={e => {
+                if (!t.active) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.color = 'rgba(242,237,230,0.85)'
+                }
+                e.currentTarget.querySelector('.tip').style.opacity = '1'
+              }}
+              onMouseLeave={e => {
+                if (!t.active) {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = 'rgba(242,237,230,0.35)'
+                }
+                e.currentTarget.querySelector('.tip').style.opacity = '0'
+              }}
+            >
+              {t.svg}
+              <span className="tip" style={{
+                position: 'absolute', left: 'calc(100% + 8px)',
+                top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(8,6,3,0.95)',
+                border: '0.5px solid rgba(242,237,230,0.12)',
+                borderRadius: '4px', padding: '4px 8px',
+                fontSize: '11px', color: '#F2EDE6',
+                whiteSpace: 'nowrap', opacity: 0,
+                pointerEvents: 'none', transition: 'opacity 0.15s',
+                zIndex: 300,
+              }}>{t.tip}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{
+        position: 'absolute',
+        left: '66px',
+        bottom: '16px',
+        display: 'flex',
+        gap: '8px',
+        zIndex: 100,
+      }}>
+        {/* Live Pulse Chip */}
+        <div style={{
+          background: 'rgba(8,6,3,0.88)',
+          border: '0.5px solid rgba(242,237,230,0.08)',
+          borderRadius: '10px',
+          padding: '8px 14px',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <span style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: '#52BE80',
+            animation: 'livePulse 2s infinite',
+          }} />
+          <span style={{
+            fontSize: '10px',
+            fontWeight: 600,
+            color: '#52BE80',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}>
+            En direct
+          </span>
+        </div>
+
+        {[
+          { num: filteredParcels.length, lbl: 'Signalements' },
+          { num: zones.length, lbl: 'Zones' },
+        ].map((s, i) => (
+          <div key={i} style={{
+            background: 'rgba(8,6,3,0.88)',
+            border: '0.5px solid rgba(242,237,230,0.08)',
+            borderRadius: '10px',
+            padding: '8px 14px',
+            backdropFilter: 'blur(18px)',
+            boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <div style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '20px',
+              color: '#E8B87A',
+              fontWeight: 500,
+              lineHeight: 1,
+            }}>
+              {s.num}
+            </div>
+            <div style={{
+              fontSize: '10px',
+              color: 'rgba(242,237,230,0.3)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}>
+              {s.lbl}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {drawMode === 'polygon' && (
-          <div style={{
-              position: 'absolute', 
-              bottom: '40px', 
-              left: '50%', 
-              transform: 'translateX(-50%)', 
-              zIndex: 1000,
-              background: 'rgba(15, 23, 42, 0.9)',
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '30px',
-              fontSize: '14px',
-              fontWeight: '600',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-          }}>
-              <span style={{fontSize: '20px'}}>✍️</span>
-              <span>Cliquez pour ajouter des points. Cliquez sur le 1er point pour fermer la zone.</span>
-          </div>
+        <div style={{
+          position: 'absolute', bottom: '70px',
+          left: '50%', transform: 'translateX(-50%)',
+          zIndex: 150,
+          background: 'rgba(8,6,3,0.88)',
+          border: '0.5px solid rgba(193,68,14,0.3)',
+          borderRadius: '10px', padding: '10px 24px',
+          display: 'flex', alignItems: 'center', gap: '12px',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+          fontSize: '13px', color: '#F2EDE6', fontWeight: 500,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
+          </svg>
+          Cliquez pour ajouter des points. Fermez sur le 1er point.
+          <button
+            onClick={() => setDrawMode('marker')}
+            style={{
+              background: 'rgba(255,255,255,0.22)', border: 'none',
+              borderRadius: '100px', padding: '4px 12px',
+              fontSize: '11px', color: '#F2EDE6',
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            }}
+          >
+            Annuler
+          </button>
+        </div>
       )}
-      <Navbar 
+      <Navbar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         handleSearch={handleSearch}
@@ -992,16 +1399,17 @@ export default function MapPage() {
         minZoom={cityConfig.minZoom}
         maxBounds={cityConfig.bounds}
         maxBoundsViscosity={1.0}
-        style={styles.map}>
-        <MapController center={cityConfig.center} zoom={cityConfig.zoom} bounds={cityConfig.bounds} minZoom={cityConfig.minZoom} />
-        <LayersControl position="bottomleft">
+        style={styles.map}
+        zoomControl={false}>
+        <MapController center={cityConfig.center} zoom={cityConfig.zoom} bounds={cityConfig.bounds} minZoom={cityConfig.minZoom} selectedParcel={selectedParcel} />
+        <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Plan">
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="Satellite">
-            <TileLayer 
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" 
-              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community" 
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community"
             />
           </LayersControl.BaseLayer>
 
@@ -1012,114 +1420,342 @@ export default function MapPage() {
             <ZoneHeatmapLayer zones={zones} />
           </LayersControl.Overlay>
         </LayersControl>
-        
-        <MapAutoZoom city={userCity} />
-        
-        {zones.map(z => (
-            <Polygon 
-                key={`zone-${z.id}`}
-                positions={z.coordonnees_geojson}
-                pathOptions={{
-                    color: z.couleur || '#3b82f6',
-                    fillColor: z.couleur || '#3b82f6',
-                    fillOpacity: 0.2,
-                    weight: 2
-                }}
-                eventHandlers={{
-                    click: (e) => {
-                        if (user?.role === 'citoyen') {
-                            window.L.DomEvent.stopPropagation(e);
-                            handleShapeCreated('marker', [e.latlng.lat, e.latlng.lng], { zone_id: z.id, zone_nom: z.nom });
-                        }
-                    }
-                }}
-            >
-              <Popup>
-                 <b>{z.nom}</b><br/>
-                 {user?.role === 'citoyen' ? <span style={{fontSize:'12px'}}>Cliquez ici pour soumettre un avis</span> : <span style={{fontSize:'12px'}}>Zone officielle</span>}
-              </Popup>
-            </Polygon>
-        ))}
 
-        <InteractionManager 
-            mode={drawMode}
-            onShapeCreated={handleShapeCreated}
-            setMode={setDrawMode}
-            isActive={!selectedParcel}
-            userRole={user?.role}
+        <MapAutoZoom city={userCity} />
+
+        {zones.map(z => {
+          const isSelected = selectedParcel && selectedParcel.zone_id === z.id;
+          return (
+            <Polygon
+              key={`zone-${z.id}`}
+              positions={z.coordonnees_geojson}
+              pathOptions={{
+                color: isSelected ? '#C1440E' : (z.couleur || '#3b82f6'),
+                fillColor: z.couleur || '#3b82f6',
+                fillOpacity: isSelected ? 0.22 : 0.15,
+                weight: isSelected ? 2 : 1.5
+              }}
+              eventHandlers={{
+                click: (e) => {
+                  if (user?.role === 'citoyen') {
+                    window.L.DomEvent.stopPropagation(e);
+                    handleShapeCreated('marker', [e.latlng.lat, e.latlng.lng], { zone_id: z.id, zone_nom: z.nom });
+                  }
+                }
+              }}
+            >
+              <Tooltip
+                permanent
+                direction="center"
+                className="zone-label-tooltip"
+              >
+                {z.nom}
+              </Tooltip>
+              {!selectedParcel && (
+                <Popup>
+                  <b>{z.nom}</b><br />
+                  {user?.role === 'citoyen' ? <span style={{ fontSize: '12px' }}>Cliquez ici pour soumettre un avis</span> : <span style={{ fontSize: '12px' }}>Zone officielle</span>}
+                </Popup>
+              )}
+            </Polygon>
+          );
+        })}
+
+        <InteractionManager
+          mode={drawMode}
+          onShapeCreated={handleShapeCreated}
+          setMode={setDrawMode}
+          isActive={!selectedParcel}
+          userRole={user?.role}
         />
-        
+
         {filteredParcels.map(parcel => {
           const statusCfg = STATUS_COLORS[parcel.status] || STATUS_COLORS.pending
           const categoryColor = CATEGORY_COLORS[parcel.building_type] || '#94a3b8'
           const hasVoted = votedParcels.includes(parcel.id)
-          
+          const isSelected = selectedParcel && selectedParcel.id === parcel.id
+
           // Couleur : Citoyen voit catégorie, Pro voit statut
           const markerColor = user?.role === 'citoyen' ? categoryColor : statusCfg.fill
-          
+
           return (
             <Polygon key={parcel.id} positions={parcel.positions}
               pathOptions={{
-                color: hasVoted ? '#9ca3af' : markerColor,
+                color: isSelected ? '#C1440E' : (hasVoted ? '#9ca3af' : markerColor),
                 fillColor: hasVoted ? '#d1d5db' : markerColor,
-                fillOpacity: 0.45, weight: 2,
+                fillOpacity: isSelected ? 0.22 : 0.15,
+                weight: isSelected ? 2 : 1.5,
+                className: parcel.status === 'urgent' ? 'zone-urgent' : parcel.status === 'active' ? 'zone-active' : '',
               }}
               eventHandlers={{ click: () => handleParcelClick(parcel) }} />
           )
         })}
 
         {selectedParcel?.isNew && (
-            selectedParcel.shapeType === 'circle' ? (
-                <Circle center={selectedParcel.positions[0]} radius={selectedParcel.radius} pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.5 }} />
-            ) : selectedParcel.positions.length > 1 ? (
-                <Polygon positions={selectedParcel.positions} pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.5 }} />
-            ) : (
-                <Marker position={selectedParcel.positions[0]} />
-            )
+          selectedParcel.shapeType === 'circle' ? (
+            <Circle center={selectedParcel.positions[0]} radius={selectedParcel.radius} pathOptions={{ color: '#C1440E', fillColor: '#C1440E', fillOpacity: 0.22, weight: 2 }} />
+          ) : selectedParcel.positions.length > 1 ? (
+            <Polygon positions={selectedParcel.positions} pathOptions={{ color: selectedParcel.zone_color || '#C1440E', fillColor: selectedParcel.zone_color || '#C1440E', fillOpacity: 0.22, weight: 2 }} />
+          ) : (
+            <Marker position={selectedParcel.positions[0]} />
+          )
         )}
       </MapContainer>
 
       <Legend role={user?.role} />
 
       {selectedParcel && (
-        <div
-          style={styles.panel}
-          role="dialog"
-          aria-modal="true"
-          aria-label={selectedParcel.isNew ? 'Nouveau signalement' : `Détails : ${selectedParcel.name}`}
-        >
-          <div style={{...styles.panelHeader, borderLeft: `5px solid ${STATUS_COLORS[selectedParcel.status]?.fill || '#3b82f6'}`}}>
-            <p style={styles.panelTitle}><span aria-hidden="true">📍</span> {selectedParcel.isNew ? 'Nouveau signalement' : selectedParcel.name}</p>
-            <p style={styles.panelMeta}>{selectedParcel.isNew ? 'Zone dessinée par vous' : `${selectedParcel.deadline} · ${selectedParcel.votes} avis`}</p>
-            {selectedParcel.admin_comment && (
-              <div style={styles.adminCommentBox}>
-                <p style={styles.adminCommentLabel}><span aria-hidden="true">💬</span> Retour de l'administration :</p>
-                <p style={styles.adminCommentText}>{selectedParcel.admin_comment}</p>
+        <div style={{
+          position: 'absolute', top: 0, right: 0, bottom: 0,
+          width: '360px',
+          background: 'rgba(8,6,3,0.88)',
+          borderLeft: '0.5px solid rgba(242,237,230,0.08)',
+          zIndex: 1500, display: 'flex', flexDirection: 'column',
+          transform: selectedParcel ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '-4px 0 32px rgba(0,0,0,0.5), -0.5px 0 0 rgba(193,68,14,0.12)',
+        }}>
+          {/* Panel header */}
+          <div style={{
+            padding: '16px 18px 12px',
+            borderBottom: '0.5px solid rgba(242,237,230,0.06)',
+            flexShrink: 0,
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'flex-start',
+              justifyContent: 'space-between', gap: '10px',
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  fontSize: '10px', letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#E8B87A', marginBottom: '7px',
+                  background: 'rgba(193,68,14,0.1)',
+                  border: '0.5px solid rgba(193,68,14,0.25)',
+                  padding: '3px 8px', borderRadius: '100px',
+                }}>
+                  <div style={{
+                    width: '5px', height: '5px', borderRadius: '50%',
+                    background: STATUS_COLORS[selectedParcel?.status]?.fill
+                      || '#C1440E',
+                  }} />
+                  {selectedParcel?.zone_nom || 'Zone sélectionnée'}
+                </div>
+                <p style={{
+                  fontFamily: 'Amiri, serif', fontSize: '20px',
+                  color: '#F2EDE6', fontWeight: 700,
+                  lineHeight: 1.2, margin: 0,
+                }}>
+                  {selectedParcel?.isNew
+                    ? 'Nouveau signalement'
+                    : selectedParcel?.name}
+                </p>
+                <div style={{
+                  display: 'flex', gap: '10px',
+                  flexWrap: 'wrap', marginTop: '8px',
+                }}>
+                  {!selectedParcel?.isNew && (
+                    <>
+                      <span style={{
+                        fontSize: '11px',
+                        color: 'rgba(242,237,230,0.35)',
+                      }}>
+                        {selectedParcel?.deadline}
+                      </span>
+                      <span style={{
+                        fontSize: '11px',
+                        color: 'rgba(242,237,230,0.35)',
+                      }}>
+                        · {selectedParcel?.votes} avis
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
-            )}
+              {/* Close button */}
+              <button
+                onClick={handleClosePanel}
+                style={{
+                  width: '26px', height: '26px', borderRadius: '4px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '0.5px solid rgba(242,237,230,0.1)',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', cursor: 'pointer',
+                  color: 'rgba(242,237,230,0.35)', flexShrink: 0,
+                  transition: 'all 0.2s', fontSize: '14px',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+                  e.currentTarget.style.color = '#F2EDE6'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                  e.currentTarget.style.color = 'rgba(242,237,230,0.35)'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            {/* Status bar */}
+            <div style={{
+              height: '2px', width: '100%', marginTop: '12px',
+              borderRadius: '1px',
+              background: 'linear-gradient(90deg, #C1440E, #E8B87A)',
+            }} />
           </div>
 
-          {votedParcels.includes(selectedParcel.id) || submitted ? (
-            <div style={styles.successBox} role="status" aria-live="polite">
-              <p style={{ fontSize: '40px', margin: 0 }} aria-hidden="true">✅</p>
-              <p style={styles.bigText}>Avis enregistré !</p>
-              <p style={styles.smallText}>Merci pour votre contribution à l'urbanisme de votre ville.</p>
-              <div style={{ background: '#e0e7ff', color: '#3730a3', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', marginBottom: '20px' }}>
-                <span aria-hidden="true">✉️</span> Un email de confirmation vous a été envoyé.
+          {/* Panel scrollable body */}
+          <div style={{
+            flex: 1, overflowY: 'auto', padding: '14px 18px',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(193,68,14,0.3) transparent',
+          }}>
+            {/* keep existing FeedbackForm / ProfessionalView / success JSX */}
+            {(votedParcels.includes(selectedParcel.id) || submitted) ? (
+              <div style={{
+                padding: '28px 18px', textAlign: 'center',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center',
+              }}>
+                <div style={{
+                  width: '52px', height: '52px', borderRadius: '50%',
+                  background: 'rgba(82,190,128,0.1)',
+                  border: '0.5px solid rgba(82,190,128,0.4)',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', marginBottom: '14px',
+                  fontSize: '22px',
+                }}>✓</div>
+                <h3 style={{
+                  fontFamily: 'Amiri, serif', fontSize: '22px',
+                  color: '#F2EDE6', marginBottom: '8px', fontWeight: 700,
+                }}>
+                  Avis enregistré !
+                </h3>
+                <p style={{
+                  fontSize: '12px', color: 'rgba(242,237,230,0.38)',
+                  lineHeight: 1.6, maxWidth: '240px', fontWeight: 300,
+                }}>
+                  Merci pour votre contribution à l'urbanisme de votre ville.
+                </p>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  background: 'rgba(193,68,14,0.08)',
+                  border: '0.5px solid rgba(193,68,14,0.25)',
+                  borderRadius: '6px', padding: '9px 13px', marginTop: '14px',
+                  fontSize: '11px', color: 'rgba(193,68,14,0.9)',
+                }}>
+                  ● Analysé par l'IA · Claude API
+                </div>
+                <button
+                  onClick={handleClosePanel}
+                  style={{
+                    marginTop: '16px', width: '100%', padding: '9px',
+                    background: 'transparent',
+                    border: '0.5px solid rgba(242,237,230,0.1)',
+                    borderRadius: '6px', fontSize: '12px',
+                    color: 'rgba(242,237,230,0.4)',
+                    fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+                  }}
+                >
+                  Fermer
+                </button>
               </div>
-              <button style={styles.closeBtn2} onClick={handleClosePanel} aria-label="Fermer le panneau">✕ Fermer</button>
-            </div>
-          ) : (
-            user?.role === 'admin' ? (
-                <ProfessionalView parcel={selectedParcel} onClose={handleClosePanel} />
             ) : (
+              user?.role === 'admin' ? (
+                <ProfessionalView parcel={selectedParcel} onClose={handleClosePanel} />
+              ) : (
                 <FeedbackForm
-                    parcel={selectedParcel}
-                    onSubmit={handleFormSubmit}
-                    onClose={handleClosePanel}
+                  parcel={selectedParcel}
+                  onSubmit={handleFormSubmit}
+                  onClose={handleClosePanel}
                 />
-            )
-          )}
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Floating zone naming modal */}
+      {pendingZone && (
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 2000,
+          background: 'rgba(8,6,3,0.96)',
+          border: '0.5px solid rgba(193,68,14,0.35)',
+          borderRadius: '12px', padding: '24px',
+          width: '280px',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 0 0 0.5px rgba(193,68,14,0.15), 0 24px 48px rgba(0,0,0,0.7)',
+        }}>
+          <div style={{ fontFamily: 'Amiri, serif', fontSize: '18px', color: '#F2EDE6', marginBottom: '16px', fontWeight: 700 }}>
+            Nommer la zone
+          </div>
+          <input
+            autoFocus
+            value={zoneName}
+            onChange={e => setZoneName(e.target.value)}
+            placeholder="Ex: Gueliz Nord..."
+            style={{
+              width: '100%', padding: '9px 12px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '0.5px solid rgba(242,237,230,0.15)',
+              borderRadius: '6px', color: '#F2EDE6',
+              fontSize: '13px', fontFamily: 'DM Sans, sans-serif',
+              outline: 'none', marginBottom: '12px',
+            }}
+          />
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.4)' }}>Couleur:</span>
+            {['#C1440E','#1A5276','#E8B87A','#52BE80','#5DADE2'].map(c => (
+              <div
+                key={c}
+                onClick={() => setZoneColor(c)}
+                style={{
+                  width: '20px', height: '20px', borderRadius: '50%',
+                  background: c, cursor: 'pointer',
+                  border: zoneColor === c ? '2px solid #F2EDE6' : '2px solid transparent',
+                  transition: 'border 0.15s',
+                }}
+              />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setPendingZone(null)}
+              style={{
+                flex: 1, padding: '9px', borderRadius: '6px',
+                background: 'transparent',
+                border: '0.5px solid rgba(242,237,230,0.12)',
+                color: 'rgba(242,237,230,0.4)',
+                fontSize: '12px', fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              }}
+            >
+              Annuler
+            </button>
+            <button
+              onClick={() => {
+                if (!zoneName.trim()) return
+                // Now save to API with zoneName + zoneColor
+                handleShapeCreated('polygon', pendingZone.positions, {
+                  zone_nom: zoneName,
+                  zone_color: zoneColor,
+                })
+                setPendingZone(null)
+                setZoneName('')
+              }}
+              style={{
+                flex: 2, padding: '9px', borderRadius: '6px',
+                background: '#C1440E', color: '#fff', border: 'none',
+                fontSize: '13px', fontWeight: 500,
+                fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              }}
+            >
+              Créer la zone →
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -1128,31 +1764,81 @@ export default function MapPage() {
 
 function Legend({ role }) {
   return (
-    <div style={styles.legend}>
+    <div style={{
+      position: 'absolute', bottom: '80px', left: '60px',
+      zIndex: 100,
+      background: 'rgba(8,6,3,0.88)',
+      border: '0.5px solid rgba(242,237,230,0.08)',
+      borderRadius: '10px', padding: '12px 14px',
+      backdropFilter: 'blur(16px)', minWidth: '160px',
+      boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+    }}>
+      <p style={{
+        fontSize: '10px', letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        color: 'rgba(242,237,230,0.22)', marginBottom: '10px',
+        margin: '0 0 10px 0',
+      }}>
+        {role === 'citoyen' ? 'Catégories' : 'Statuts'}
+      </p>
+
       {role === 'citoyen' ? (
-        <>
-          <p style={styles.legendTitle}>Types de Projets</p>
-          {BUILDING_TYPES.map(type => (
-            <div key={type.value} style={styles.legendItem}>
-              <div style={{ ...styles.legendDot, background: CATEGORY_COLORS[type.value] }} />
-              <span style={styles.legendText}>{type.label.split(' ')[1]}</span>
-            </div>
-          ))}
-        </>
+        BUILDING_TYPES.map(type => (
+          <div key={type.value} style={{
+            display: 'flex', alignItems: 'center',
+            gap: '8px', marginBottom: '7px',
+          }}>
+            <div style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              background: CATEGORY_COLORS[type.value],
+              flexShrink: 0,
+            }} />
+            <span style={{
+              fontSize: '11px', color: 'rgba(242,237,230,0.45)',
+            }}>
+              {type.label.split(' ').slice(1).join(' ')}
+            </span>
+          </div>
+        ))
       ) : (
         <>
-          <p style={styles.legendTitle}>États Projets</p>
           {Object.entries(STATUS_COLORS).map(([key, cfg]) => (
-            <div key={key} style={styles.legendItem}>
-              <div style={{ ...styles.legendDot, background: cfg.fill }} />
-              <span style={styles.legendText}>{cfg.label}</span>
+            <div key={key} style={{
+              display: 'flex', alignItems: 'center',
+              gap: '8px', marginBottom: '7px',
+            }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: cfg.fill, flexShrink: 0,
+              }} />
+              <span style={{
+                fontSize: '11px', color: 'rgba(242,237,230,0.45)',
+              }}>
+                {cfg.label}
+              </span>
             </div>
           ))}
-          <p style={{ ...styles.legendTitle, marginTop: '15px' }}>Catégories</p>
+          <div style={{
+            height: '0.5px',
+            background: 'rgba(242,237,230,0.06)',
+            margin: '10px 0',
+          }} />
           {BUILDING_TYPES.slice(0, 5).map(type => (
-            <div key={type.value} style={styles.legendItem}>
-              <div style={{ ...styles.legendDot, background: CATEGORY_COLORS[type.value], borderRadius: '2px' }} />
-              <span style={styles.legendText}>{type.label.split(' ')[1]}</span>
+            <div key={type.value} style={{
+              display: 'flex', alignItems: 'center',
+              gap: '8px', marginBottom: '7px',
+            }}>
+              <div style={{
+                width: '8px', height: '8px',
+                borderRadius: '2px',
+                background: CATEGORY_COLORS[type.value],
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontSize: '11px', color: 'rgba(242,237,230,0.45)',
+              }}>
+                {type.label.split(' ').slice(1).join(' ')}
+              </span>
             </div>
           ))}
         </>

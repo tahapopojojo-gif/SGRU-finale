@@ -27,7 +27,7 @@ export const SkeletonLoader = ({
     width,
     height,
     marginBottom,
-    background: 'linear-gradient(90deg, #E5E7EB 0%, #F3F4F6 50%, #E5E7EB 100%)',
+    background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0%, rgba(193, 68, 14, 0.07) 50%, rgba(255, 255, 255, 0.02) 100%)',
     backgroundSize: '1000px 100%',
     animation: 'shimmer 1.5s infinite linear',
     borderRadius

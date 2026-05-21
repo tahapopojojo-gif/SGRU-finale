@@ -8,7 +8,7 @@ export const SkeletonTable = ({ rows = 5, columns = 5 }) => {
   };
 
   const rowStyle = {
-    borderBottom: '1px solid #F3F4F6'
+    borderBottom: '1px solid rgba(242, 237, 230, 0.08)'
   };
 
   const cellStyle = {

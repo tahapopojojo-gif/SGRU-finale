@@ -8,6 +8,7 @@ import { validateAnnotationText } from '../../services/validationService.js';
 import { useToast } from '../../hooks/useToast.js';
 import EmptyState from '../EmptyState.jsx';
 import { unwrap } from '../../utils/unwrap';
+import { AiCard, SectionLabel } from './UDComponents';
 
 export default function UrbanAnnotationsTab() {
   const { user } = useAuth();
@@ -217,99 +218,118 @@ export default function UrbanAnnotationsTab() {
     empty: { textAlign: 'center', padding: '40px', color: '#9CA3AF', fontSize: 15 }
   };
 
+  const selectedZoneId = activeZoneId;
+  const setSelectedZoneId = setActiveZoneId;
+  const zoneId = activeZoneId;
+  const noteText = draftText;
+  const setNoteText = setDraftText;
+
   if (loading) return <div style={{padding: '24px'}}><SkeletonTable rows={3} columns={2} /></div>;
 
   return (
-    <div style={s.page}>
-      <section style={s.card} aria-label="Rédaction d'annotation">
-        <label htmlFor="annotation-zone-select" style={s.label}>Zone de l'annotation</label>
-        <select 
-          id="annotation-zone-select"
-          style={s.select}
-          value={activeZoneId} 
-          onChange={(e) => setActiveZoneId(e.target.value)}
-          aria-required="true"
+    <div>
+      {/* Privacy notice */}
+      <AiCard>
+        Ces notes sont visibles uniquement par les urbanistes.
+        Elles ne sont pas partagées avec les citoyens ni les administrateurs.
+      </AiCard>
+
+      {/* New annotation form */}
+      <div style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '0.5px dashed rgba(242,237,230,0.12)',
+        borderRadius: '8px', padding: '14px', marginBottom: '8px',
+      }}>
+        <SectionLabel>Nouvelle annotation</SectionLabel>
+        <select
+          value={selectedZoneId || zoneId || ''}
+          onChange={e => setSelectedZoneId && setSelectedZoneId(e.target.value)}
+          style={{
+            padding: '6px 10px', width: '100%',
+            background: 'rgba(255,255,255,0.04)',
+            border: '0.5px solid rgba(242,237,230,0.12)',
+            borderRadius: '6px', color: 'rgba(242,237,230,0.6)',
+            fontSize: '12px', fontFamily: 'DM Sans, sans-serif',
+            outline: 'none', marginBottom: '10px',
+          }}
         >
-          <option value="" disabled>-- Choisir une zone --</option>
-          {zones.map(z => (
+          <option value="">Sélectionner une zone...</option>
+          {(zones || []).map(z => (
             <option key={z.id} value={z.id}>{z.nom}</option>
           ))}
         </select>
+        <textarea
+          value={noteText || ''}
+          onChange={e => setNoteText && setNoteText(e.target.value)}
+          rows={3}
+          placeholder="Rédigez votre note interne sur cette zone..."
+          style={{
+            width: '100%', padding: '9px 11px', resize: 'none',
+            background: 'rgba(255,255,255,0.04)',
+            border: '0.5px solid rgba(242,237,230,0.11)',
+            borderRadius: '6px', color: '#F2EDE6', fontSize: '12px',
+            fontFamily: 'DM Sans, sans-serif', outline: 'none',
+            transition: 'border-color 0.2s', boxSizing: 'border-box',
+          }}
+          onFocus={e => e.target.style.borderColor = 'rgba(193,68,14,0.45)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(242,237,230,0.11)'}
+        />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+          <button
+            onClick={handleSave || (() => {})}
+            style={{
+              padding: '7px 16px', background: '#C1440E',
+              border: 'none', borderRadius: '6px',
+              color: '#fff', fontSize: '12px',
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            }}
+          >
+            Sauvegarder la note
+          </button>
+        </div>
+      </div>
 
-        {activeZoneId && (
-          <>
-            <label htmlFor="annotation-textarea" style={s.label}>Note privée pour cette zone</label>
-            <textarea 
-              id="annotation-textarea"
-              style={s.textarea}
-              placeholder="Vos observations professionnelles..."
-              value={draftText}
-              onChange={handleTextChange}
-              onBlur={handleBlur}
-              rows={4}
-              aria-describedby="annotation-char-counter"
-              maxLength={500}
-            />
-            <div
-              id="annotation-char-counter"
-              style={{ fontSize: '12px', marginTop: '4px', textAlign: 'right', color: getCharColor() }}
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {charCount}/500
-            </div>
-            <div style={s.btnRow}>
-              <button 
-                style={{...s.btnSave, opacity: !draftText.trim() ? 0.5 : 1}} 
-                onClick={handleSave} 
-                disabled={isSaving || !draftText.trim()}
-                aria-disabled={isSaving || !draftText.trim()}
-                aria-label={isSaving ? "Sauvegarde en cours" : "Sauvegarder l'annotation"}
-              >
-                {isSaving ? "Sauvegarde..." : "Sauvegarder"}
-              </button>
-              <button style={s.btnClear} onClick={handleClear} aria-label="Effacer le texte de l'annotation">Effacer</button>
-            </div>
-          </>
-        )}
-      </section>
+      <SectionLabel>Notes existantes ({(annotations || []).length})</SectionLabel>
 
-      {activeZoneId && (
-        <section aria-label="Historique des annotations">
-          <h3 style={s.historyTitle}>Historique des annotations pour cette zone</h3>
-          
-          {annotations.length === 0 ? (
-            <EmptyState 
-              icon="📝"
-              title="Aucune annotation"
-              subtitle="Commencez par ajouter une note privée ci-dessus"
-            />
-          ) : (
-            <div style={s.historyList} role="list">
-              {annotations.map(ann => {
-                const isMine = String(ann.urbaniste_id) === String(user?.id);
-                const authorName = getAuthorName(ann.urbaniste_id);
-
-                return (
-                  <article key={ann.id} style={s.historyItem(isMine)} role="listitem" aria-label={`Annotation par ${authorName}`}>
-                    <div style={s.historyHeader}>
-                      <span style={s.historyAuthor}>{authorName}</span>
-                      <time style={s.historyDate} dateTime={ann.created_at}>{formatDate(ann.created_at)}</time>
-                    </div>
-                    <p style={s.historyText}>{ann.texte}</p>
-                    {isMine && (
-                      <div style={s.actionRow}>
-                        <button style={s.actionBtn} onClick={() => handleEdit(ann)} aria-label={`Modifier l'annotation du ${formatDate(ann.created_at)}`}><span aria-hidden="true">✏️</span> Modifier</button>
-                        <button style={{...s.actionBtn, color: '#EF4444'}} onClick={() => handleDelete(ann.id)} aria-label={`Supprimer l'annotation du ${formatDate(ann.created_at)}`}><span aria-hidden="true">🗑️</span> Supprimer</button>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {(annotations || []).map((a, i) => (
+          <div key={a.id || i} style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '0.5px solid rgba(242,237,230,0.07)',
+            borderRadius: '8px', padding: '14px',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', marginBottom: '8px',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                fontSize: '11px', fontWeight: 500, color: '#E8B87A',
+              }}>
+                <span style={{
+                  width: '5px', height: '5px', borderRadius: '50%',
+                  background: a.zone?.couleur || '#C1440E',
+                  display: 'inline-block',
+                }} />
+                {a.zone?.nom || a.zone_nom || 'Zone'}
+              </div>
+              <span style={{
+                fontSize: '10px', color: 'rgba(242,237,230,0.25)',
+              }}>
+                {a.created_at
+                  ? new Date(a.created_at).toLocaleDateString('fr-FR')
+                  : ''}
+              </span>
             </div>
-          )}
-        </section>
-      )}
+            <div style={{
+              fontSize: '12px', color: 'rgba(242,237,230,0.55)',
+              lineHeight: 1.6, fontStyle: 'italic',
+            }}>
+              "{a.texte || a.note || ''}"
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
