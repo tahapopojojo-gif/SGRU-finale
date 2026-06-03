@@ -43,7 +43,10 @@ function Navbar() {
 
       {/* Links */}
       <div style={{ display:'flex', gap:36 }}>
-        {['Carte','Signaler','Villes','À propos'].map(l=>(
+        <Link to="/map" style={navLinkStyle}
+          onMouseEnter={e=>e.target.style.color=G}
+          onMouseLeave={e=>e.target.style.color='rgba(242,237,230,0.65)'}>Carte Publique</Link>
+        {['Signaler','Villes','À propos'].map(l=>(
           <span key={l} style={navLinkStyle}
             onMouseEnter={e=>e.target.style.color=G}
             onMouseLeave={e=>e.target.style.color='rgba(242,237,230,0.65)'}>{l}</span>

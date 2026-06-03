@@ -8,6 +8,17 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: auto;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  overflow: visible;
+}
+
 body {
   font-family: 'DM Sans', sans-serif;
   background-color: #060403;
@@ -371,4 +382,8 @@ select {
 @keyframes dotpulse {
   0%,100%{opacity:0.3;transform:scale(0.8)}
   50%{opacity:1;transform:scale(1)}
+}
+
+@keyframes adpulse {
+  0%,100%{opacity:1} 50%{opacity:0.3}
 }

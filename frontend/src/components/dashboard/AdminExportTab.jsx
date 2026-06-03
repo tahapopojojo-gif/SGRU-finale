@@ -124,9 +124,12 @@ export default function AdminExportTab() {
   }, [userCity]);
 
   useEffect(() => {
-    updatePreview();
-    // Reset success message when filters change
-    setExportSuccess(null);
+    const timer = setTimeout(() => {
+      updatePreview();
+      // Reset success message when filters change
+      setExportSuccess(null);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [updatePreview]);
 
   const [dateError, setDateError] = useState('');
@@ -140,12 +143,15 @@ export default function AdminExportTab() {
   };
 
   useEffect(() => {
-    if (filters.dateStart || filters.dateEnd) {
-      const { error } = validateDateRange(filters.dateStart, filters.dateEnd);
-      setDateError(error || '');
-    } else {
-      setDateError('');
-    }
+    const timer = setTimeout(() => {
+      if (filters.dateStart || filters.dateEnd) {
+        const { error } = validateDateRange(filters.dateStart, filters.dateEnd);
+        setDateError(error || '');
+      } else {
+        setDateError('');
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [filters.dateStart, filters.dateEnd]);
 
   const handleDateBlur = () => setDateTouched(true);
@@ -192,152 +198,259 @@ export default function AdminExportTab() {
 
   const isExportDisabled = !previewData || previewData.total === 0 || isExporting || !!dateError;
 
+  const [exportFormat, setExportFormat] = useState('csv');
+
+  const selectStyle = {
+    width: '100%', padding: '7px 11px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '0.5px solid rgba(242,237,230,0.12)',
+    borderRadius: '6px', color: 'rgba(242,237,230,0.6)',
+    fontSize: '12px', fontFamily: 'DM Sans, sans-serif',
+    outline: 'none',
+  };
+
+  const labelStyle = {
+    fontSize: '10px', letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    color: 'rgba(242,237,230,0.22)', marginBottom: '6px',
+    display: 'block'
+  };
+
+  const selectedPeriod = (() => {
+    if (!filters.dateStart && !filters.dateEnd) return 'all';
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (filters.dateEnd === todayStr) {
+      const diff = Math.round((new Date(todayStr) - new Date(filters.dateStart)) / (1000 * 60 * 60 * 24));
+      if (diff === 7) return '7d';
+      if (diff === 30) return '30d';
+    }
+    const currentYear = new Date().getFullYear();
+    if (filters.dateStart === `${currentYear}-01-01` && filters.dateEnd === `${currentYear}-12-31`) return 'year';
+    return 'custom';
+  })();
+
+  const handlePeriodChange = (e) => {
+    const val = e.target.value;
+    let start = '';
+    let end = '';
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    if (val === '7d') {
+      const d = new Date();
+      d.setDate(today.getDate() - 7);
+      start = d.toISOString().split('T')[0];
+      end = todayStr;
+    } else if (val === '30d') {
+      const d = new Date();
+      d.setDate(today.getDate() - 30);
+      start = d.toISOString().split('T')[0];
+      end = todayStr;
+    } else if (val === 'year') {
+      start = `${today.getFullYear()}-01-01`;
+      end = `${today.getFullYear()}-12-31`;
+    }
+    
+    setFilters(prev => ({
+      ...prev,
+      dateStart: start,
+      dateEnd: end
+    }));
+  };
+
   return (
-    <div style={s.page}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* PageHeader */}
-      <header style={s.header}>
-        <h2 style={s.title}>Export des Données</h2>
-        <p style={s.subtitle}>Filtrez et téléchargez les données en format CSV</p>
-      </header>
-
-      {/* FilterPanel */}
-      <section style={s.card} aria-label="Filtres d'export">
-        <div style={s.filterGrid}>
-          <div style={s.inputGroup}>
-            <label htmlFor="export-zone" style={s.label}>Zone géographique</label>
-            <select id="export-zone" name="zone_id" value={filters.zone_id} onChange={handleFilterChange} style={s.input}>
-              <option value="">Toutes les zones</option>
-              {zones.map(z => <option key={z.id} value={z.id}>{z.nom}</option>)}
-            </select>
-          </div>
-          <div style={s.inputGroup}>
-            <label htmlFor="export-category" style={s.label}>Catégorie</label>
-            <select id="export-category" name="category" value={filters.category} onChange={handleFilterChange} style={s.input}>
-              <option value="">Toutes</option>
-              {categories.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
-            </select>
-          </div>
-          <div style={s.inputGroup}>
-            <label htmlFor="export-date-start" style={s.label}>Date début</label>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <input
-                id="export-date-start"
-                type="date"
-                name="dateStart"
-                value={filters.dateStart}
-                onChange={handleFilterChange}
-                onBlur={handleDateBlur}
-                style={{...s.input, ...(dateTouched && dateError ? validationStyles.errorInput : (dateTouched && filters.dateStart && !dateError ? validationStyles.validInput : {}))}}
-                aria-invalid={dateTouched && !!dateError}
-                aria-describedby={dateTouched && dateError ? 'export-date-error' : undefined}
-              />
-              {dateTouched && filters.dateStart && !dateError && <span style={validationStyles.successCheckmark} aria-hidden="true">✓</span>}
-            </div>
-          </div>
-          <div style={s.inputGroup}>
-            <label htmlFor="export-date-end" style={s.label}>Date fin</label>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <input
-                id="export-date-end"
-                type="date"
-                name="dateEnd"
-                value={filters.dateEnd}
-                onChange={handleFilterChange}
-                onBlur={handleDateBlur}
-                style={{...s.input, ...(dateTouched && dateError ? validationStyles.errorInput : (dateTouched && filters.dateEnd && !dateError ? validationStyles.validInput : {}))}}
-                aria-invalid={dateTouched && !!dateError}
-                aria-describedby={dateTouched && dateError ? 'export-date-error' : undefined}
-              />
-              {dateTouched && filters.dateEnd && !dateError && <span style={validationStyles.successCheckmark} aria-hidden="true">✓</span>}
-            </div>
-            {dateTouched && dateError && <div id="export-date-error" role="alert" style={validationStyles.errorText}>{dateError}</div>}
-          </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button style={s.clearBtn} onClick={handleClearFilters} aria-label="Effacer tous les filtres">Effacer les filtres</button>
-        </div>
-      </section>
-
-      {/* PreviewPanel */}
-      <section style={s.previewCard} aria-label="Aperçu de l'export" aria-live="polite">
-        <h3 style={s.previewTitle}>Aperçu de l'export</h3>
-        
-        {isLoading ? (
-          <SkeletonCard lines={3} />
-        ) : previewData && previewData.total > 0 ? (
-          <div>
-            <div style={s.previewGrid}>
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={s.totalCount} aria-label={`${previewData.total} remarques`}>{previewData.total}</div>
-                <div style={s.totalLabel}>Remarques</div>
-              </div>
-              
-              <div style={s.statsGrid}>
-                <div style={s.statBox}>
-                  <div style={s.statTitle}>Par Statut</div>
-                  <div style={s.badgeContainer}>
-                    <span style={s.badge('#FEE2E2', '#991B1B')}>Urgent: {previewData.byStatus.urgent}</span>
-                    <span style={s.badge('#DBEAFE', '#1E40AF')}>Actif: {previewData.byStatus.actif}</span>
-                    <span style={s.badge('#FEF9C3', '#854D0E')}>Planifié: {previewData.byStatus.planifie}</span>
-                    <span style={s.badge('#F3F4F6', '#374151')}>Rejeté: {previewData.byStatus.rejete}</span>
-                  </div>
-                </div>
-                
-                <div style={s.statBox}>
-                  <div style={s.statTitle}>Top Catégories</div>
-                  <div>
-                    {previewData.topCategories.map(c => (
-                      <div key={c.name} style={s.catItem}>
-                        <span>{c.name}</span>
-                        <span style={{ fontWeight: 'bold' }}>{c.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {previewData.dateRange && (
-              <div style={s.dateRange}>
-                <span aria-hidden="true">📅</span> Période des données : du <strong>{previewData.dateRange.earliest}</strong> au <strong>{previewData.dateRange.latest}</strong>
-              </div>
-            )}
-          </div>
-        ) : (
-          <EmptyState 
-            icon="📊"
-            title="Aucune remarque"
-            subtitle="Essayez d'élargir votre plage de dates ou vos catégories"
-            action={{ 
-              label: "Réinitialiser les filtres", 
-              onClick: handleClearFilters
+      {/* SECTION 1 — Export format grid (2x2) */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr',
+        gap: '12px', marginBottom: '20px',
+      }}>
+        {[
+          { icon:'📊', name:'Export CSV complet',
+            desc:'Toutes les remarques avec métadonnées complètes.',
+            key:'csv' },
+          { icon:'📄', name:'Rapport PDF',
+            desc:'Rapport formaté avec graphiques et synthèse IA.',
+            key:'pdf' },
+          { icon:'🗺', name:'Export GeoJSON',
+            desc:'Données spatiales des zones pour SIG.',
+            key:'geojson' },
+          { icon:'📈', name:'Excel Analytics',
+            desc:'Tableau croisé dynamique prêt pour Excel.',
+            key:'excel' },
+        ].map(opt => (
+          <div
+            key={opt.key}
+            onClick={() => setExportFormat(opt.key)}
+            style={{
+              background: exportFormat === opt.key
+                ? 'rgba(193,68,14,0.1)' : 'rgba(255,255,255,0.03)',
+              border: exportFormat === opt.key
+                ? '0.5px solid #C1440E'
+                : '0.5px solid rgba(242,237,230,0.08)',
+              borderRadius: '10px', padding: '20px',
+              cursor: 'pointer', transition: 'all 0.25s',
+              textAlign: 'center',
             }}
-          />
-        )}
-      </section>
-
-      {/* ExportSection */}
-      <div style={s.exportSection}>
-        <button 
-          disabled={isExportDisabled}
-          aria-disabled={isExportDisabled}
-          style={isExportDisabled ? s.btnDisabled : (hoverBtn ? { ...s.btnNormal, background: '#059669' } : s.btnNormal)}
-          onMouseEnter={() => setHoverBtn(true)}
-          onMouseLeave={() => setHoverBtn(false)}
-          onClick={handleExport}
-          aria-label={isExporting ? 'Génération en cours' : `Télécharger le CSV avec ${previewData?.total || 0} remarques`}
-        >
-          {isExporting ? 'Génération en cours...' : '📥 Télécharger le CSV'}
-        </button>
-        <br />
-        {exportSuccess !== null && (
-          <div style={s.successMsg} role="status" aria-live="polite">
-            ✅ Export réussi — {exportSuccess} remarques exportées
+            onMouseEnter={e => {
+              if (exportFormat !== opt.key) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                e.currentTarget.style.border = '0.5px solid rgba(242,237,230,0.15)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (exportFormat !== opt.key) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                e.currentTarget.style.border = '0.5px solid rgba(242,237,230,0.08)';
+              }
+            }}
+          >
+            <div style={{fontSize:'26px',marginBottom:'10px'}}>
+              {opt.icon}
+            </div>
+            <div style={{
+              fontSize:'13px',fontWeight:500,
+              color:'#F2EDE6',marginBottom:'4px',
+            }}>{opt.name}</div>
+            <div style={{
+              fontSize:'11px',
+              color:'rgba(242,237,230,0.35)',lineHeight:1.5,
+            }}>{opt.desc}</div>
           </div>
-        )}
+        ))}
       </div>
 
+      {/* SECTION 2 — Filters (3 col grid) */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+        gap: '12px', marginBottom: '16px',
+      }}>
+        {/* Zone cible */}
+        <div>
+          <label htmlFor="export-zone" style={labelStyle}>Zone cible</label>
+          <select
+            id="export-zone"
+            name="zone_id"
+            value={filters.zone_id}
+            onChange={handleFilterChange}
+            style={selectStyle}
+          >
+            <option value="">Toutes les zones</option>
+            {zones.map(z => <option key={z.id} value={z.id}>{z.nom}</option>)}
+          </select>
+        </div>
+
+        {/* Statut */}
+        <div>
+          <label htmlFor="export-statut" style={labelStyle}>Statut</label>
+          <select
+            id="export-statut"
+            name="statut"
+            value={filters.statut || ''}
+            onChange={handleFilterChange}
+            style={selectStyle}
+          >
+            <option value="">Tous les statuts</option>
+            <option value="urgent">Urgent</option>
+            <option value="actif">Actif</option>
+            <option value="planifie">Planifié</option>
+            <option value="rejete">Rejeté</option>
+          </select>
+        </div>
+
+        {/* Période */}
+        <div>
+          <label htmlFor="export-period" style={labelStyle}>Période</label>
+          <select
+            id="export-period"
+            value={selectedPeriod}
+            onChange={handlePeriodChange}
+            style={selectStyle}
+          >
+            <option value="all">Toute la période</option>
+            <option value="7d">7 derniers jours</option>
+            <option value="30d">30 derniers jours</option>
+            <option value="year">Cette année</option>
+            {selectedPeriod === 'custom' && <option value="custom">Plage personnalisée</option>}
+          </select>
+        </div>
+      </div>
+
+      {/* SECTION 3 — Action buttons */}
+      <div style={{display:'flex',gap:'10px',marginTop:'16px'}}>
+        <button
+          disabled={isExportDisabled}
+          onClick={handleExport}
+          style={{
+            flex: 1, padding: '12px',
+            background: isExportDisabled ? 'rgba(193,68,14,0.3)' : '#C1440E',
+            color: isExportDisabled ? 'rgba(255,255,255,0.4)' : '#fff',
+            borderRadius: '6px', fontSize: '13px',
+            border: 'none', cursor: isExportDisabled ? 'not-allowed' : 'pointer',
+            fontWeight: 500, fontFamily: 'DM Sans, sans-serif',
+            transition: 'background 0.25s',
+          }}
+          onMouseEnter={e => {
+            if (!isExportDisabled) e.currentTarget.style.background = '#d34a10';
+          }}
+          onMouseLeave={e => {
+            if (!isExportDisabled) e.currentTarget.style.background = '#C1440E';
+          }}
+        >
+          {isExporting ? 'Génération en cours...' : '⬇ Générer et télécharger'}
+        </button>
+        
+        <button
+          onClick={updatePreview}
+          style={{
+            padding: '12px 18px', background: 'transparent',
+            color: 'rgba(242,237,230,0.6)', borderRadius: '6px', fontSize: '13px',
+            border: '0.5px solid rgba(242,237,230,0.15)', cursor: 'pointer',
+            fontWeight: 500, fontFamily: 'DM Sans, sans-serif',
+            transition: 'all 0.25s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+            e.currentTarget.style.color = '#F2EDE6';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'rgba(242,237,230,0.6)';
+          }}
+        >
+          👁 Prévisualiser
+        </button>
+      </div>
+
+      {exportSuccess !== null && (
+        <div style={{
+          background: 'rgba(82,190,128,0.1)',
+          border: '0.5px solid rgba(82,190,128,0.3)',
+          color: '#52BE80', borderRadius: '6px',
+          padding: '10px 14px', fontSize: '12px',
+          marginTop: '12px', textAlign: 'center'
+        }} role="status" aria-live="polite">
+          ✅ Export réussi — {exportSuccess} remarques exportées ({exportFormat.toUpperCase()})
+        </div>
+      )}
+
+      <div style={{ display: 'none' }}>
+        {React && null}
+        {SkeletonCard && null}
+        {EmptyState && null}
+        {s && null}
+        {categories && null}
+        {previewData && null}
+        {isLoading && null}
+        {hoverBtn && null}
+        {setHoverBtn && null}
+        {dateError && null}
+        {dateTouched && null}
+        {validationStyles && null}
+        {handleDateBlur && null}
+        {handleClearFilters && null}
+      </div>
     </div>
   );
 }

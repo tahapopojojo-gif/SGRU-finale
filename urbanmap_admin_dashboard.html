@@ -1,0 +1,659 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+
+.ad{font-family:'DM Sans',sans-serif;background:#060403;min-height:100vh;color:#F2EDE6;}
+
+/* ── HEADER ── */
+.ad-header{
+  background:rgba(8,6,3,0.97);
+  border-bottom:0.5px solid rgba(242,237,230,0.07);
+  padding:18px 28px 0;position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(16px);
+}
+.ad-header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(193,68,14,0.35) 30%,rgba(193,68,14,0.35) 70%,transparent);
+  pointer-events:none;
+}
+.ad-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.ad-title-wrap{}
+.ad-label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,237,230,0.28);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+.ad-label-dot{width:5px;height:5px;border-radius:50%;background:#C1440E;animation:adpulse 2s infinite;}
+@keyframes adpulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.ad-title{font-family:'Amiri',serif;font-size:22px;font-weight:700;color:#F2EDE6;display:flex;align-items:center;gap:10px;}
+.ad-city-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(193,68,14,0.1);border:0.5px solid rgba(193,68,14,0.3);
+  border-radius:100px;padding:3px 10px;
+  font-size:11px;color:#E8B87A;font-family:'DM Sans',sans-serif;font-weight:400;
+}
+.ad-header-right{display:flex;align-items:center;gap:8px;}
+.ad-notif{
+  width:32px;height:32px;border-radius:6px;
+  background:rgba(255,255,255,0.04);
+  border:0.5px solid rgba(242,237,230,0.1);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;
+  transition:all 0.2s;
+}
+.ad-notif:hover{background:rgba(255,255,255,0.08);}
+.ad-notif-badge{
+  position:absolute;top:5px;right:5px;width:7px;height:7px;
+  border-radius:50%;background:#ef4444;
+  border:1.5px solid #060403;
+}
+.ad-btn-primary{
+  padding:7px 14px;border-radius:6px;background:#C1440E;border:none;
+  color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;
+}
+.ad-btn-primary:hover{background:#A8380C;}
+.ad-btn-ghost{
+  padding:7px 14px;border-radius:6px;background:transparent;
+  border:0.5px solid rgba(242,237,230,0.12);
+  color:rgba(242,237,230,0.5);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;
+}
+.ad-btn-ghost:hover{border-color:rgba(242,237,230,0.3);color:#F2EDE6;}
+
+.ad-tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;}
+.ad-tabs::-webkit-scrollbar{display:none;}
+.ad-tab{
+  padding:10px 18px;border:none;background:transparent;
+  color:rgba(242,237,230,0.38);font-size:12px;font-family:'DM Sans',sans-serif;
+  cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;
+  transition:all 0.2s;display:flex;align-items:center;gap:6px;
+}
+.ad-tab:hover{color:rgba(242,237,230,0.7);}
+.ad-tab.active{color:#F2EDE6;border-bottom-color:#C1440E;}
+.ad-tab-count{
+  background:rgba(193,68,14,0.2);color:#C1440E;
+  font-size:10px;padding:1px 6px;border-radius:100px;
+  font-family:'DM Mono',monospace;
+}
+.ad-tab-count.green{background:rgba(82,190,128,0.15);color:#52BE80;}
+.ad-tab-count.amber{background:rgba(245,158,11,0.15);color:#f59e0b;}
+
+/* ── BODY ── */
+.ad-body{padding:20px 28px;}
+.ad-panel{display:none;}
+.ad-panel.active{display:block;}
+
+/* ── KPI ROW ── */
+.ad-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.ad-kpi{
+  background:rgba(255,255,255,0.03);
+  border:0.5px solid rgba(242,237,230,0.07);
+  border-radius:8px;padding:14px;
+  position:relative;overflow:hidden;transition:all 0.2s;
+}
+.ad-kpi:hover{border-color:rgba(193,68,14,0.25);}
+.ad-kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1.5px;
+  border-radius:8px 8px 0 0;
+}
+.ad-kpi.c1::before{background:#C1440E;}
+.ad-kpi.c2::before{background:#ef4444;}
+.ad-kpi.c3::before{background:#f59e0b;}
+.ad-kpi.c4::before{background:#52BE80;}
+.ad-kpi.c5::before{background:#E8B87A;}
+.ad-kpi-lbl{font-size:10px;color:rgba(242,237,230,0.28);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:7px;}
+.ad-kpi-num{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:#E8B87A;line-height:1;margin-bottom:4px;}
+.ad-kpi-sub{font-size:10px;color:rgba(242,237,230,0.3);}
+
+/* ── TOOLBAR ── */
+.ad-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.ad-search{
+  flex:1;min-width:200px;max-width:280px;padding:7px 12px 7px 32px;
+  background:rgba(255,255,255,0.04);border:0.5px solid rgba(242,237,230,0.12);
+  border-radius:6px;color:#F2EDE6;font-size:12px;
+  font-family:'DM Sans',sans-serif;outline:none;position:relative;
+}
+.ad-search-wrap{position:relative;flex:1;min-width:200px;max-width:280px;}
+.ad-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(242,237,230,0.25);pointer-events:none;}
+.ad-filter-pill{
+  padding:5px 11px;border-radius:100px;font-size:11px;
+  border:0.5px solid rgba(242,237,230,0.1);
+  color:rgba(242,237,230,0.38);background:transparent;
+  font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;white-space:nowrap;
+}
+.ad-filter-pill:hover{border-color:rgba(193,68,14,0.4);color:rgba(242,237,230,0.8);}
+.ad-filter-pill.on{border-color:rgba(193,68,14,0.55);background:rgba(193,68,14,0.1);color:#F2EDE6;}
+.ad-filter-pill.urgent.on{border-color:rgba(239,68,68,0.55);background:rgba(239,68,68,0.1);color:#fca5a5;}
+.ad-filter-pill.active.on{border-color:rgba(245,158,11,0.55);background:rgba(245,158,11,0.08);color:#fcd34d;}
+.ad-filter-pill.valid.on{border-color:rgba(82,190,128,0.5);background:rgba(82,190,128,0.08);color:#86efac;}
+
+/* ── TABLE ── */
+.ad-table-wrap{
+  background:rgba(255,255,255,0.02);
+  border:0.5px solid rgba(242,237,230,0.07);
+  border-radius:10px;overflow:hidden;
+}
+.ad-table{width:100%;border-collapse:collapse;}
+.ad-table thead th{
+  padding:10px 14px;text-align:left;
+  font-size:10px;letter-spacing:0.08em;text-transform:uppercase;
+  color:rgba(242,237,230,0.28);
+  background:rgba(255,255,255,0.02);
+  border-bottom:0.5px solid rgba(242,237,230,0.06);
+  font-weight:500;white-space:nowrap;
+}
+.ad-table tbody tr{
+  border-bottom:0.5px solid rgba(242,237,230,0.04);
+  transition:background 0.15s;cursor:pointer;
+}
+.ad-table tbody tr:last-child{border-bottom:none;}
+.ad-table tbody tr:hover{background:rgba(193,68,14,0.04);}
+.ad-table tbody td{padding:11px 14px;font-size:12px;color:rgba(242,237,230,0.65);vertical-align:middle;}
+.ad-table tbody td:first-child{color:#F2EDE6;font-weight:500;}
+
+.ad-badge{font-size:10px;padding:2px 8px;border-radius:100px;border:0.5px solid;white-space:nowrap;display:inline-block;}
+.b-urgent{border-color:rgba(239,68,68,0.4);color:rgba(239,68,68,0.9);background:rgba(239,68,68,0.08);}
+.b-active{border-color:rgba(245,158,11,0.4);color:rgba(245,158,11,0.9);background:rgba(245,158,11,0.07);}
+.b-valid{border-color:rgba(82,190,128,0.4);color:rgba(82,190,128,0.9);background:rgba(82,190,128,0.07);}
+.b-pend{border-color:rgba(242,237,230,0.15);color:rgba(242,237,230,0.4);}
+.b-rej{border-color:rgba(100,116,139,0.4);color:rgba(100,116,139,0.8);}
+
+.ad-action-btn{
+  padding:4px 10px;border-radius:4px;font-size:11px;border:0.5px solid;
+  cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;background:transparent;
+  white-space:nowrap;
+}
+.ab-approve{border-color:rgba(82,190,128,0.4);color:rgba(82,190,128,0.8);}
+.ab-approve:hover{background:rgba(82,190,128,0.1);}
+.ab-reject{border-color:rgba(239,68,68,0.35);color:rgba(239,68,68,0.7);}
+.ab-reject:hover{background:rgba(239,68,68,0.08);}
+.ab-view{border-color:rgba(242,237,230,0.12);color:rgba(242,237,230,0.4);}
+.ab-view:hover{background:rgba(255,255,255,0.05);}
+
+.ad-urgency-pip{display:inline-flex;gap:2px;align-items:center;}
+.ad-pip{width:5px;height:5px;border-radius:1px;}
+
+/* ── SECTION LABEL ── */
+.ad-section-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,237,230,0.22);margin-bottom:12px;}
+
+/* ── ZONES TAB ── */
+.ad-zone-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.ad-zone-card{
+  background:rgba(255,255,255,0.03);
+  border:0.5px solid rgba(242,237,230,0.07);
+  border-radius:10px;padding:16px;cursor:pointer;
+  transition:all 0.25s;position:relative;overflow:hidden;
+}
+.ad-zone-card:hover{border-color:rgba(193,68,14,0.35);background:rgba(193,68,14,0.04);}
+.ad-zone-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:2.5px;border-radius:10px 0 0 10px;}
+.ad-zone-card-name{font-size:14px;font-weight:500;color:#F2EDE6;margin-bottom:5px;}
+.ad-zone-card-meta{font-size:11px;color:rgba(242,237,230,0.35);margin-bottom:12px;}
+.ad-zone-card-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:8px;}
+.ad-zone-card-bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease;}
+.ad-zone-card-stats{display:flex;justify-content:space-between;}
+.ad-zone-stat-item{text-align:center;}
+.ad-zone-stat-num{font-family:'DM Mono',monospace;font-size:16px;color:#E8B87A;display:block;line-height:1;}
+.ad-zone-stat-lbl{font-size:10px;color:rgba(242,237,230,0.25);letter-spacing:0.04em;}
+.ad-zone-add{
+  background:transparent;
+  border:0.5px dashed rgba(242,237,230,0.12);
+  border-radius:10px;padding:16px;cursor:pointer;
+  transition:all 0.25s;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:8px;min-height:140px;
+}
+.ad-zone-add:hover{border-color:rgba(193,68,14,0.4);background:rgba(193,68,14,0.04);}
+.ad-zone-add-icon{font-size:22px;opacity:0.35;}
+.ad-zone-add-text{font-size:12px;color:rgba(242,237,230,0.3);}
+
+/* ── STATS TAB ── */
+.ad-col2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.ad-chart-card{background:rgba(255,255,255,0.03);border:0.5px solid rgba(242,237,230,0.07);border-radius:10px;padding:16px;}
+.ad-chart-title{font-size:12px;font-weight:500;color:rgba(242,237,230,0.6);margin-bottom:14px;}
+.ad-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.ad-bar-label{font-size:11px;color:rgba(242,237,230,0.38);width:68px;flex-shrink:0;text-align:right;}
+.ad-bar-track{flex:1;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;}
+.ad-bar-fill{height:100%;border-radius:3px;}
+.ad-bar-val{font-size:11px;font-family:'DM Mono',monospace;color:rgba(242,237,230,0.38);width:28px;text-align:right;flex-shrink:0;}
+
+/* ── EXPORT TAB ── */
+.ad-export-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.ad-export-option{
+  background:rgba(255,255,255,0.03);border:0.5px solid rgba(242,237,230,0.08);
+  border-radius:10px;padding:20px;cursor:pointer;transition:all 0.25s;text-align:center;
+}
+.ad-export-option:hover{border-color:rgba(193,68,14,0.4);background:rgba(193,68,14,0.05);}
+.ad-export-option.sel{border-color:#C1440E;background:rgba(193,68,14,0.1);}
+.ad-export-icon{font-size:26px;margin-bottom:10px;}
+.ad-export-name{font-size:13px;font-weight:500;color:#F2EDE6;margin-bottom:4px;}
+.ad-export-desc{font-size:11px;color:rgba(242,237,230,0.35);line-height:1.5;}
+
+.ad-select{
+  width:100%;padding:7px 11px;background:rgba(255,255,255,0.04);
+  border:0.5px solid rgba(242,237,230,0.12);border-radius:6px;
+  color:rgba(242,237,230,0.6);font-size:12px;font-family:'DM Sans',sans-serif;
+  outline:none;margin-bottom:12px;
+}
+.ad-select:focus{border-color:rgba(193,68,14,0.45);}
+
+/* ── AI BANNER ── */
+.ad-ai-banner{
+  background:rgba(193,68,14,0.06);border:0.5px solid rgba(193,68,14,0.2);
+  border-radius:8px;padding:12px 14px;margin-bottom:16px;
+  display:flex;align-items:flex-start;gap:10px;
+}
+.ad-ai-dot{width:6px;height:6px;border-radius:50%;background:#C1440E;animation:adpulse 2s infinite;flex-shrink:0;margin-top:3px;}
+.ad-ai-text{font-size:12px;color:rgba(242,237,230,0.55);line-height:1.5;font-style:italic;}
+.ad-ai-label{font-size:10px;color:#C1440E;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;}
+
+.ad-divider{height:0.5px;background:rgba(242,237,230,0.06);margin:16px 0;}
+
+/* ── PAGINATION ── */
+.ad-pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:0.5px solid rgba(242,237,230,0.06);}
+.ad-pag-info{font-size:11px;color:rgba(242,237,230,0.25);}
+.ad-pag-btns{display:flex;gap:4px;}
+.ad-pag-btn{
+  width:28px;height:28px;border-radius:4px;border:0.5px solid rgba(242,237,230,0.1);
+  background:transparent;color:rgba(242,237,230,0.4);font-size:12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+  font-family:'DM Sans',sans-serif;
+}
+.ad-pag-btn:hover{background:rgba(255,255,255,0.06);color:#F2EDE6;}
+.ad-pag-btn.curr{background:rgba(193,68,14,0.15);border-color:rgba(193,68,14,0.4);color:#F2EDE6;}
+</style>
+
+<div class="ad">
+
+  <!-- HEADER -->
+  <div class="ad-header">
+    <div class="ad-header-top">
+      <div class="ad-title-wrap">
+        <div class="ad-label"><span class="ad-label-dot"></span>Console d'administration · Accès restreint</div>
+        <h1 class="ad-title">
+          Admin Dashboard
+          <span class="ad-city-badge"><span style="width:5px;height:5px;background:#C1440E;border-radius:50%;"></span>Casablanca</span>
+        </h1>
+      </div>
+      <div class="ad-header-right">
+        <div class="ad-notif">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:rgba(242,237,230,0.5)"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="ad-notif-badge"></div>
+        </div>
+        <button class="ad-btn-ghost">📥 Export CSV</button>
+        <button class="ad-btn-primary" onclick="switchAdTab('remarques',document.querySelector('.ad-tab'))">+ Nouvelle zone</button>
+      </div>
+    </div>
+    <nav class="ad-tabs" role="tablist">
+      <button class="ad-tab active" onclick="switchAdTab('remarques',this)">
+        📋 Remarques <span class="ad-tab-count">486</span>
+      </button>
+      <button class="ad-tab" onclick="switchAdTab('zones',this)">
+        🗺 Zones <span class="ad-tab-count green">38</span>
+      </button>
+      <button class="ad-tab" onclick="switchAdTab('statistiques',this)">
+        📊 Statistiques
+      </button>
+      <button class="ad-tab" onclick="switchAdTab('export',this)">
+        📥 Export CSV
+      </button>
+    </nav>
+  </div>
+
+  <div class="ad-body">
+
+    <!-- ══════════════ TAB: REMARQUES ══════════════ -->
+    <div class="ad-panel active" id="adp-remarques">
+      <!-- KPI row -->
+      <div class="ad-kpi-row">
+        <div class="ad-kpi c1"><div class="ad-kpi-lbl">Total</div><div class="ad-kpi-num">486</div><div class="ad-kpi-sub">tous statuts</div></div>
+        <div class="ad-kpi c2"><div class="ad-kpi-lbl">Urgents</div><div class="ad-kpi-num">12</div><div class="ad-kpi-sub">↑ 3 cette semaine</div></div>
+        <div class="ad-kpi c3"><div class="ad-kpi-lbl">En attente</div><div class="ad-kpi-num">47</div><div class="ad-kpi-sub">à modérer</div></div>
+        <div class="ad-kpi c4"><div class="ad-kpi-lbl">Validés</div><div class="ad-kpi-num">389</div><div class="ad-kpi-sub">80% du total</div></div>
+        <div class="ad-kpi c5"><div class="ad-kpi-lbl">Taux IA</div><div class="ad-kpi-num">94%</div><div class="ad-kpi-sub">modération auto</div></div>
+      </div>
+
+      <!-- AI alert -->
+      <div class="ad-ai-banner">
+        <div class="ad-ai-dot"></div>
+        <div>
+          <div class="ad-ai-label">Alerte IA · Claude</div>
+          <div class="ad-ai-text">3 nouveaux signalements urgents détectés dans Gueliz depuis 2h. Thème récurrent : déchets illégaux angle Rue Ibn Tachfin. Recommandation : intervention terrain prioritaire.</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="ad-toolbar">
+        <div class="ad-search-wrap">
+          <svg class="ad-search-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="ad-search" style="padding-left:30px;" type="text" placeholder="Chercher une remarque, zone, citoyen...">
+        </div>
+        <button class="ad-filter-pill on" onclick="adFilter(this)">Toutes</button>
+        <button class="ad-filter-pill urgent" onclick="adFilter(this)">🔴 Urgentes</button>
+        <button class="ad-filter-pill active" onclick="adFilter(this)">🟡 En attente</button>
+        <button class="ad-filter-pill valid" onclick="adFilter(this)">✅ Validées</button>
+        <button class="ad-filter-pill" onclick="adFilter(this)">❌ Rejetées</button>
+      </div>
+
+      <!-- Table -->
+      <div class="ad-table-wrap">
+        <table class="ad-table">
+          <thead>
+            <tr>
+              <th>Citoyen</th>
+              <th>Zone</th>
+              <th>Catégorie</th>
+              <th>Urgence</th>
+              <th>Statut</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr onclick="adRowClick(this)">
+              <td>Youssef Alami</td>
+              <td><span style="display:flex;align-items:center;gap:5px;"><span style="width:5px;height:5px;border-radius:50%;background:#C1440E;flex-shrink:0;"></span>Gueliz</span></td>
+              <td>🌳 Parc</td>
+              <td><div class="ad-urgency-pip"><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div></div></td>
+              <td><span class="ad-badge b-urgent">Urgent</span></td>
+              <td style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(242,237,230,0.3);">22/05/26</td>
+              <td><div style="display:flex;gap:4px;"><button class="ad-action-btn ab-approve" onclick="event.stopPropagation();adApprove(this)">✓ Valider</button><button class="ad-action-btn ab-reject" onclick="event.stopPropagation()">✕ Rejeter</button></div></td>
+            </tr>
+            <tr onclick="adRowClick(this)">
+              <td>Fatima Benali</td>
+              <td><span style="display:flex;align-items:center;gap:5px;"><span style="width:5px;height:5px;border-radius:50%;background:#1A5276;flex-shrink:0;"></span>Médina</span></td>
+              <td>🏫 École</td>
+              <td><div class="ad-urgency-pip"><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div></div></td>
+              <td><span class="ad-badge b-urgent">Urgent</span></td>
+              <td style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(242,237,230,0.3);">22/05/26</td>
+              <td><div style="display:flex;gap:4px;"><button class="ad-action-btn ab-approve" onclick="event.stopPropagation();adApprove(this)">✓ Valider</button><button class="ad-action-btn ab-reject" onclick="event.stopPropagation()">✕ Rejeter</button></div></td>
+            </tr>
+            <tr onclick="adRowClick(this)">
+              <td>Karim Idrissi</td>
+              <td><span style="display:flex;align-items:center;gap:5px;"><span style="width:5px;height:5px;border-radius:50%;background:#E8B87A;flex-shrink:0;"></span>Hivernage</span></td>
+              <td>💡 Éclairage</td>
+              <td><div class="ad-urgency-pip"><div class="ad-pip" style="background:#f59e0b;"></div><div class="ad-pip" style="background:#f59e0b;"></div><div class="ad-pip" style="background:#f59e0b;"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div></div></td>
+              <td><span class="ad-badge b-active">En attente</span></td>
+              <td style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(242,237,230,0.3);">21/05/26</td>
+              <td><div style="display:flex;gap:4px;"><button class="ad-action-btn ab-approve" onclick="event.stopPropagation();adApprove(this)">✓ Valider</button><button class="ad-action-btn ab-view" onclick="event.stopPropagation()">👁 Voir</button></div></td>
+            </tr>
+            <tr onclick="adRowClick(this)">
+              <td>Amina Tahiri</td>
+              <td><span style="display:flex;align-items:center;gap:5px;"><span style="width:5px;height:5px;border-radius:50%;background:#52BE80;flex-shrink:0;"></span>Palmeraie</span></td>
+              <td>🏥 Hôpital</td>
+              <td><div class="ad-urgency-pip"><div class="ad-pip" style="background:#52BE80;"></div><div class="ad-pip" style="background:#52BE80;"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div></div></td>
+              <td><span class="ad-badge b-valid">Validée</span></td>
+              <td style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(242,237,230,0.3);">20/05/26</td>
+              <td><div style="display:flex;gap:4px;"><button class="ad-action-btn ab-view" onclick="event.stopPropagation()">👁 Voir</button><button class="ad-action-btn ab-reject" onclick="event.stopPropagation()">✕ Rejeter</button></div></td>
+            </tr>
+            <tr onclick="adRowClick(this)">
+              <td>Hassan Moussaoui</td>
+              <td><span style="display:flex;align-items:center;gap:5px;"><span style="width:5px;height:5px;border-radius:50%;background:#C1440E;flex-shrink:0;"></span>Gueliz</span></td>
+              <td>🚮 Déchets</td>
+              <td><div class="ad-urgency-pip"><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:#ef4444;"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div></div></td>
+              <td><span class="ad-badge b-pend">En attente</span></td>
+              <td style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(242,237,230,0.3);">20/05/26</td>
+              <td><div style="display:flex;gap:4px;"><button class="ad-action-btn ab-approve" onclick="event.stopPropagation();adApprove(this)">✓ Valider</button><button class="ad-action-btn ab-reject" onclick="event.stopPropagation()">✕ Rejeter</button></div></td>
+            </tr>
+            <tr onclick="adRowClick(this)">
+              <td>Sara Cherkaoui</td>
+              <td><span style="display:flex;align-items:center;gap:5px;"><span style="width:5px;height:5px;border-radius:50%;background:#1A5276;flex-shrink:0;"></span>Médina</span></td>
+              <td>🏘️ Résidentiel</td>
+              <td><div class="ad-urgency-pip"><div class="ad-pip" style="background:#52BE80;"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div><div class="ad-pip" style="background:rgba(242,237,230,0.1);"></div></div></td>
+              <td><span class="ad-badge b-rej">Rejetée</span></td>
+              <td style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(242,237,230,0.3);">19/05/26</td>
+              <td><div style="display:flex;gap:4px;"><button class="ad-action-btn ab-view" onclick="event.stopPropagation()">👁 Voir</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="ad-pagination">
+          <span class="ad-pag-info">Affichage 1–6 sur 486 remarques</span>
+          <div class="ad-pag-btns">
+            <button class="ad-pag-btn">‹</button>
+            <button class="ad-pag-btn curr">1</button>
+            <button class="ad-pag-btn">2</button>
+            <button class="ad-pag-btn">3</button>
+            <button class="ad-pag-btn">···</button>
+            <button class="ad-pag-btn">81</button>
+            <button class="ad-pag-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ TAB: ZONES ══════════════ -->
+    <div class="ad-panel" id="adp-zones">
+      <div class="ad-kpi-row">
+        <div class="ad-kpi c1"><div class="ad-kpi-lbl">Zones actives</div><div class="ad-kpi-num">38</div><div class="ad-kpi-sub">3 villes</div></div>
+        <div class="ad-kpi c4"><div class="ad-kpi-lbl">Couverture</div><div class="ad-kpi-num">94%</div><div class="ad-kpi-sub">de la superficie</div></div>
+        <div class="ad-kpi c3"><div class="ad-kpi-lbl">Zones sans signalement</div><div class="ad-kpi-num">4</div><div class="ad-kpi-sub">inactives ce mois</div></div>
+        <div class="ad-kpi c2"><div class="ad-kpi-lbl">Zones urgentes</div><div class="ad-kpi-num">3</div><div class="ad-kpi-sub">nécessitent action</div></div>
+        <div class="ad-kpi c5"><div class="ad-kpi-lbl">Moy. signalements</div><div class="ad-kpi-num">12.8</div><div class="ad-kpi-sub">par zone</div></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="ad-section-label" style="margin-bottom:0;">Zones de Casablanca</div>
+        <button class="ad-btn-primary" style="font-size:11px;" onclick="alert('Ouverture éditeur de zone → MapPage')">+ Dessiner une zone →</button>
+      </div>
+
+      <div class="ad-zone-grid">
+        <div class="ad-zone-card" style="--zc:#C1440E;" onclick="zoneClick('Gueliz')">
+          <div style="position:absolute;top:0;left:0;bottom:0;width:2.5px;background:#C1440E;border-radius:10px 0 0 10px;"></div>
+          <div style="padding-left:8px;">
+            <div class="ad-zone-card-name">Gueliz</div>
+            <div class="ad-zone-card-meta">Casablanca · Zone résidentielle-commerciale</div>
+            <div class="ad-zone-card-bar"><div class="ad-zone-card-bar-fill" style="width:85%;background:#C1440E;"></div></div>
+            <div class="ad-zone-card-stats">
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num">12</span><span class="ad-zone-stat-lbl">Signalements</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#ef4444;">4</span><span class="ad-zone-stat-lbl">Urgents</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#52BE80;">8</span><span class="ad-zone-stat-lbl">Validés</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ad-zone-card" onclick="zoneClick('Médina')">
+          <div style="position:absolute;top:0;left:0;bottom:0;width:2.5px;background:#1A5276;border-radius:10px 0 0 10px;"></div>
+          <div style="padding-left:8px;">
+            <div class="ad-zone-card-name">Médina</div>
+            <div class="ad-zone-card-meta">Casablanca · Zone patrimoniale</div>
+            <div class="ad-zone-card-bar"><div class="ad-zone-card-bar-fill" style="width:62%;background:#1A5276;"></div></div>
+            <div class="ad-zone-card-stats">
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num">8</span><span class="ad-zone-stat-lbl">Signalements</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#ef4444;">2</span><span class="ad-zone-stat-lbl">Urgents</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#52BE80;">6</span><span class="ad-zone-stat-lbl">Validés</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ad-zone-card" onclick="zoneClick('Hivernage')">
+          <div style="position:absolute;top:0;left:0;bottom:0;width:2.5px;background:#E8B87A;border-radius:10px 0 0 10px;"></div>
+          <div style="padding-left:8px;">
+            <div class="ad-zone-card-name">Hivernage</div>
+            <div class="ad-zone-card-meta">Casablanca · Zone touristique</div>
+            <div class="ad-zone-card-bar"><div class="ad-zone-card-bar-fill" style="width:40%;background:#E8B87A;"></div></div>
+            <div class="ad-zone-card-stats">
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num">5</span><span class="ad-zone-stat-lbl">Signalements</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#ef4444;">1</span><span class="ad-zone-stat-lbl">Urgents</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#52BE80;">4</span><span class="ad-zone-stat-lbl">Validés</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ad-zone-card" onclick="zoneClick('Palmeraie')">
+          <div style="position:absolute;top:0;left:0;bottom:0;width:2.5px;background:#52BE80;border-radius:10px 0 0 10px;"></div>
+          <div style="padding-left:8px;">
+            <div class="ad-zone-card-name">Palmeraie</div>
+            <div class="ad-zone-card-meta">Casablanca · Zone verte</div>
+            <div class="ad-zone-card-bar"><div class="ad-zone-card-bar-fill" style="width:24%;background:#52BE80;"></div></div>
+            <div class="ad-zone-card-stats">
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num">3</span><span class="ad-zone-stat-lbl">Signalements</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#ef4444;">0</span><span class="ad-zone-stat-lbl">Urgents</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#52BE80;">3</span><span class="ad-zone-stat-lbl">Validés</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ad-zone-card" onclick="zoneClick('Massira')">
+          <div style="position:absolute;top:0;left:0;bottom:0;width:2.5px;background:#5DADE2;border-radius:10px 0 0 10px;"></div>
+          <div style="padding-left:8px;">
+            <div class="ad-zone-card-name">Massira</div>
+            <div class="ad-zone-card-meta">Casablanca · Zone périphérique</div>
+            <div class="ad-zone-card-bar"><div class="ad-zone-card-bar-fill" style="width:15%;background:#5DADE2;"></div></div>
+            <div class="ad-zone-card-stats">
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num">2</span><span class="ad-zone-stat-lbl">Signalements</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#ef4444;">1</span><span class="ad-zone-stat-lbl">Urgents</span></div>
+              <div class="ad-zone-stat-item"><span class="ad-zone-stat-num" style="color:#52BE80;">1</span><span class="ad-zone-stat-lbl">Validés</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ad-zone-add" onclick="alert('Ouverture éditeur de zone → MapPage')">
+          <div class="ad-zone-add-icon">＋</div>
+          <div class="ad-zone-add-text">Dessiner une nouvelle zone</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ TAB: STATISTIQUES ══════════════ -->
+    <div class="ad-panel" id="adp-statistiques">
+      <div class="ad-kpi-row">
+        <div class="ad-kpi c1"><div class="ad-kpi-lbl">Total remarques</div><div class="ad-kpi-num">486</div><div class="ad-kpi-sub">depuis le lancement</div></div>
+        <div class="ad-kpi c4"><div class="ad-kpi-lbl">Taux résolution</div><div class="ad-kpi-num">80%</div><div class="ad-kpi-sub">des signalements</div></div>
+        <div class="ad-kpi c3"><div class="ad-kpi-lbl">Délai moyen</div><div class="ad-kpi-num">4.2j</div><div class="ad-kpi-sub">traitement admin</div></div>
+        <div class="ad-kpi c2"><div class="ad-kpi-lbl">Urgences résolues</div><div class="ad-kpi-num">76%</div><div class="ad-kpi-sub">ce mois</div></div>
+        <div class="ad-kpi c5"><div class="ad-kpi-lbl">Citoyens actifs</div><div class="ad-kpi-num">1,240</div><div class="ad-kpi-sub">comptes validés</div></div>
+      </div>
+      <div class="ad-col2">
+        <div class="ad-chart-card">
+          <div class="ad-chart-title">Signalements par zone</div>
+          <div class="ad-bar-row"><span class="ad-bar-label">Gueliz</span><div class="ad-bar-track"><div class="ad-bar-fill" style="width:85%;background:#C1440E;"></div></div><span class="ad-bar-val">12</span></div>
+          <div class="ad-bar-row"><span class="ad-bar-label">Médina</span><div class="ad-bar-track"><div class="ad-bar-fill" style="width:62%;background:#1A5276;"></div></div><span class="ad-bar-val">8</span></div>
+          <div class="ad-bar-row"><span class="ad-bar-label">Hivernage</span><div class="ad-bar-track"><div class="ad-bar-fill" style="width:40%;background:#E8B87A;"></div></div><span class="ad-bar-val">5</span></div>
+          <div class="ad-bar-row"><span class="ad-bar-label">Palmeraie</span><div class="ad-bar-track"><div class="ad-bar-fill" style="width:24%;background:#52BE80;"></div></div><span class="ad-bar-val">3</span></div>
+          <div class="ad-bar-row"><span class="ad-bar-label">Massira</span><div class="ad-bar-track"><div class="ad-bar-fill" style="width:15%;background:#5DADE2;"></div></div><span class="ad-bar-val">2</span></div>
+        </div>
+        <div class="ad-chart-card">
+          <div class="ad-chart-title">Statut global des remarques</div>
+          <svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:130px;display:block;margin:0 auto 10px;">
+            <circle cx="100" cy="75" r="52" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="26"/>
+            <circle cx="100" cy="75" r="52" fill="none" stroke="#52BE80" stroke-width="26" stroke-dasharray="196 131" stroke-dashoffset="0" transform="rotate(-90 100 75)"/>
+            <circle cx="100" cy="75" r="52" fill="none" stroke="#f59e0b" stroke-width="26" stroke-dasharray="78 249" stroke-dashoffset="-196" transform="rotate(-90 100 75)"/>
+            <circle cx="100" cy="75" r="52" fill="none" stroke="#ef4444" stroke-width="26" stroke-dasharray="33 294" stroke-dashoffset="-274" transform="rotate(-90 100 75)"/>
+            <circle cx="100" cy="75" r="52" fill="none" stroke="rgba(100,116,139,0.5)" stroke-width="26" stroke-dasharray="20 307" stroke-dashoffset="-307" transform="rotate(-90 100 75)"/>
+            <text x="100" y="70" text-anchor="middle" fill="#E8B87A" font-size="20" font-family="DM Mono, monospace" font-weight="500">486</text>
+            <text x="100" y="85" text-anchor="middle" fill="rgba(242,237,230,0.3)" font-size="9" font-family="DM Sans, sans-serif">total</text>
+          </svg>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:rgba(242,237,230,0.45);"><div style="width:7px;height:7px;border-radius:50%;background:#52BE80;flex-shrink:0;"></div>Validés — 80%</div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:rgba(242,237,230,0.45);"><div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>En attente — 10%</div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:rgba(242,237,230,0.45);"><div style="width:7px;height:7px;border-radius:50%;background:#ef4444;flex-shrink:0;"></div>Urgents — 7%</div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:rgba(242,237,230,0.45);"><div style="width:7px;height:7px;border-radius:50%;background:rgba(100,116,139,0.6);flex-shrink:0;"></div>Rejetés — 3%</div>
+          </div>
+        </div>
+      </div>
+      <div class="ad-chart-card">
+        <div class="ad-chart-title">Tendance — signalements par mois 2026</div>
+        <svg viewBox="0 0 600 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
+          <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C1440E" stop-opacity="0.25"/><stop offset="100%" stop-color="#C1440E" stop-opacity="0"/></linearGradient></defs>
+          <path d="M20,58 L90,50 L160,42 L230,35 L300,28 L370,20 L440,15 L510,10 L580,6 L580,70 L20,70 Z" fill="url(#ag)"/>
+          <polyline points="20,58 90,50 160,42 230,35 300,28 370,20 440,15 510,10 580,6" fill="none" stroke="#C1440E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="580" cy="6" r="3.5" fill="#C1440E"/>
+          <g font-size="8" fill="rgba(242,237,230,0.22)" font-family="DM Sans, sans-serif" text-anchor="middle">
+            <text x="20" y="68">Jan</text><text x="90" y="68">Fév</text><text x="160" y="68">Mar</text><text x="230" y="68">Avr</text><text x="300" y="68">Mai</text><text x="370" y="68">Jun</text><text x="440" y="68">Jul</text><text x="510" y="68">Aoû</text><text x="580" y="68">Sep</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ══════════════ TAB: EXPORT ══════════════ -->
+    <div class="ad-panel" id="adp-export">
+      <div class="ad-ai-banner">
+        <div class="ad-ai-dot"></div>
+        <div>
+          <div class="ad-ai-label">Export de données</div>
+          <div class="ad-ai-text">Exportez les données filtrées en CSV ou JSON. Les exports incluent toutes les colonnes de la base de données selon les permissions de votre rôle administrateur.</div>
+        </div>
+      </div>
+      <div class="ad-section-label">Format d'export</div>
+      <div class="ad-export-grid">
+        <div class="ad-export-option sel" onclick="selExport(this)">
+          <div class="ad-export-icon">📊</div>
+          <div class="ad-export-name">CSV — Remarques</div>
+          <div class="ad-export-desc">Toutes les remarques avec statut, zone, catégorie, urgence et coordonnées GPS.</div>
+        </div>
+        <div class="ad-export-option" onclick="selExport(this)">
+          <div class="ad-export-icon">🗺</div>
+          <div class="ad-export-name">CSV — Zones</div>
+          <div class="ad-export-desc">Liste des zones avec coordonnées GeoJSON, nombre de remarques et statuts.</div>
+        </div>
+        <div class="ad-export-option" onclick="selExport(this)">
+          <div class="ad-export-icon">👥</div>
+          <div class="ad-export-name">CSV — Citoyens</div>
+          <div class="ad-export-desc">Données anonymisées des citoyens actifs : profil, ville, nombre de soumissions.</div>
+        </div>
+        <div class="ad-export-option" onclick="selExport(this)">
+          <div class="ad-export-icon">📦</div>
+          <div class="ad-export-name">Export complet</div>
+          <div class="ad-export-desc">Archive ZIP avec toutes les tables et les images téléchargées par les citoyens.</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div>
+          <div class="ad-section-label">Zone cible</div>
+          <select class="ad-select"><option>Toutes les zones</option><option>Gueliz</option><option>Médina</option><option>Hivernage</option></select>
+        </div>
+        <div>
+          <div class="ad-section-label">Période</div>
+          <select class="ad-select"><option>Toutes les dates</option><option>30 derniers jours</option><option>3 derniers mois</option><option>Année 2026</option></select>
+        </div>
+        <div>
+          <div class="ad-section-label">Statut</div>
+          <select class="ad-select"><option>Tous les statuts</option><option>Urgentes uniquement</option><option>Validées</option><option>En attente</option></select>
+        </div>
+        <div>
+          <div class="ad-section-label">Format</div>
+          <select class="ad-select"><option>CSV (,)</option><option>CSV (;)</option><option>JSON</option><option>Excel .xlsx</option></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="ad-btn-primary" style="flex:1;padding:11px;" onclick="doExport()">⬇ Télécharger l'export</button>
+        <button class="ad-btn-ghost" style="padding:11px 18px;">👁 Prévisualiser (50 lignes)</button>
+      </div>
+      <div id="exportDone" style="display:none;margin-top:12px;" class="ad-ai-banner">
+        <div class="ad-ai-dot" style="background:#52BE80;"></div>
+        <div><div class="ad-ai-label" style="color:#52BE80;">Export prêt</div><div class="ad-ai-text">Fichier : Remarques_Casablanca_Mai2026.csv — 486 lignes — 48 Ko</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function switchAdTab(id, btn) {
+  document.querySelectorAll('.ad-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ad-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('adp-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+function adFilter(btn) {
+  document.querySelectorAll('.ad-filter-pill').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+}
+function adApprove(btn) {
+  const row = btn.closest('tr');
+  const badge = row.querySelector('.ad-badge');
+  badge.className = 'ad-badge b-valid';
+  badge.textContent = '✅ Validée';
+  btn.closest('div').innerHTML = '<button class="ad-action-btn ab-view" onclick="event.stopPropagation()">👁 Voir</button>';
+}
+function adRowClick(row) {
+  row.style.background = 'rgba(193,68,14,0.08)';
+  setTimeout(() => row.style.background = '', 300);
+}
+function zoneClick(name) {
+  alert('Zone sélectionnée : ' + name + '\nOuverture du panneau de détails...');
+}
+function selExport(card) {
+  document.querySelectorAll('.ad-export-option').forEach(c => c.classList.remove('sel'));
+  card.classList.add('sel');
+}
+function doExport() {
+  const btn = event.target;
+  btn.textContent = '⏳ Génération en cours...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = '⬇ Télécharger l\'export';
+    btn.disabled = false;
+    document.getElementById('exportDone').style.display = 'flex';
+  }, 1800);
+}
+</script>

@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Validation\Rule;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\GroupEmailMailable;
 
 class UserController extends Controller
 {
@@ -30,5 +33,33 @@ class UserController extends Controller
         $user->update($payload);
 
         return response()->json(['data' => $user->fresh()]);
+    }
+
+    public function sendGroupEmail(Request $request)
+    {
+        $data = $request->validate([
+            'group' => ['required', 'string', 'in:citoyen,urbaniste,admin,all'],
+            'subject' => ['required', 'string'],
+            'message' => ['required', 'string'],
+        ]);
+
+        $query = User::query();
+
+        if ($data['group'] === 'all') {
+            $query->where('statut', 'active');
+        } else {
+            $query->where('role', $data['group']);
+        }
+
+        $users = $query->get();
+
+        foreach ($users as $user) {
+            Mail::to($user->email)->queue(new GroupEmailMailable($data['subject'], $data['message'], $user->nom));
+        }
+
+        return response()->json([
+            'success' => true,
+            'sent_to' => $users->count()
+        ]);
     }
 }

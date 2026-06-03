@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRemarqueRequest;
 use App\Http\Requests\UpdateRemarqueRequest;
 use App\Models\Remarque;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\RemarqueConfirmationMailable;
 
 class RemarqueController extends Controller
 {
@@ -31,13 +34,21 @@ class RemarqueController extends Controller
     public function store(StoreRemarqueRequest $request)
     {
         $payload = $request->validated();
-        $payload['user_id'] = request()->user()->id;
+        $user = $request->user();
+        $payload['user_id'] = $user->id;
 
         if ($request->hasFile('photo')) {
             $payload['photo_path'] = $request->file('photo')->store('remarques', 'public');
         }
 
         $remarque = Remarque::create($payload);
+        $remarque->load('zone');
+
+        try {
+            Mail::to($user->email)->queue(new RemarqueConfirmationMailable($remarque, $user));
+        } catch (\Exception $e) {
+            Log::error("Failed to queue remark confirmation email: " . $e->getMessage());
+        }
 
         return response()->json(['data' => $remarque->load(['user', 'zone'])], 201);
     }

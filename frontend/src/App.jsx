@@ -7,7 +7,7 @@ import HomePage from './pages/HomePage.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
-import MapPage from './pages/MapPage.jsx'
+import PublicMapPage from './pages/PublicMapPage.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import UrbanisteDashboard from './pages/UrbanisteDashboard.jsx'
 import SuperAdminPage from './pages/SuperAdminPage.jsx'
@@ -45,12 +45,8 @@ function AppRoutes() {
       <Route path="/registre" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* /map is ONLY for citizens */}
-      <Route path="/map" element={
-        <ProtectedRoute roles={['citoyen']}>
-          <MapPage />
-        </ProtectedRoute>
-      } />
+      {/* Public map route */}
+      <Route path="/map" element={<PublicMapPage />} />
 
       <Route path="/admin/dashboard" element={
         <ProtectedRoute roles={['admin']}>

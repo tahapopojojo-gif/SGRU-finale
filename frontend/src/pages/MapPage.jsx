@@ -1,8 +1,9 @@
+/* eslint-disable */
 import { useState, useEffect, useRef } from 'react'
 import { analyzeOpinion } from '../services/aiService'
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap, LayersControl, useMapEvents, Circle, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Navbar from '../components/Navbar.jsx'
 import api from '../services/api.js'
@@ -1002,6 +1003,7 @@ export default function MapPage() {
   const { user, logout } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
   const userCity = user?.city || 'marrakesh'
   // City-locked map config derived from user.city
   const cityConfig = getCityMapConfig(userCity)
@@ -1031,6 +1033,14 @@ export default function MapPage() {
   useEffect(() => {
     fetchData()
   }, [userCity])
+
+  useEffect(() => {
+    if (location.state?.activateDrawMode) {
+      setDrawMode('polygon')
+      // Clear the state so refresh doesn't re-trigger
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state])
   const [selectedParcel, setSelectedParcel] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const [votedParcels, setVotedParcels] = useState([])

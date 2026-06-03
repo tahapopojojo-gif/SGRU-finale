@@ -199,7 +199,7 @@ const Navbar = ({
           </button>
         )}
 
-        {!isMapPage && (
+        {!isMapPage && user?.role === 'citoyen' && (
           <button
             onClick={() => navigate('/map')}
             style={{
@@ -213,6 +213,24 @@ const Navbar = ({
             }}
           >
             Retour à la carte
+          </button>
+        )}
+
+        {/* Carte publique */}
+        {user?.role !== 'admin' && user?.role !== 'urbaniste' && (
+          <button
+            onClick={() => navigate('/map')}
+            style={{
+              padding: '5px 10px', borderRadius: '4px',
+              fontSize: '11px',
+              border: '0.5px solid rgba(193,68,14,0.3)',
+              color: '#E8B87A',
+              background: 'rgba(193,68,14,0.08)',
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            Carte publique
           </button>
         )}
 

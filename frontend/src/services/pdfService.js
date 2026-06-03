@@ -256,3 +256,81 @@ export async function generateZoneReport(zone, urbanisteName) {
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * Generates and automatically downloads a PDF receipt for a submitted remark.
+ */
+export function generateRemarkPDF(remarque) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  
+  // Title & subtitle
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(193, 68, 14); // RGB(193, 68, 14)
+  doc.text('UrbanMap Maroc', 20, 20);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(14);
+  doc.setTextColor(55, 65, 81);
+  doc.text('Récépissé de signalement', 20, 28);
+  
+  // Separation line
+  doc.setDrawColor(193, 68, 14);
+  doc.setLineWidth(0.5);
+  doc.line(20, 32, 190, 32);
+  
+  // Format dates
+  const dateStr = remarque.created_at 
+    ? new Date(remarque.created_at).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    : new Date().toLocaleDateString('fr-FR');
+    
+  // Table with data
+  const tableData = [
+    ['Numéro de référence', `#${remarque.id || 'N/A'}`],
+    ['Date', dateStr],
+    ['Zone', remarque.zone_nom || (remarque.zone?.nom) || 'Non spécifiée'],
+    ['Catégorie', CAT_LABELS[remarque.categorie] || remarque.categorie || 'Autre'],
+    ['Urgence', `${remarque.urgency || 3}/5`],
+    ['Statut', 'En attente de traitement']
+  ];
+  
+  autoTable(doc, {
+    body: tableData,
+    startY: 38,
+    margin: { left: 20, right: 20 },
+    theme: 'plain',
+    styles: { fontSize: 11, cellPadding: 4, fontStyle: 'normal', textColor: [55, 65, 81] },
+    columnStyles: {
+      0: { cellWidth: 50, fontStyle: 'bold', textColor: [193, 68, 14] },
+      1: { cellWidth: 120 }
+    }
+  });
+  
+  let finalY = doc.lastAutoTable.finalY || 80;
+  
+  // Description section
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(193, 68, 14);
+  doc.text('Description', 20, finalY + 12);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(31, 41, 55);
+  const opinionText = remarque.opinion || 'Aucune description fournie.';
+  const splitText = doc.splitTextToSize(opinionText, 170);
+  doc.text(splitText, 20, finalY + 18);
+  
+  // Footer on the bottom of page
+  doc.setFontSize(9);
+  doc.setTextColor(156, 163, 175);
+  const footerText = "Ce document est un récépissé officiel de votre signalement sur UrbanMap Maroc. Conservez-le pour vos démarches.";
+  const splitFooter = doc.splitTextToSize(footerText, 170);
+  doc.text(splitFooter, 20, 275);
+  
+  // Save PDF
+  const remarkId = remarque.id || 'new';
+  const fileDate = remarque.created_at ? remarque.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10);
+  doc.save(`UrbanMap_Signalement_${remarkId}_${fileDate}.pdf`);
+}
+

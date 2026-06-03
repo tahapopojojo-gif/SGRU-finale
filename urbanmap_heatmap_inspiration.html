@@ -1,0 +1,499 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono&family=Amiri:wght@700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body,#root{background:transparent}
+  .wrap{background:#060403;color:#F2EDE6;font-family:'DM Sans',sans-serif;min-height:600px;border-radius:10px;overflow:hidden;position:relative}
+  .zellige{position:absolute;inset:0;opacity:0.025;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23F2EDE6' stroke-width='0.5'%3E%3Cpolygon points='30,2 58,16 58,44 30,58 2,44 2,16'/%3E%3Cpolygon points='30,10 50,20 50,40 30,50 10,40 10,20'/%3E%3C/g%3E%3C/svg%3E")}
+  .header{padding:14px 18px 0;border-bottom:0.5px solid rgba(242,237,230,0.07);position:relative;z-index:2}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .title-group{}
+  .eyebrow{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,237,230,0.28);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+  .pulse{width:5px;height:5px;border-radius:50%;background:#C1440E;display:inline-block;animation:adpulse 2s infinite}
+  @keyframes adpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}
+  h1{font-family:'Amiri',serif;font-size:20px;color:#F2EDE6;display:flex;align-items:center;gap:8px}
+  .city-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(193,68,14,0.1);border:0.5px solid rgba(193,68,14,0.3);border-radius:100px;padding:3px 10px;font-size:11px;color:#E8B87A;font-family:'DM Sans',sans-serif}
+  .actions{display:flex;gap:8px;align-items:center}
+  .btn-ghost{padding:6px 12px;border-radius:6px;background:transparent;border:0.5px solid rgba(242,237,230,0.12);color:rgba(242,237,230,0.5);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s}
+  .btn-ghost:hover{border-color:rgba(242,237,230,0.3);color:#F2EDE6}
+  .btn-primary{padding:6px 12px;border-radius:6px;background:#C1440E;border:none;color:#fff;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer}
+  .tab-bar{display:flex;gap:0;overflow-x:auto;scrollbar-width:none}
+  .tab{padding:9px 16px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.2s;display:flex;align-items:center;gap:5px}
+  .tab.active{color:#F2EDE6;border-bottom-color:#C1440E}
+  .tab:not(.active){color:rgba(242,237,230,0.38)}
+  .body{padding:16px 18px;position:relative;z-index:1}
+  /* KPI row */
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+  .kpi{background:rgba(255,255,255,0.03);border:0.5px solid rgba(242,237,230,0.07);border-radius:8px;padding:12px;position:relative;overflow:hidden}
+  .kpi-accent{position:absolute;top:0;left:0;right:0;height:1.5px}
+  .kpi-label{font-size:10px;color:rgba(242,237,230,0.28);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:6px}
+  .kpi-val{font-family:'DM Mono',monospace;font-size:22px;color:#E8B87A;font-weight:500;line-height:1;margin-bottom:3px}
+  .kpi-sub{font-size:10px;color:rgba(242,237,230,0.3)}
+  /* Main grid */
+  .main-grid{display:grid;grid-template-columns:1fr 280px;gap:12px}
+  /* Map panel */
+  .map-panel{background:rgba(255,255,255,0.02);border:0.5px solid rgba(242,237,230,0.07);border-radius:10px;overflow:hidden;position:relative}
+  .map-toolbar{padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid rgba(242,237,230,0.06)}
+  .map-toolbar-label{font-size:11px;color:rgba(242,237,230,0.4);flex:1}
+  .layer-toggle{display:flex;background:rgba(255,255,255,0.04);border-radius:6px;padding:3px;gap:2px}
+  .layer-btn{padding:4px 10px;border-radius:4px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;transition:all 0.2s;color:rgba(242,237,230,0.4)}
+  .layer-btn.active{background:rgba(193,68,14,0.2);color:#F2EDE6;border:0.5px solid rgba(193,68,14,0.3)}
+  /* Simulated map */
+  .map-canvas{position:relative;height:340px;background:#0d0b09;overflow:hidden}
+  .map-grid{position:absolute;inset:0;opacity:0.07;background-image:repeating-linear-gradient(0deg,rgba(242,237,230,0.3) 0,rgba(242,237,230,0.3) 0.5px,transparent 0.5px,transparent 40px),repeating-linear-gradient(90deg,rgba(242,237,230,0.3) 0,rgba(242,237,230,0.3) 0.5px,transparent 0.5px,transparent 40px)}
+  .map-roads{position:absolute;inset:0}
+  /* Zone polygons */
+  .zone-poly{position:absolute;border-radius:2px;opacity:0.18}
+  /* Heatmap blobs */
+  .heat-blob{position:absolute;border-radius:50%;filter:blur(22px)}
+  /* Hotspot markers */
+  .hotspot{position:absolute;transform:translate(-50%,-50%);cursor:pointer}
+  .hotspot-ring{border-radius:50%;animation:hotring 2s infinite}
+  @keyframes hotring{0%,100%{transform:scale(1);opacity:0.6}50%{transform:scale(1.6);opacity:0}}
+  .hotspot-dot{border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+  /* Zone labels */
+  .zone-label{position:absolute;font-size:10px;font-family:'DM Sans',sans-serif;color:rgba(242,237,230,0.5);white-space:nowrap;text-align:center;pointer-events:none}
+  /* Map legend */
+  .map-legend{position:absolute;bottom:10px;left:10px;background:rgba(6,4,3,0.85);border:0.5px solid rgba(242,237,230,0.1);border-radius:6px;padding:8px 10px;backdrop-filter:blur(8px)}
+  .legend-title{font-size:9px;color:rgba(242,237,230,0.3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
+  .legend-bar{width:100px;height:5px;border-radius:3px;background:linear-gradient(90deg,rgba(82,190,128,0.6),rgba(245,158,11,0.7),rgba(239,68,68,0.9);margin-bottom:4px}
+  .legend-labels{display:flex;justify-content:space-between;font-size:9px;color:rgba(242,237,230,0.3);font-family:'DM Mono',monospace}
+  /* Tooltip card */
+  .map-tooltip{position:absolute;background:rgba(8,6,3,0.95);border:0.5px solid rgba(193,68,14,0.3);border-radius:8px;padding:10px 12px;font-size:11px;pointer-events:none;z-index:10;min-width:140px;backdrop-filter:blur(8px)}
+  .tooltip-zone{font-weight:500;color:#F2EDE6;margin-bottom:4px}
+  .tooltip-row{display:flex;justify-content:space-between;gap:16px;color:rgba(242,237,230,0.5);margin-bottom:2px;font-size:10px}
+  .tooltip-val{color:#E8B87A;font-family:'DM Mono',monospace}
+  /* Sidebar */
+  .sidebar{display:flex;flex-direction:column;gap:10px}
+  .side-card{background:rgba(255,255,255,0.02);border:0.5px solid rgba(242,237,230,0.07);border-radius:8px;padding:12px}
+  .side-title{font-size:11px;color:rgba(242,237,230,0.4);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;font-size:10px}
+  /* Zone list */
+  .zone-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid rgba(242,237,230,0.04)}
+  .zone-item:last-child{border-bottom:none}
+  .zone-rank{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+  .zone-info{flex:1;min-width:0}
+  .zone-name{font-size:11px;color:#F2EDE6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+  .zone-bar-wrap{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:3px}
+  .zone-bar{height:100%;border-radius:2px;transition:width 0.6s}
+  .zone-count{font-family:'DM Mono',monospace;font-size:11px;color:#E8B87A;flex-shrink:0}
+  /* Category breakdown */
+  .cat-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .cat-name{font-size:11px;color:rgba(242,237,230,0.5);flex:1}
+  .cat-bar-wrap{width:60px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px}
+  .cat-bar{height:100%;border-radius:2px}
+  .cat-count{font-family:'DM Mono',monospace;font-size:10px;color:rgba(242,237,230,0.35);width:20px;text-align:right}
+  /* AI alert */
+  .ai-alert{background:rgba(193,68,14,0.06);border:0.5px solid rgba(193,68,14,0.2);border-radius:6px;padding:10px;display:flex;gap:8px;align-items:flex-start}
+  .ai-dot{width:6px;height:6px;border-radius:50%;background:#C1440E;flex-shrink:0;margin-top:2px;animation:adpulse 2s infinite}
+  .ai-label{font-size:9px;color:#C1440E;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:3px}
+  .ai-text{font-size:10px;color:rgba(242,237,230,0.45);line-height:1.5;font-style:italic}
+  /* Gradient legend */
+  .grad-legend{display:flex;align-items:center;gap:6px;padding:6px 0}
+  .grad-bar{flex:1;height:5px;border-radius:3px;background:linear-gradient(90deg,rgba(82,190,128,0.7) 0%,rgba(245,158,11,0.8) 50%,rgba(239,68,68,1) 100%)}
+  .grad-label{font-size:9px;color:rgba(242,237,230,0.3);font-family:'DM Mono',monospace;white-space:nowrap}
+  /* Urgency chart */
+  .urg-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+  .urg-label{font-size:10px;color:rgba(242,237,230,0.35);width:10px;text-align:center}
+  .urg-bar-wrap{flex:1;height:4px;background:rgba(255,255,255,0.05);border-radius:2px}
+  .urg-bar{height:100%;border-radius:2px}
+</style>
+
+<div class="wrap">
+  <div class="zellige"></div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div class="title-group">
+        <div class="eyebrow">
+          <span class="pulse"></span>
+          Console d'administration · Accès restreint
+        </div>
+        <h1>
+          Admin Dashboard
+          <span class="city-badge">
+            <span style="width:5px;height:5px;background:#C1440E;border-radius:50%;display:inline-block"></span>
+            Marrakech
+          </span>
+        </h1>
+      </div>
+      <div class="actions">
+        <button class="btn-ghost">📥 Export CSV</button>
+        <button class="btn-primary">+ Nouvelle zone</button>
+      </div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab">📋 Remarques</button>
+      <button class="tab">🗺 Zones</button>
+      <button class="tab">📊 Statistiques</button>
+      <button class="tab active">🌡 Carte Thermique</button>
+      <button class="tab">📥 Export CSV</button>
+      <button class="tab">👥 Utilisateurs</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#C1440E"></div>
+        <div class="kpi-label">Total</div>
+        <div class="kpi-val">247</div>
+        <div class="kpi-sub">Signalements enregistrés</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#ef4444"></div>
+        <div class="kpi-label">Urgents</div>
+        <div class="kpi-val">38</div>
+        <div class="kpi-sub">Urgence ≥ 4</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#f59e0b"></div>
+        <div class="kpi-label">Zones actives</div>
+        <div class="kpi-val">6</div>
+        <div class="kpi-sub">Avec signalements</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#52BE80"></div>
+        <div class="kpi-label">Densité max</div>
+        <div class="kpi-val">74</div>
+        <div class="kpi-sub">Médina — signalements</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-accent" style="background:#E8B87A"></div>
+        <div class="kpi-label">Taux IA</div>
+        <div class="kpi-val">82%</div>
+        <div class="kpi-sub">Traités par Claude</div>
+      </div>
+    </div>
+
+    <!-- Main grid: map + sidebar -->
+    <div class="main-grid">
+
+      <!-- MAP PANEL -->
+      <div class="map-panel">
+        <div class="map-toolbar">
+          <span class="map-toolbar-label">Carte thermique des signalements · Marrakech</span>
+          <!-- Layer toggles -->
+          <div class="layer-toggle">
+            <button class="layer-btn active" onclick="setLayer('heat')">🌡 Chaleur</button>
+            <button class="layer-btn" onclick="setLayer('cluster')">⬡ Clusters</button>
+            <button class="layer-btn" onclick="setLayer('zones')">🗺 Zones</button>
+          </div>
+          <!-- Category filter -->
+          <select id="cat-filter" onchange="filterCat(this.value)" style="padding:4px 8px;border-radius:4px;font-size:11px;border:0.5px solid rgba(242,237,230,0.1);color:rgba(242,237,230,0.5);background:rgba(255,255,255,0.04);font-family:'DM Sans',sans-serif;outline:none;cursor:pointer">
+            <option value="all" style="background:#080603;color:#F2EDE6">Toutes catégories</option>
+            <option value="route" style="background:#080603;color:#F2EDE6">🛣️ Route</option>
+            <option value="hopital" style="background:#080603;color:#F2EDE6">🏥 Hôpital</option>
+            <option value="ecole" style="background:#080603;color:#F2EDE6">🏫 École</option>
+            <option value="parc" style="background:#080603;color:#F2EDE6">🌳 Parc</option>
+          </select>
+        </div>
+
+        <!-- Simulated map -->
+        <div class="map-canvas" id="mapCanvas">
+          <div class="map-grid"></div>
+
+          <!-- OSM-style road lines (SVG overlay) -->
+          <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.12" viewBox="0 0 560 340" preserveAspectRatio="none">
+            <!-- Main avenues -->
+            <line x1="0" y1="170" x2="560" y2="170" stroke="#F2EDE6" stroke-width="1.5"/>
+            <line x1="280" y1="0" x2="280" y2="340" stroke="#F2EDE6" stroke-width="1.5"/>
+            <!-- Diagonals -->
+            <line x1="0" y1="0" x2="560" y2="340" stroke="#F2EDE6" stroke-width="0.7"/>
+            <line x1="560" y1="0" x2="0" y2="340" stroke="#F2EDE6" stroke-width="0.7"/>
+            <!-- Secondary roads -->
+            <line x1="0" y1="90" x2="560" y2="90" stroke="#F2EDE6" stroke-width="0.5"/>
+            <line x1="0" y1="250" x2="560" y2="250" stroke="#F2EDE6" stroke-width="0.5"/>
+            <line x1="140" y1="0" x2="140" y2="340" stroke="#F2EDE6" stroke-width="0.5"/>
+            <line x1="420" y1="0" x2="420" y2="340" stroke="#F2EDE6" stroke-width="0.5"/>
+          </svg>
+
+          <!-- HEAT BLOBS — layer -->
+          <div id="heatLayer">
+            <!-- Médina — very hot -->
+            <div class="heat-blob" style="width:180px;height:160px;left:38%;top:28%;background:radial-gradient(circle,rgba(239,68,68,0.75) 0%,rgba(239,68,68,0.4) 40%,transparent 70%)"></div>
+            <!-- Guéliz — medium -->
+            <div class="heat-blob" style="width:140px;height:120px;left:14%;top:18%;background:radial-gradient(circle,rgba(245,158,11,0.65) 0%,rgba(245,158,11,0.3) 40%,transparent 70%)"></div>
+            <!-- Hivernage — warm -->
+            <div class="heat-blob" style="width:110px;height:100px;left:22%;top:50%;background:radial-gradient(circle,rgba(245,158,11,0.5) 0%,rgba(245,158,11,0.2) 40%,transparent 70%)"></div>
+            <!-- Mellah — hot -->
+            <div class="heat-blob" style="width:130px;height:110px;left:54%;top:38%;background:radial-gradient(circle,rgba(239,68,68,0.55) 0%,rgba(239,68,68,0.25) 40%,transparent 70%)"></div>
+            <!-- Palmeraie — cool -->
+            <div class="heat-blob" style="width:120px;height:100px;left:62%;top:12%;background:radial-gradient(circle,rgba(82,190,128,0.45) 0%,rgba(82,190,128,0.2) 40%,transparent 70%)"></div>
+            <!-- Agdal — cool -->
+            <div class="heat-blob" style="width:100px;height:90px;left:65%;top:58%;background:radial-gradient(circle,rgba(82,190,128,0.4) 0%,rgba(82,190,128,0.15) 40%,transparent 70%)"></div>
+          </div>
+
+          <!-- CLUSTER LAYER (hidden by default) -->
+          <div id="clusterLayer" style="display:none">
+            <!-- Cluster bubbles -->
+            <div style="position:absolute;left:47%;top:40%;transform:translate(-50%,-50%)">
+              <div style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.25);border:1.5px solid rgba(239,68,68,0.6);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;color:#ef4444;font-weight:500">74</div>
+            </div>
+            <div style="position:absolute;left:20%;top:26%;transform:translate(-50%,-50%)">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(245,158,11,0.2);border:1.5px solid rgba(245,158,11,0.5);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;color:#f59e0b;font-weight:500">52</div>
+            </div>
+            <div style="position:absolute;left:60%;top:44%;transform:translate(-50%,-50%)">
+              <div style="width:38px;height:38px;border-radius:50%;background:rgba(239,68,68,0.18);border:1.5px solid rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:#ef4444;font-weight:500">41</div>
+            </div>
+            <div style="position:absolute;left:27%;top:58%;transform:translate(-50%,-50%)">
+              <div style="width:32px;height:32px;border-radius:50%;background:rgba(245,158,11,0.15);border:1.5px solid rgba(245,158,11,0.4);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:#f59e0b;font-weight:500">29</div>
+            </div>
+            <div style="position:absolute;left:69%;top:20%;transform:translate(-50%,-50%)">
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(82,190,128,0.15);border:1.5px solid rgba(82,190,128,0.4);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;color:#52BE80;font-weight:500">18</div>
+            </div>
+            <div style="position:absolute;left:71%;top:64%;transform:translate(-50%,-50%)">
+              <div style="width:24px;height:24px;border-radius:50%;background:rgba(82,190,128,0.12);border:1.5px solid rgba(82,190,128,0.35);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;color:#52BE80;font-weight:500">13</div>
+            </div>
+          </div>
+
+          <!-- ZONE LAYER (hidden by default) -->
+          <div id="zoneLayer" style="display:none">
+            <div style="position:absolute;left:34%;top:22%;width:28%;height:34%;border:1.5px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.07);border-radius:4px;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:10px;color:rgba(239,68,68,0.8);font-family:'DM Sans',sans-serif">Médina</span>
+            </div>
+            <div style="position:absolute;left:8%;top:12%;width:22%;height:28%;border:1.5px solid rgba(245,158,11,0.4);background:rgba(245,158,11,0.05);border-radius:4px;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:10px;color:rgba(245,158,11,0.7);font-family:'DM Sans',sans-serif">Guéliz</span>
+            </div>
+            <div style="position:absolute;left:16%;top:46%;width:20%;height:26%;border:1.5px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.04);border-radius:4px;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:10px;color:rgba(245,158,11,0.6);font-family:'DM Sans',sans-serif">Hivernage</span>
+            </div>
+            <div style="position:absolute;left:56%;top:32%;width:20%;height:26%;border:1.5px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.05);border-radius:4px;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:10px;color:rgba(239,68,68,0.6);font-family:'DM Sans',sans-serif">Mellah</span>
+            </div>
+            <div style="position:absolute;left:60%;top:8%;width:22%;height:22%;border:1.5px solid rgba(82,190,128,0.35);background:rgba(82,190,128,0.04);border-radius:4px;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:10px;color:rgba(82,190,128,0.6);font-family:'DM Sans',sans-serif">Palmeraie</span>
+            </div>
+            <div style="position:absolute;left:63%;top:55%;width:22%;height:24%;border:1.5px solid rgba(82,190,128,0.3);background:rgba(82,190,128,0.03);border-radius:4px;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:10px;color:rgba(82,190,128,0.5);font-family:'DM Sans',sans-serif">Agdal</span>
+            </div>
+          </div>
+
+          <!-- Hotspot pulsing markers -->
+          <div class="hotspot" id="hs1" style="left:47%;top:40%" onclick="showTooltip(event,'Médina',74,4.2,'Route')">
+            <div class="hotspot-ring" style="width:20px;height:20px;border:2px solid rgba(239,68,68,0.5);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)"></div>
+            <div class="hotspot-dot" style="width:8px;height:8px;background:#ef4444"></div>
+          </div>
+          <div class="hotspot" id="hs2" style="left:20%;top:26%" onclick="showTooltip(event,'Guéliz',52,3.6,'Hôpital')">
+            <div class="hotspot-ring" style="width:16px;height:16px;border:2px solid rgba(245,158,11,0.5);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:0.4s"></div>
+            <div class="hotspot-dot" style="width:7px;height:7px;background:#f59e0b"></div>
+          </div>
+          <div class="hotspot" id="hs3" style="left:60%;top:44%" onclick="showTooltip(event,'Mellah',41,3.9,'Route')">
+            <div class="hotspot-ring" style="width:14px;height:14px;border:2px solid rgba(239,68,68,0.4);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:0.8s"></div>
+            <div class="hotspot-dot" style="width:6px;height:6px;background:#ef4444"></div>
+          </div>
+          <div class="hotspot" id="hs4" style="left:27%;top:58%" onclick="showTooltip(event,'Hivernage',29,2.8,'Parc')">
+            <div class="hotspot-ring" style="width:12px;height:12px;border:2px solid rgba(245,158,11,0.4);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:1.2s"></div>
+            <div class="hotspot-dot" style="width:5px;height:5px;background:#f59e0b"></div>
+          </div>
+          <div class="hotspot" style="left:69%;top:20%" onclick="showTooltip(event,'Palmeraie',18,1.9,'Parc')">
+            <div class="hotspot-dot" style="width:5px;height:5px;background:#52BE80"></div>
+          </div>
+          <div class="hotspot" style="left:71%;top:64%" onclick="showTooltip(event,'Agdal',13,1.5,'École')">
+            <div class="hotspot-dot" style="width:5px;height:5px;background:#52BE80"></div>
+          </div>
+
+          <!-- Tooltip -->
+          <div class="map-tooltip" id="mapTooltip" style="display:none;top:30px;left:30px">
+            <div class="tooltip-zone" id="tt-zone">Médina</div>
+            <div class="tooltip-row"><span>Signalements</span><span class="tooltip-val" id="tt-count">74</span></div>
+            <div class="tooltip-row"><span>Urgence moy.</span><span class="tooltip-val" id="tt-urg">4.2/5</span></div>
+            <div class="tooltip-row"><span>Catégorie dom.</span><span class="tooltip-val" id="tt-cat">Route</span></div>
+            <div style="margin-top:6px;display:flex;gap:3px">
+              <div style="flex:1;height:2px;border-radius:2px;background:#ef4444"></div>
+              <div style="width:30%;height:2px;border-radius:2px;background:#f59e0b"></div>
+              <div style="width:15%;height:2px;border-radius:2px;background:#52BE80"></div>
+            </div>
+            <div style="font-size:9px;color:rgba(242,237,230,0.25);margin-top:4px">Cliquez pour voir les remarques →</div>
+          </div>
+
+          <!-- Legend -->
+          <div class="map-legend">
+            <div class="legend-title">Intensité</div>
+            <div style="width:100px;height:5px;border-radius:3px;background:linear-gradient(90deg,rgba(82,190,128,0.7),rgba(245,158,11,0.8),rgba(239,68,68,1));margin-bottom:4px"></div>
+            <div class="legend-labels">
+              <span>Faible</span><span>Élevée</span>
+            </div>
+          </div>
+
+          <!-- Coordinates overlay -->
+          <div style="position:absolute;bottom:10px;right:10px;font-family:'DM Mono',monospace;font-size:9px;color:rgba(242,237,230,0.2)">31.6295° N · 7.9811° W</div>
+        </div>
+
+        <!-- Time scrubber -->
+        <div style="padding:10px 12px;border-top:0.5px solid rgba(242,237,230,0.06);display:flex;align-items:center;gap:10px">
+          <span style="font-size:10px;color:rgba(242,237,230,0.3);white-space:nowrap">Période</span>
+          <input type="range" min="1" max="6" value="6" style="flex:1;accent-color:#C1440E" id="timeRange" oninput="updateTime(this.value)">
+          <span style="font-size:10px;font-family:'DM Mono',monospace;color:#E8B87A;width:48px;text-align:right" id="timeLabel">Juin 26</span>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+
+        <!-- AI alert -->
+        <div class="ai-alert">
+          <div class="ai-dot"></div>
+          <div>
+            <div class="ai-label">Alerte IA · Claude</div>
+            <div class="ai-text">Concentration anormale détectée en Médina. Urgence moyenne en hausse de 18% ce mois.</div>
+          </div>
+        </div>
+
+        <!-- Top zones -->
+        <div class="side-card">
+          <div class="side-title">🔥 Zones les plus actives</div>
+          <div id="zoneList">
+            <!-- populated by JS -->
+          </div>
+          <div style="margin-top:8px">
+            <div class="grad-legend">
+              <span class="grad-label">Faible</span>
+              <div class="grad-bar"></div>
+              <span class="grad-label">Élevée</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category breakdown -->
+        <div class="side-card">
+          <div class="side-title">📂 Par catégorie</div>
+          <div id="catList"></div>
+        </div>
+
+        <!-- Urgency distribution -->
+        <div class="side-card">
+          <div class="side-title">⚡ Distribution d'urgence</div>
+          <div id="urgList"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const zones = [
+  { name:'Médina', count:74, color:'#ef4444' },
+  { name:'Guéliz', count:52, color:'#f59e0b' },
+  { name:'Mellah', count:41, color:'#ef4444' },
+  { name:'Hivernage', count:29, color:'#f59e0b' },
+  { name:'Palmeraie', count:18, color:'#52BE80' },
+  { name:'Agdal', count:13, color:'#52BE80' },
+];
+const cats = [
+  { name:'Route', count:89, color:'#C1440E' },
+  { name:'Hôpital', count:63, color:'#ef4444' },
+  { name:'École', count:47, color:'#f59e0b' },
+  { name:'Parc', count:31, color:'#52BE80' },
+  { name:'Autre', count:17, color:'#E8B87A' },
+];
+const urgency = [
+  { level:1, count:28, color:'#52BE80' },
+  { level:2, count:54, color:'#84CC16' },
+  { level:3, count:71, color:'#f59e0b' },
+  { level:4, count:62, color:'#F97316' },
+  { level:5, count:32, color:'#ef4444' },
+];
+
+function buildZoneList() {
+  const el = document.getElementById('zoneList');
+  const max = zones[0].count;
+  el.innerHTML = zones.map((z,i) => `
+    <div class="zone-item">
+      <span class="zone-rank">${['🥇','🥈','🥉','4','5','6'][i]}</span>
+      <div class="zone-info">
+        <div class="zone-name">${z.name}</div>
+        <div class="zone-bar-wrap">
+          <div class="zone-bar" style="width:${Math.round(z.count/max*100)}%;background:${z.color}"></div>
+        </div>
+      </div>
+      <span class="zone-count">${z.count}</span>
+    </div>
+  `).join('');
+}
+
+function buildCatList() {
+  const el = document.getElementById('catList');
+  const max = cats[0].count;
+  el.innerHTML = cats.map(c => `
+    <div class="cat-row">
+      <div class="cat-dot" style="background:${c.color}"></div>
+      <span class="cat-name">${c.name}</span>
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(c.count/max*100)}%;background:${c.color}"></div></div>
+      <span class="cat-count">${c.count}</span>
+    </div>
+  `).join('');
+}
+
+function buildUrgList() {
+  const el = document.getElementById('urgList');
+  const max = 71;
+  el.innerHTML = urgency.map(u => `
+    <div class="urg-row">
+      <span class="urg-label" style="color:${u.color}">${u.level}</span>
+      <div class="urg-bar-wrap"><div class="urg-bar" style="width:${Math.round(u.count/max*100)}%;background:${u.color}"></div></div>
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(242,237,230,0.3);width:20px;text-align:right">${u.count}</span>
+    </div>
+  `).join('');
+}
+
+buildZoneList(); buildCatList(); buildUrgList();
+
+// Layer toggle
+function setLayer(l) {
+  document.getElementById('heatLayer').style.display = l==='heat'?'block':'none';
+  document.getElementById('clusterLayer').style.display = l==='cluster'?'block':'none';
+  document.getElementById('zoneLayer').style.display = l==='zones'?'block':'none';
+  document.querySelectorAll('.layer-btn').forEach((b,i) => {
+    const layers=['heat','cluster','zones'];
+    b.classList.toggle('active', layers[i]===l);
+  });
+}
+
+// Tooltip
+let tooltipOpen = false;
+function showTooltip(e, zone, count, urg, cat) {
+  const tt = document.getElementById('mapTooltip');
+  const canvas = document.getElementById('mapCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  document.getElementById('tt-zone').textContent = zone;
+  document.getElementById('tt-count').textContent = count;
+  document.getElementById('tt-urg').textContent = urg+'/5';
+  document.getElementById('tt-cat').textContent = cat;
+  let left = x + 12; let top = y - 10;
+  if (left + 160 > rect.width) left = x - 160;
+  if (top + 110 > rect.height) top = y - 110;
+  tt.style.left = left+'px'; tt.style.top = top+'px';
+  tt.style.display = 'block';
+  tooltipOpen = true;
+  e.stopPropagation();
+}
+document.getElementById('mapCanvas').addEventListener('click', function(){
+  if(tooltipOpen){ document.getElementById('mapTooltip').style.display='none'; tooltipOpen=false; }
+});
+
+// Time scrubber
+const timeLabels = ['Jan 26','Fév 26','Mar 26','Avr 26','Mai 26','Juin 26'];
+function updateTime(v) {
+  document.getElementById('timeLabel').textContent = timeLabels[v-1];
+}
+
+// Category filter (visual feedback only)
+function filterCat(v) {
+  const hl = document.getElementById('heatLayer');
+  const blobs = hl.querySelectorAll('.heat-blob');
+  blobs.forEach(b => b.style.opacity = v==='all'?'1':'0.3');
+  if(v==='route') blobs[0].style.opacity='1';
+  else if(v==='hopital') blobs[1].style.opacity='1';
+  else if(v==='ecole') { blobs[4].style.opacity='1';blobs[5].style.opacity='1'; }
+  else if(v==='parc') blobs[3].style.opacity='1';
+}
+</script>

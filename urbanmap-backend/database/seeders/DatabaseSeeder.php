@@ -29,6 +29,37 @@ class DatabaseSeeder extends Seeder
             'city' => 'Marrakesh',
         ]);
 
+        User::updateOrCreate([
+            'email' => 'admin@urbanmap.ma',
+        ], [
+            'nom' => 'Admin User',
+            'password' => Hash::make('admin123'),
+            'role' => 'admin',
+            'statut' => 'active',
+            'company_name' => 'UrbanMap',
+            'city' => 'Marrakesh',
+        ]);
+
+        User::updateOrCreate([
+            'email' => 'urbaniste@urbanmap.ma',
+        ], [
+            'nom' => 'Urbaniste User',
+            'password' => Hash::make('urban123'),
+            'role' => 'urbaniste',
+            'statut' => 'active',
+            'company_name' => 'UrbanMap',
+            'city' => 'Marrakesh',
+        ]);
+
+        User::updateOrCreate([
+            'email' => 'citoyen@urbanmap.ma',
+        ], [
+            'nom' => 'Citoyen User',
+            'password' => Hash::make('citoyen123'),
+            'role' => 'citoyen',
+            'statut' => 'active',
+        ]);
+
         Category::insert([
             ['nom' => 'Voirie', 'couleur' => '#3b82f6', 'icone' => 'road'],
             ['nom' => 'Patrimoine', 'couleur' => '#ef4444', 'icone' => 'landmark'],

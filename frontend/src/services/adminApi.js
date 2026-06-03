@@ -68,6 +68,18 @@ export const updateUser = async (userId, data) => {
   return response.data.data || response.data;
 };
 
+// GET /api/users
+export const getUsers = async () => {
+  const response = await axiosInstance.get('/users');
+  return response.data.data || response.data;
+};
+
+// POST /api/users/send-group-email
+export const sendGroupEmail = async (group, subject, message) => {
+  const response = await axiosInstance.post('/users/send-group-email', { group, subject, message });
+  return response.data;
+};
+
 // --- BACKWARDS COMPATIBILITY ALIASES ---
 
 export const getStatsByZone = async () => [];
