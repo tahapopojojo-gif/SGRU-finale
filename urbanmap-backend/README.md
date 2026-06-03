@@ -108,6 +108,92 @@ The app supports multiple user roles with distinct permissions. The exact roles 
     - Email: superadmin@urbanmap.ma
     - Password: super123
 
+## Database Schema
+
+The following Entity-Relationship Diagram represents the core tables for the UrbanMap database:
+
+```mermaid
+erDiagram
+    users ||--o{ remarques : creates
+    users ||--o{ annotation_urbanistes : "writes (urbaniste)"
+    zones ||--o{ remarques : contains
+    zones ||--o{ annotation_urbanistes : has
+    zones ||--o| zone_ai_summaries : has
+
+    users {
+        bigint id PK
+        string nom
+        string email
+        string password
+        enum role "super_admin, admin, urbaniste, citoyen"
+        enum statut "pending, active, rejected"
+        string company_name
+        string city
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    zones {
+        bigint id PK
+        string nom
+        string ville
+        string couleur
+        json coordonnees_geojson
+        decimal centre_lat
+        decimal centre_lng
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    remarques {
+        bigint id PK
+        bigint user_id FK
+        bigint zone_id FK
+        string categorie
+        enum statut "en_attente, validee, rejete, planifie"
+        string building_type
+        json reasons
+        json problems
+        tinyint urgency
+        string profile
+        string residence_duration
+        text opinion
+        boolean opinion_ai_validated
+        text opinion_ai_summary
+        text commentaire_admin
+        string photo_path
+        decimal latitude
+        decimal longitude
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    categories {
+        bigint id PK
+        string nom
+        string couleur
+        string icone
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    annotation_urbanistes {
+        bigint id PK
+        bigint zone_id FK
+        bigint urbaniste_id FK
+        text texte
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    zone_ai_summaries {
+        bigint id PK
+        bigint zone_id FK
+        text summary_text
+        timestamp generated_at
+    }
+```
+
 ## API Overview (Main Endpoints)
 
 Auth and Users
