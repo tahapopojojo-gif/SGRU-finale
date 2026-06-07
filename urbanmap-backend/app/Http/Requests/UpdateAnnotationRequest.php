@@ -23,6 +23,7 @@ class UpdateAnnotationRequest extends FormRequest
     {
         return [
             'texte' => 'required|string',
+            'priorite' => 'nullable|string|in:urgente,surveiller,informatif',
         ];
     }
 }

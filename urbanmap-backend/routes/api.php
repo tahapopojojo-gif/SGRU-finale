@@ -12,14 +12,17 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/zones', [ZoneController::class, 'index']);
+Route::get('/remarques', [RemarqueController::class, 'index']); // Public — citizens see community pins without login
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/user', [AuthController::class, 'me']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::get('/my-remarks', [RemarqueController::class, 'myRemarks']);
 
-    Route::get('/remarques', [RemarqueController::class, 'index']);
     Route::post('/remarques', [RemarqueController::class, 'store']);
+
 
     Route::middleware('role:admin,super_admin')->group(function (): void {
         Route::post('/zones', [ZoneController::class, 'store']);

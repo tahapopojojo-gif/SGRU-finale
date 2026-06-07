@@ -25,17 +25,11 @@ const getCenter = (coords) => ([
   coords.reduce((s, p) => s + p[1], 0) / coords.length,
 ]);
 
-const CATEGORY_COLORS = {
-  route: '#FF6B6B',
-  eclairage: '#FFE66D',
-  dechets: '#A8E6CF',
-  eau: '#74B9FF',
-  parc: '#55EFC4',
-  transport: '#FD79A8',
-  ecole: '#A29BFE',
-  hopital: '#FDCB6E',
-  autre: '#DFE6E9',
-};
+const COLOR_PALETTE = [
+  '#f59e0b', '#3b82f6', '#22c55e', '#a855f7',
+  '#ef4444', '#06b6d4', '#f97316', '#84cc16',
+  '#ec4899', '#14b8a6',
+];
 
 const CAT_LABEL = {
   route: 'Route', eclairage: 'Éclairage', parc: 'Parc',
@@ -122,19 +116,11 @@ function UrbanHeatmapLayer({ zones, remarks }) {
 
   useEffect(() => {
     if (!heatPoints.length) return;
-    const layer = window.L.heatLayer(heatPoints, {
-      radius: 60,
-      blur: 40,
-      maxZoom: 16,
-      max: 1.0,
-      gradient: {
-        0.0: 'rgba(0,0,0,0)',
-        0.2: 'rgba(0,255,255,0.3)',
-        0.4: 'rgba(0,255,0,0.5)',
-        0.6: 'rgba(255,255,0,0.7)',
-        0.8: 'rgba(255,100,0,0.85)',
-        1.0: 'rgba(255,0,0,1)',
-      },
+    const layer = L.heatLayer(heatPoints, {
+      radius: 35,
+      blur: 25,
+      maxZoom: 17,
+      gradient: { 0.2: '#00ff00', 0.5: '#ffff00', 0.8: '#ff6600', 1.0: '#ff0000' },
     }).addTo(map);
     return () => map.removeLayer(layer);
   }, [map, heatPoints]);
@@ -155,8 +141,8 @@ function ZonePolygon({ zone, isSelected, remarkCount, avgUrgency, onClick, heatm
       pathOptions={{
         color: densityColor,
         fillColor: densityColor,
-        fillOpacity: 0,
-        weight: 2.5,
+        fillOpacity: heatmapOn ? 0.35 : (isSelected ? 0.4 : 0.15),
+        weight: isSelected ? 2.5 : 1.5,
       }}
       eventHandlers={{
         click: () => onClick(zone),
@@ -288,10 +274,20 @@ export default function UrbanCarteTab({ onSwitchTab }) {
     [remarks, zoneIdSet]
   );
 
+  // Category color map from zoned remarks
+  const categoryColors = useMemo(() => {
+    const uniqueCats = [
+      ...new Set(zonedRemarks.map(r => (r.categorie?.toLowerCase().trim() || 'autre')))
+    ].sort();
+    const m = {};
+    uniqueCats.forEach((cat, i) => { m[cat] = COLOR_PALETTE[i % COLOR_PALETTE.length]; });
+    return m;
+  }, [zonedRemarks]);
+
   const getCatColor = useCallback((cat) => {
-    if (!cat) return '#DFE6E9';
-    return CATEGORY_COLORS[cat.toLowerCase().trim()] || '#DFE6E9';
-  }, []);
+    if (!cat) return '#94a3b8';
+    return categoryColors[cat.toLowerCase().trim()] || '#94a3b8';
+  }, [categoryColors]);
 
   // Remark count per zone
   const remarkCountByZone = useMemo(() => {
@@ -487,8 +483,8 @@ export default function UrbanCarteTab({ onSwitchTab }) {
               <MapController center={initialCenter} zoom={initialZoom} bounds={cityBounds} minZoom={cityMinZoom} />
 
               <TileLayer
-                url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
 
               {/* Zone-filtered heatmap — only inside official zones */}
@@ -518,13 +514,11 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                   <CircleMarker
                     key={i}
                     center={[parseFloat(r.latitude), parseFloat(r.longitude)]}
-                    radius={5}
+                    radius={heatmapOn ? 8 : 5}
                     pathOptions={{
-                      color: '#ffffff',
+                      color: 'transparent',
                       fillColor: getCatColor(cat),
-                      weight: 0.5,
-                      opacity: 0.6,
-                      fillOpacity: 0.85,
+                      fillOpacity: isFiltered ? 0.1 : (heatmapOn ? 0.75 : 0.85),
                     }}
                   >
                     <Tooltip direction="top" sticky>
@@ -826,13 +820,13 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                   Légende catégories
                 </div>
 
-                {Object.keys(CATEGORY_COLORS).length === 0 ? (
+                {Object.keys(categoryColors).length === 0 ? (
                   <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.25)', fontStyle: 'italic' }}>
                     Aucune donnée de catégorie disponible
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    {Object.entries(CATEGORY_COLORS).map(([cat, color]) => {
+                    {Object.entries(categoryColors).map(([cat, color]) => {
                       const isActive = activeCatFilter === cat;
                       const isDimmed = activeCatFilter && !isActive;
                       return (

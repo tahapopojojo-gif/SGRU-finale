@@ -32,7 +32,22 @@ function CityBadge() {
 export default function AdminDashboard() {
   const { isMobile } = useResponsive();
   const [activeTab, setActiveTab] = useState('remarques');
+  const [zoneFocus, setZoneFocus] = useState(null);
+  const [startDrawZone, setStartDrawZone] = useState(false);
   const tabRefs = useRef({});
+
+  const handleCreateZoneAround = (remark) => {
+    const lat = parseFloat(remark.latitude);
+    const lng = parseFloat(remark.longitude);
+    if (isNaN(lat) || isNaN(lng)) return;
+    setZoneFocus({
+      lat,
+      lng,
+      remarkId: remark.id,
+      label: remark.opinion?.slice(0, 60) || `Signalement #${remark.id}`,
+    });
+    setActiveTab('zones');
+  };
 
   const tabs = [
     { id: 'remarques', label: 'Remarques', icon: '📋' },
@@ -188,7 +203,7 @@ export default function AdminDashboard() {
 
             {/* New zone primary */}
             <button
-              onClick={() => setActiveTab('zones')}
+              onClick={() => { setActiveTab('zones'); setStartDrawZone(true); }}
               style={{
                 padding: '7px 14px', borderRadius: '6px',
                 background: '#C1440E', border: 'none',
@@ -262,16 +277,25 @@ export default function AdminDashboard() {
         position: 'relative', zIndex: 1,
       }}>
         <div style={{ display: activeTab === 'remarques' ? 'block' : 'none' }}>
-          <AdminRemarquesTab />
+          <AdminRemarquesTab
+            isActive={activeTab === 'remarques'}
+            onCreateZoneAround={handleCreateZoneAround}
+          />
         </div>
         <div style={{ display: activeTab === 'zones' ? 'block' : 'none' }}>
-          <AdminZonesTab />
+          <AdminZonesTab
+            isActive={activeTab === 'zones'}
+            zoneFocus={zoneFocus}
+            onZoneFocusClear={() => setZoneFocus(null)}
+            startDrawZone={startDrawZone}
+            onDrawZoneStarted={() => setStartDrawZone(false)}
+          />
         </div>
         <div style={{ display: activeTab === 'statistiques' ? 'block' : 'none' }}>
-          <AdminStatistiquesTab />
+          <AdminStatistiquesTab isActive={activeTab === 'statistiques'} />
         </div>
         <div style={{ display: activeTab === 'export' ? 'block' : 'none' }}>
-          <AdminExportTab />
+          <AdminExportTab isActive={activeTab === 'export'} />
         </div>
         <div style={{ display: activeTab === 'utilisateurs' ? 'block' : 'none' }}>
           <AdminUsersTab />

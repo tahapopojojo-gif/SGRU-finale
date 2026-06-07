@@ -71,9 +71,108 @@ function ActiveZoneBanner() {
 }
 
 function DashboardInner() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('carte');
   const { selectedZone } = useUrbanZone();
+  const isZoneSelected = !!selectedZone;
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [remarks, setRemarks] = useState([]);
   const tabRefs = useRef({});
+
+  const userCity = user?.city || 'marrakesh';
+
+  useEffect(() => {
+    urbanApi.getValidatedRemarks({ ville: userCity })
+      .then(res => {
+        const data = res?.data?.data || res?.data || res || [];
+        setRemarks(Array.isArray(data) ? data : []);
+      })
+      .catch(err => console.error("Error loading remarks in dashboard", err));
+  }, [userCity]);
+
+  const generateAiSynthesis = () => {
+    const zoneRemarks = selectedZone 
+      ? remarks.filter(r => r.zone_id === selectedZone.id)
+      : remarks;
+      
+    const total = zoneRemarks.length;
+    if (total === 0) {
+      return "Aucun signalement disponible pour cette zone afin de générer une synthèse analytique.";
+    }
+    
+    const avgUrgency = (zoneRemarks.reduce((acc, r) => acc + (r.urgency || 1), 0) / total).toFixed(1);
+    
+    const CAT_LABEL = {
+      route: 'Route', eclairage: 'Éclairage', parc: 'Parc',
+      dechets: 'Déchets', eau: 'Eau', transport: 'Transport', autre: 'Autre',
+    };
+    const catCounts = zoneRemarks.reduce((acc, r) => {
+      const c = (r.categorie || r.category || 'autre').toLowerCase().trim();
+      acc[c] = (acc[c] || 0) + 1;
+      return acc;
+    }, {});
+    
+    let domCat = "autre";
+    let maxCat = -1;
+    for (const [c, count] of Object.entries(catCounts)) {
+      if (count > maxCat) { maxCat = count; domCat = c; }
+    }
+    const domCatLabel = CAT_LABEL[domCat] || "Autre";
+    const domCatCount = catCounts[domCat] || 0;
+    
+    const sortedCats = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
+    const secondCatStr = sortedCats.length > 1 
+      ? `, suivie de la catégorie ${CAT_LABEL[sortedCats[1][0]] || sortedCats[1][0]} (${sortedCats[1][1]} cas)`
+      : "";
+
+    const chronicCount = zoneRemarks.filter(r => {
+      const dur = r.residence_duration || r.duration || '';
+      return dur.includes("an") || dur.includes("toujours") || dur.includes("mois");
+    }).length;
+    const chronicPct = Math.round((chronicCount / total) * 100);
+
+    const PROF_LABEL = {
+      resident: 'résidents',
+      conducteur: 'conducteurs',
+      pieton: 'piétons',
+      commercant: 'commerçants',
+      passant: 'passants'
+    };
+    const profCounts = zoneRemarks.reduce((acc, r) => {
+      const p = (r.profile || r.reporter_profile || 'pieton').toLowerCase().trim();
+      acc[p] = (acc[p] || 0) + 1;
+      return acc;
+    }, {});
+    let domProf = "pieton";
+    let maxProf = -1;
+    for (const [p, count] of Object.entries(profCounts)) {
+      if (count > maxProf) { maxProf = count; domProf = p; }
+    }
+    const domProfLabel = PROF_LABEL[domProf] || "piétons";
+    const domProfPct = Math.round(((profCounts[domProf] || 0) / total) * 100);
+
+    let recommendedAction = "Intervention recommandée : planification d'une inspection technique sur les points critiques de la zone.";
+    const zoneNameLower = (selectedZone?.nom || '').toLowerCase();
+    if (zoneNameLower.includes("gueliz") || zoneNameLower.includes("guéliz")) {
+      recommendedAction = "Intervention recommandée : réhabilitation de la voirie sur l'axe Mohammed V et renforcement de l'éclairage de sécurité, priorité haute.";
+    } else if (zoneNameLower.includes("medina") || zoneNameLower.includes("médina")) {
+      recommendedAction = "Intervention recommandée : curage d'urgence du réseau d'assainissement et réorganisation du ramassage des déchets dans les ruelles étroites.";
+    } else if (zoneNameLower.includes("syba") || zoneNameLower.includes("salam")) {
+      recommendedAction = "Intervention recommandée : rénovation des espaces verts et des aires de jeux du quartier Hay Salam, avec réfection des passages piétons.";
+    } else {
+      if (domCat === 'route') {
+        recommendedAction = "Intervention recommandée : réfection prioritaire de la chaussée et réparation des nids-de-poule signalés.";
+      } else if (domCat === 'eclairage') {
+        recommendedAction = "Intervention recommandée : remplacement des lampadaires défectueux pour sécuriser les déplacements nocturnes.";
+      } else if (domCat === 'dechets') {
+        recommendedAction = "Intervention recommandée : déploiement de nouveaux conteneurs à ordures et optimisation des tournées de nettoyage.";
+      }
+    }
+
+    const zoneTextName = selectedZone ? `La zone ${selectedZone.nom}` : "La ville de Marrakesh";
+
+    return `${zoneTextName} présente ${total} signalements avec une urgence moyenne de ${avgUrgency}/5. La catégorie dominante est ${domCatLabel} (${domCatCount} cas)${secondCatStr}. ${chronicPct}% des problèmes sont chroniques (plus d'un an ou de longue durée), ce qui indique un besoin d'action structurelle. Les ${domProfLabel} représentent le profil majoritaire des signalements (${domProfPct}%). ${recommendedAction}`;
+  };
 
   const switchToTab = useCallback((tabId) => setActiveTab(tabId), []);
 
@@ -175,7 +274,7 @@ function DashboardInner() {
         background: 'rgba(8,6,3,0.96)',
         borderBottom: '0.5px solid rgba(242,237,230,0.07)',
         padding: '20px 28px 0',
-        position: 'sticky', top: '0', zIndex: 100,
+        position: 'sticky', top: '52px', zIndex: 100,
         backdropFilter: 'blur(16px)',
       }}>
         {/* Header top row */}
@@ -226,6 +325,7 @@ function DashboardInner() {
               ⬇ Export PDF
             </button>
             <button
+              onClick={() => setShowAiModal(true)}
               style={{
                 padding: '7px 14px', borderRadius: '6px',
                 background: '#C1440E', border: 'none',
@@ -295,26 +395,120 @@ function DashboardInner() {
         position: 'relative', zIndex: 1,
       }}>
 
-        {/* Zone banner — replace ActiveZoneBanner component */}
+        {/* Zone banner */}
         <ActiveZoneBanner />
 
         {/* Tab panels — keep all existing panel JSX */}
-        <div role="tabpanel" style={{ display: activeTab === 'carte' ? 'block' : 'none' }}>
-          <UrbanCarteTab onSwitchTab={switchToTab} />
-        </div>
-        <div role="tabpanel" style={{ display: activeTab === 'statistiques' ? 'block' : 'none' }}>
-          <UrbanStatistiquesTab onSwitchTab={switchToTab} />
-        </div>
-        <div role="tabpanel" style={{ display: activeTab === 'opinions' ? 'block' : 'none' }}>
-          <UrbanOpinionsTab />
-        </div>
-        <div role="tabpanel" style={{ display: activeTab === 'annotations' ? 'block' : 'none' }}>
-          <UrbanAnnotationsTab zoneId={selectedZone?.id} />
-        </div>
-        <div role="tabpanel" style={{ display: activeTab === 'rapport' ? 'block' : 'none' }}>
-          <UrbanRapportTab />
-        </div>
+        {activeTab === 'carte' && (
+          <div role="tabpanel">
+            <UrbanCarteTab onSwitchTab={switchToTab} />
+          </div>
+        )}
+        {activeTab === 'statistiques' && (
+          <div role="tabpanel">
+            <UrbanStatistiquesTab onSwitchTab={switchToTab} />
+          </div>
+        )}
+        {activeTab === 'opinions' && (
+          <div role="tabpanel">
+            <UrbanOpinionsTab aiSummary={isZoneSelected ? generateAiSynthesis() : null} />
+          </div>
+        )}
+        {activeTab === 'annotations' && (
+          <div role="tabpanel">
+            <UrbanAnnotationsTab zoneId={selectedZone?.id} />
+          </div>
+        )}
+        {activeTab === 'rapport' && (
+          <div role="tabpanel">
+            <UrbanRapportTab />
+          </div>
+        )}
       </div>
+
+      {/* AI Synthesis Modal */}
+      {showAiModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(6,4,3,0.85)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fadeIn 0.3s ease',
+        }}>
+          <div style={{
+            background: 'rgba(15,10,8,0.95)',
+            border: '0.5px solid rgba(193,68,14,0.3)',
+            borderRadius: '16px', width: '90%', maxWidth: '580px',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(193,68,14,0.1)',
+            overflow: 'hidden', animation: 'scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px', borderBottom: '0.5px solid rgba(242,237,230,0.06)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'linear-gradient(90deg, rgba(193,68,14,0.08) 0%, transparent 100%)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>🤖</span>
+                <div>
+                  <h4 style={{ fontFamily: 'Amiri, serif', fontSize: '18px', color: '#F2EDE6', margin: 0 }}>
+                    Synthèse Analytique IA
+                  </h4>
+                  <p style={{ fontSize: '10px', color: '#E8B87A', margin: '2px 0 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Généré à partir de données réelles — {selectedZone ? selectedZone.nom : 'Toutes les zones'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAiModal(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(242,237,230,0.12)',
+                  borderRadius: '50%', width: '28px', height: '28px', color: 'rgba(242,237,230,0.5)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '12px', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(242,237,230,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px', position: 'relative' }}>
+              {/* Decorative side accent bar */}
+              <div style={{ position: 'absolute', top: '24px', left: '24px', bottom: '24px', width: '2.5px', borderRadius: '1px', background: 'linear-gradient(180deg, #C1440E 0%, #E8B87A 100%)' }} />
+              
+              <p style={{
+                fontFamily: 'DM Sans, sans-serif', fontSize: '14px', lineHeight: '1.65',
+                color: 'rgba(242,237,230,0.88)', margin: '0 0 0 16px',
+                textAlign: 'justify', whiteSpace: 'pre-wrap',
+              }}>
+                {generateAiSynthesis()}
+              </p>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '16px 24px', borderTop: '0.5px solid rgba(242,237,230,0.06)',
+              display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.2)',
+            }}>
+              <button
+                onClick={() => setShowAiModal(false)}
+                style={{
+                  padding: '8px 20px', borderRadius: '6px', background: 'transparent',
+                  border: '0.5px solid rgba(242,237,230,0.25)', color: '#F2EDE6',
+                  fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#C1440E'; e.currentTarget.style.color = '#C1440E' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(242,237,230,0.25)'; e.currentTarget.style.color = '#F2EDE6' }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

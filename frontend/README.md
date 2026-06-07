@@ -5,6 +5,13 @@ This document serves as the absolute source of truth regarding the current techn
 ## 📋 1. Project Overview
 **UrbanMap Maroc** is a spatial management and citizen participation platform dedicated to urban planning in Morocco (Marrakech, Casablanca, Rabat, etc.). It enables interaction between citizens, urban planners, and local authorities, leveraging Artificial Intelligence for opinion moderation, data analysis, and synthesis.
 
+### 🚀 The Core Concept & Data Flow
+The platform is built around a progressive data-enrichment flow designed to turn raw citizen feedback into structured urban planning data:
+
+1. **Citizen (Reporting)**: Citizens drop a pin on the map to report issues. They provide a category, urgency, duration, and their own profile, along with optional photos.
+2. **Admin (Clustering)**: Administrators view a **Heatmap** of all citizen pins. When they notice a hot cluster in a specific street or neighborhood, they draw a geometric polygon around it and name it, officially establishing an "Intervention Zone".
+3. **Urban Planner (Analysis)**: Urbanistes (planners) only see data *inside* these officially drawn zones. This focuses their attention on verified clusters rather than random points. They analyze the specific citizen patterns within the zone to plan real interventions, draft budgets, and annotate solutions.
+
 The project is split into two main directories:
 - `/frontend/` - React SPA Client
 - `/urbanmap-backend/` - Laravel API Server
@@ -29,29 +36,32 @@ The frontend is a modern Single Page Application (SPA) built to consume the back
 - **Icons**: `lucide-react` & `react-icons`
 
 ### File Tree & Structure
-**Pages (`src/pages/`)**:
-- `HomePage.jsx`: Public landing page at `/`
-- `Login.jsx`: Login with role selector pills (citoyen/urbaniste/admin)
-- `Register.jsx` & `ForgotPassword.jsx`: Auth pages
-- `PublicMapPage.jsx`: Public map at `/map` (no auth required), with drawing + remark submission + auto PDF download
-- `AdminDashboard.jsx`: Admin dashboard at `/admin/dashboard` (5 tabs: Remarques, Zones, Statistiques, Export CSV, Utilisateurs)
-- `UrbanisteDashboard.jsx`: Urbaniste dashboard at `/urbaniste/dashboard`
-- `SuperAdminPage.jsx`: Super admin at `/super-admin/users`
-- `MapPage.jsx`: Authenticated map page
-- `NotFound.jsx`: 404 page
+The frontend follows a modular, feature-based React structure:
 
-**Components (`src/components/`)**:
-- `Navbar.jsx`: Fixed top navbar (50px). Context-aware.
-- `ProtectedRoute.jsx`: Role-based route guard.
-- `admin/AdminUsersTab.jsx`: User listing, search, filter, pagination, and group email functionality.
-- `dashboard/`: Contains dashboard tabs (`AdminRemarquesTab.jsx`, `AdminZonesTab.jsx`, `AdminStatistiquesTab.jsx`, `AdminExportTab.jsx`, `UDComponents.jsx`). Admin drawing has been removed.
-
-**Services (`src/services/`)**:
-- `api.js`: Core API endpoints
-- `adminApi.js`: Admin-specific (stats, CRUD, `getUsers`, `sendGroupEmail`)
-- `urbanApi.js`: Urbaniste-specific
-- `pdfService.js`: jsPDF generator for remark receipts
-- `aiService.js`, `validationService.js`, `errorHandler.js`
+```text
+src/
+├── assets/             # Static images and icons
+├── components/         # Reusable UI elements
+│   ├── admin/          # Admin-specific components (e.g., User Management)
+│   ├── dashboard/      # Dashboard tabs for Admins & Urbanistes (Heatmap, Annotations)
+│   ├── layout/         # Layout wrappers (Sidebar, Navbar, PageHeader)
+│   └── ui/             # Core UI components (Buttons, Modals, Badges)
+├── context/            # React Contexts (Auth, Toast, UrbanZone)
+├── hooks/              # Custom React hooks (useToast, useResponsive)
+├── pages/              # Main route views
+│   ├── HomePage.jsx        # Landing page
+│   ├── CitizenMapPage.jsx  # Citizen-facing reporting map
+│   ├── MapPage.jsx         # Authenticated analysis map (used by Admins & Urbanistes)
+│   ├── AdminDashboard.jsx  # Admin control center
+│   ├── UrbanisteDashboard.jsx # Urban planner dashboard
+│   ├── AccountPage.jsx     # User account management page
+│   └── ...                 # Auth & utility pages
+├── services/           # External API communication logic
+│   ├── api.js, adminApi.js, urbanApi.js # Axios instances and endpoints
+│   ├── aiService.js        # AI-driven summaries and sentiment analysis
+│   └── pdfService.js       # Auto-generates PDF receipts
+└── utils/              # Helper functions (GeoJSON, unwrapping)
+```
 
 ---
 
@@ -98,9 +108,9 @@ The frontend is a modern Single Page Application (SPA) built to consume the back
 | Role | Permissions & Access |
 | :--- | :--- |
 | **Super Admin** | Full access. Validates accounts. |
-| **Admin** | Dashboard stats, manages zones (no drawing), manages users, sends group emails via Mailtrap. |
+| **Admin** | Dashboard stats, manages zones, manages users, sends group emails via Mailtrap. |
 | **Urbaniste** | Dashboard access, annotations, spatial analysis. |
-| **Citoyen** | Public map access (`/map`), submits geo-located reports, downloads PDF receipts. |
+| **Citoyen** | Map access, submits geo-located reports, downloads PDF receipts. |
 
 ---
 
@@ -140,6 +150,61 @@ The frontend is a modern Single Page Application (SPA) built to consume the back
 If you are an AI reading this:
 - **STRICT CSS RULE**: Only use **inline CSS**. Do NOT use Tailwind classes in React components.
 - Rely on the test accounts defined above.
-- Remember `/map` is public.
+- Remember `/map` is gated behind authentication (`DynamicMapRoute`) and maps to `MapPage.jsx` for authenticated Admins and Urban Planners.
+- `CitizenMapPage.jsx` is the dedicated page containing the new citizen submission workflow, including the 5-step form, Leaflet map configuration, and PDF generation.
 - Make sure to use the provided services (`api.js`, `adminApi.js`) rather than rewriting axios calls.
 - Admin Users Tab (`AdminUsersTab.jsx`) includes a group email feature backed by `UserController@sendGroupEmail`.
+
+## 🎨 UI/UX Styling Overview
+
+UrbanMap Maroc frontend styling follows a clean, accessible, mobile-first design. The visual language prioritizes readability, intuitive navigation, and a cohesive look across devices.
+
+- Styling approach: Vanilla CSS with CSS variables for a consistent theme.
+- Layout: responsive two-column layout (map panel + control panels) on larger screens; panels stack or slide in on smaller screens.
+- Map visuals: Leaflet-based maps (via React-Leaflet). Zone colors reflect the stripe/`couleur` attribute; markers and clusters are designed for clear visibility.
+- Typography: system UI fonts with balanced weights for headings and body text.
+- Accessibility: good color contrast, keyboard focus states, and scalable UI elements.
+
+Example CSS variables (add or adjust in your main stylesheet, e.g., frontend/src/styles.css):
+
+```css
+:root {
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --accent: #1e88e5;
+  --zone: #4c8bf5;
+}
+```
+
+Usage notes:
+- Apply the variables to cards, buttons, inputs, and map panels to ensure a unified theme.
+- Ensure the Leaflet map container uses responsive height rules to adapt to different viewports.
+- If you customize zone colors, consider maintaining visibility against the map background and across accessibility contrast guidelines.
+
+This section complements existing architecture and feature explanations, helping developers and contributors understand the intended visual and interaction style.
+
+---
+
+## 🗺️ Final Citizen Map View
+
+This section details the final appearance and features of the citizen-facing map interface (`CitizenMapPage.jsx`).
+
+### Kept Features ✅
+
+- **Zone polygons**: Clearly defined territorial boundaries.
+- **Existing report pins**: Visual indicators for reported issues.
+- **Plan/Satellite toggle**: Ability to switch between map views.
+- **Bottom bar**: Contains navigation for 'EN DIRECT', 'SIGNALEMENTS', and 'ZONES'.
+- **"Signaler un problème" button**: Prominent call-to-action for new reports.
+- **Navbar with search bar**: For searching locations or zones.
+
+### Removed Features ❌
+
+- **Category legend panel**: No longer displayed to simplify the interface.
+- **Zoom buttons**: Map interaction is now primarily via pinch-to-zoom and double-tap.
+
+### AI Instructions for Map Behavior:
+
+"Keep the Plan/Satellite layer toggle button and its functionality. Only remove the category legend panel and the zoom buttons. Keep everything else."

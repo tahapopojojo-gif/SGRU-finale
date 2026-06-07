@@ -75,8 +75,14 @@ export const getUsers = async () => {
 };
 
 // POST /api/users/send-group-email
-export const sendGroupEmail = async (group, subject, message) => {
-  const response = await axiosInstance.post('/users/send-group-email', { group, subject, message });
+export const sendGroupEmail = async (group, subject, message, zoneId = null) => {
+  const payload = {
+    group,
+    subject,
+    message,
+    zone_id: group === 'zone' ? zoneId : null,
+  };
+  const response = await axiosInstance.post('/users/send-group-email', payload);
   return response.data;
 };
 

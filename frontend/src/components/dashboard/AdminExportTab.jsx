@@ -1,241 +1,148 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  getZones, 
-  getFilteredRemarksForExport, 
-  generateCSV, 
-  downloadCSV 
-} from '../../services/adminApi';
-import SkeletonCard from '../SkeletonCard.jsx';
-import { validateDateRange } from '../../services/validationService.js';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { getZones, getRemarks } from '../../services/adminApi';
 import { useToast } from '../../hooks/useToast.js';
-import EmptyState from '../EmptyState.jsx';
 import { useAuth } from '../../context/AuthContext';
+import { getCityMapConfig } from '../../utils/cityBounds';
+import { unwrap } from '../../utils/unwrap';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer,
+} from 'recharts';
+import {
+  CATEGORIES,
+  filterRemarksForExport,
+  exportCSV,
+  exportGeoJSON,
+  exportExcel,
+  exportPDF,
+} from '../../services/exportService';
 
-const s = {
-  page: { padding: '24px', fontFamily: "'Segoe UI', sans-serif", color: '#1e293b' },
-  header: { marginBottom: '24px' },
-  title: { fontSize: '28px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#111827' },
-  subtitle: { fontSize: '15px', color: '#6b7280', margin: 0 },
-  card: { background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px' },
-  filterGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' },
-  inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  label: { fontSize: '13px', fontWeight: '600', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  input: { padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none' },
-  clearBtn: { background: 'transparent', color: '#ef4444', border: '1px solid #fca5a5', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' },
-  previewCard: { background: '#EFF6FF', borderRadius: '12px', padding: '24px', border: '1px solid #BFDBFE', marginBottom: '24px' },
-  previewTitle: { fontSize: '18px', fontWeight: 'bold', color: '#1e3a8a', margin: '0 0 20px 0' },
-  previewGrid: { display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' },
-  totalCount: { fontSize: '48px', fontWeight: 'bold', color: '#1D4ED8', lineHeight: 1, margin: '0 0 8px 0' },
-  totalLabel: { fontSize: '14px', color: '#3b82f6', fontWeight: '600', textTransform: 'uppercase' },
-  statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
-  statBox: { background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
-  statTitle: { fontSize: '13px', color: '#6b7280', fontWeight: '600', marginBottom: '12px', textTransform: 'uppercase' },
-  badgeContainer: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
-  badge: (bg, color) => ({ padding: '4px 10px', borderRadius: '20px', background: bg, color, fontSize: '12px', fontWeight: '700' }),
-  catItem: { display: 'flex', justifyContent: 'space-between', fontSize: '14px', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px', marginBottom: '6px' },
-  dateRange: { marginTop: '20px', padding: '12px', background: '#e0e7ff', borderRadius: '8px', fontSize: '14px', color: '#3730a3', fontWeight: '500' },
-  noData: { textAlign: 'center', padding: '20px', color: '#6b7280', fontStyle: 'italic' },
-  exportSection: { textAlign: 'center', marginTop: '32px' },
-  btnNormal: { background: '#10B981', color: 'white', padding: '16px 48px', fontSize: '18px', borderRadius: '8px', cursor: 'pointer', border: 'none', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' },
-  btnDisabled: { background: '#9CA3AF', color: 'white', padding: '16px 48px', fontSize: '18px', borderRadius: '8px', cursor: 'not-allowed', border: 'none', fontWeight: 'bold' },
-  successMsg: { background: '#DCFCE7', color: '#166534', borderRadius: '8px', padding: '12px 24px', display: 'inline-block', marginTop: '16px', fontWeight: '600' }
+const labelStyle = {
+  fontSize: '10px',
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+  color: 'rgba(242,237,230,0.22)',
+  marginBottom: '6px',
+  display: 'block',
 };
 
-export default function AdminExportTab() {
+const selectStyle = {
+  width: '100%',
+  padding: '7px 11px',
+  background: 'rgba(255,255,255,0.04)',
+  border: '0.5px solid rgba(242,237,230,0.12)',
+  borderRadius: '6px',
+  color: '#F2EDE6',
+  fontSize: '12px',
+  fontFamily: 'DM Sans, sans-serif',
+  outline: 'none',
+};
+
+const optionStyle = {
+  background: '#1a1614',
+  color: '#F2EDE6',
+};
+
+const EXPORT_FORMATS = [
+  { icon: '📊', name: 'Export CSV complet', desc: 'Une ligne par signalement — anonyme, prêt pour Excel ou QGIS.', key: 'csv' },
+  { icon: '🗺', name: 'Export GeoJSON', desc: 'Polygones de zones + points signalements pour SIG.', key: 'geojson' },
+  { icon: '📈', name: 'Excel Analytics', desc: '3 feuilles : données brutes, croisement catégorie×zone, urgence.', key: 'excel' },
+  { icon: '📄', name: 'Rapport PDF', desc: 'Rapport structuré avec indicateurs, tableaux et synthèse.', key: 'pdf' },
+];
+
+const getPeriodLabel = (filters) => {
+  if (!filters.dateStart && !filters.dateEnd) return 'Toute la période';
+  if (filters.dateStart && filters.dateEnd) {
+    const s = new Date(filters.dateStart).toLocaleDateString('fr-FR');
+    const e = new Date(filters.dateEnd).toLocaleDateString('fr-FR');
+    return `${s} → ${e}`;
+  }
+  if (filters.dateStart) return `Depuis le ${new Date(filters.dateStart).toLocaleDateString('fr-FR')}`;
+  return `Jusqu'au ${new Date(filters.dateEnd).toLocaleDateString('fr-FR')}`;
+};
+
+export default function AdminExportTab({ isActive = true }) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const userCity = user?.city || null;
+  const userCity = user?.city || 'marrakech';
+  const cityConfig = getCityMapConfig(userCity);
+
   const [zones, setZones] = useState([]);
+  const [remarks, setRemarks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [exportFormat, setExportFormat] = useState('csv');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(null);
+
   const [filters, setFilters] = useState({
     zone_id: '',
     category: '',
+    urgency: '',
     dateStart: '',
-    dateEnd: ''
+    dateEnd: '',
   });
-  const [previewData, setPreviewData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportSuccess, setExportSuccess] = useState(null);
-  const [hoverBtn, setHoverBtn] = useState(false);
+  const [periodMode, setPeriodMode] = useState('all');
 
-  const categories = ['Hôpital', 'École', 'Parc', 'Route', 'Autre'];
-
-  const updatePreview = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async () => {
+    if (!isActive) return;
+    setLoading(true);
     try {
-      // Silently enforce city filter
-      const remarks = await getFilteredRemarksForExport({ ...filters, city: userCity });
-      
-      // Calculate byStatus
-      const byStatus = { urgent: 0, actif: 0, planifie: 0, rejete: 0 };
-      remarks.forEach(r => {
-        if (byStatus[r.statut] !== undefined) byStatus[r.statut]++;
-      });
-
-      // Calculate topCategories
-      const catCounts = remarks.reduce((acc, r) => {
-        const cat = r.category.charAt(0).toUpperCase() + r.category.slice(1);
-        acc[cat] = (acc[cat] || 0) + 1;
-        return acc;
-      }, {});
-      const topCategories = Object.entries(catCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([name, count]) => ({ name, count }));
-
-      // Calculate dateRange
-      let earliest = null;
-      let latest = null;
-      if (remarks.length > 0) {
-        const dates = remarks.map(r => new Date(r.created_at).getTime());
-        earliest = new Date(Math.min(...dates)).toLocaleDateString('fr-FR');
-        latest = new Date(Math.max(...dates)).toLocaleDateString('fr-FR');
-      }
-
-      setPreviewData({
-        total: remarks.length,
-        byStatus,
-        topCategories,
-        dateRange: earliest && latest ? { earliest, latest } : null
-      });
+      const [zonesRes, remarksRes] = await Promise.all([getZones(), getRemarks()]);
+      const zonesArray = unwrap(zonesRes);
+      const cityZones = userCity
+        ? zonesArray.filter(z => z.ville?.toLowerCase().trim() === userCity.toLowerCase().trim())
+        : zonesArray;
+      setZones(cityZones);
+      const data = unwrap(remarksRes);
+      setRemarks(data);
+      setError(null);
     } catch (err) {
-      console.error("Error updating preview:", err);
+      console.error('Export load failed:', err);
+      setError('Erreur de chargement');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [filters, userCity]);
+  }, [isActive, userCity]);
 
   useEffect(() => {
-    const loadZones = async () => {
-      try {
-        const data = await getZones();
-        // Only show zones from admin's city
-        const cityZones = userCity
-          ? data.filter(z =>
-              z.ville?.toLowerCase().trim() === userCity.toLowerCase().trim()
-            )
-          : data;
-        setZones(cityZones);
-      } catch (err) {
-        console.error("Error loading zones:", err);
-      }
-    };
-    loadZones();
-  }, [userCity]);
+    if (isActive) {
+      fetchData();
+    }
+  }, [isActive, fetchData]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      updatePreview();
-      // Reset success message when filters change
-      setExportSuccess(null);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [updatePreview]);
+  const filteredRemarks = useMemo(
+    () => filterRemarksForExport(remarks, zones, filters, cityConfig.bounds),
+    [remarks, zones, filters, cityConfig.bounds],
+  );
 
-  const [dateError, setDateError] = useState('');
-  const [dateTouched, setDateTouched] = useState(false);
-
-  const validationStyles = {
-    errorInput: { border: '2px solid #DC2626', backgroundColor: '#FEE2E2' },
-    validInput: { border: '2px solid #10B981', backgroundColor: '#DCFCE7' },
-    errorText: { color: '#DC2626', fontSize: '12px', marginTop: '4px' },
-    successCheckmark: { color: '#10B981', fontSize: '16px', marginLeft: '8px' },
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (filters.dateStart || filters.dateEnd) {
-        const { error } = validateDateRange(filters.dateStart, filters.dateEnd);
-        setDateError(error || '');
-      } else {
-        setDateError('');
-      }
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [filters.dateStart, filters.dateEnd]);
-
-  const handleDateBlur = () => setDateTouched(true);
+  const filteredZones = useMemo(() => {
+    if (!filters.zone_id) return zones;
+    const zid = parseInt(filters.zone_id, 10);
+    return zones.filter(z => z.id === zid);
+  }, [zones, filters.zone_id]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
+    setExportSuccess(null);
   };
 
   const handleClearFilters = () => {
-    setFilters({ zone_id: '', category: '', dateStart: '', dateEnd: '' });
-  };
-
-  const generateFilename = () => {
-    const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
-    let zoneName = "Toutes_Zones";
-    if (filters.zone_id) {
-      const zone = zones.find(z => z.id === filters.zone_id);
-      if (zone) zoneName = zone.nom.replace(/\s+/g, '_');
-    }
-    return `UrbanMap_Export_${zoneName}_${dateStr}.csv`;
-  };
-
-  const handleExport = async () => {
-    if (!previewData || previewData.total === 0) return;
-    setIsExporting(true);
+    setFilters({ zone_id: '', category: '', urgency: '', dateStart: '', dateEnd: '' });
+    setPeriodMode('all');
     setExportSuccess(null);
-    toast.info('Génération du fichier CSV...');
-    try {
-      // Silently enforce city filter on export too
-      const remarks = await getFilteredRemarksForExport({ ...filters, city: userCity });
-      const csv = generateCSV(remarks);
-      const filename = generateFilename();
-      downloadCSV(csv, filename);
-      setExportSuccess(remarks.length);
-      toast.success(`Export réussi — ${remarks.length} remarques exportées`);
-    } catch (err) {
-      console.error("Export error:", err);
-      toast.error("Une erreur est survenue lors de l'export.");
-    } finally {
-      setIsExporting(false);
-    }
   };
 
-  const isExportDisabled = !previewData || previewData.total === 0 || isExporting || !!dateError;
-
-  const [exportFormat, setExportFormat] = useState('csv');
-
-  const selectStyle = {
-    width: '100%', padding: '7px 11px',
-    background: 'rgba(255,255,255,0.04)',
-    border: '0.5px solid rgba(242,237,230,0.12)',
-    borderRadius: '6px', color: 'rgba(242,237,230,0.6)',
-    fontSize: '12px', fontFamily: 'DM Sans, sans-serif',
-    outline: 'none',
-  };
-
-  const labelStyle = {
-    fontSize: '10px', letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    color: 'rgba(242,237,230,0.22)', marginBottom: '6px',
-    display: 'block'
-  };
-
-  const selectedPeriod = (() => {
-    if (!filters.dateStart && !filters.dateEnd) return 'all';
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (filters.dateEnd === todayStr) {
-      const diff = Math.round((new Date(todayStr) - new Date(filters.dateStart)) / (1000 * 60 * 60 * 24));
-      if (diff === 7) return '7d';
-      if (diff === 30) return '30d';
-    }
-    const currentYear = new Date().getFullYear();
-    if (filters.dateStart === `${currentYear}-01-01` && filters.dateEnd === `${currentYear}-12-31`) return 'year';
-    return 'custom';
-  })();
+  const selectedPeriod = periodMode;
 
   const handlePeriodChange = (e) => {
     const val = e.target.value;
+    setPeriodMode(val);
     let start = '';
     let end = '';
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    
+
     if (val === '7d') {
       const d = new Date();
       d.setDate(today.getDate() - 7);
@@ -249,208 +156,306 @@ export default function AdminExportTab() {
     } else if (val === 'year') {
       start = `${today.getFullYear()}-01-01`;
       end = `${today.getFullYear()}-12-31`;
+    } else if (val === 'custom') {
+      start = filters.dateStart;
+      end = filters.dateEnd;
+    } else if (val === 'all') {
+      start = '';
+      end = '';
     }
-    
-    setFilters(prev => ({
-      ...prev,
-      dateStart: start,
-      dateEnd: end
-    }));
+
+    setFilters(prev => ({ ...prev, dateStart: start, dateEnd: end }));
+    setExportSuccess(null);
   };
 
+  const handleExport = useCallback(async () => {
+    if (!filteredRemarks.length) return;
+    setIsExporting(true);
+    setExportSuccess(null);
+
+    const labels = { csv: 'CSV', geojson: 'GeoJSON', excel: 'Excel', pdf: 'PDF' };
+    toast.info(`Génération du fichier ${labels[exportFormat]}…`);
+
+    try {
+      let count = 0;
+      if (exportFormat === 'csv') {
+        count = exportCSV(filteredRemarks, filteredZones, userCity);
+      } else if (exportFormat === 'geojson') {
+        count = exportGeoJSON(filteredRemarks, filteredZones, userCity);
+      } else if (exportFormat === 'excel') {
+        count = exportExcel(filteredRemarks, filteredZones, userCity);
+      } else if (exportFormat === 'pdf') {
+        count = exportPDF(filteredRemarks, filteredZones, userCity, getPeriodLabel(filters));
+      }
+
+      setExportSuccess(count);
+      toast.success(`Export réussi — ${count} signalement${count !== 1 ? 's' : ''}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Une erreur est survenue lors de l\'export.');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [filteredRemarks, filteredZones, exportFormat, filters, userCity, toast]);
+
+  const byCategory = useMemo(() => {
+    const counts = {};
+    filteredRemarks.forEach(r => {
+      const cat = r.categorie || r.category || 'autre';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [filteredRemarks]);
+
+  const byUrgency = useMemo(() => {
+    const groups = { '1-2 Faible': 0, '3 Significatif': 0, '4-5 Dangereux': 0 };
+    filteredRemarks.forEach(r => {
+      const u = r.urgency || 1;
+      if (u <= 2) groups['1-2 Faible']++;
+      else if (u === 3) groups['3 Significatif']++;
+      else groups['4-5 Dangereux']++;
+    });
+    return Object.entries(groups).map(([name, value]) => ({ name, value }));
+  }, [filteredRemarks]);
+
+  const CHART_COLORS = ['#C1440E', '#E8B87A', '#52BE80', '#5DADE2', '#1A5276', '#94A3B8'];
+
+  const isExportDisabled = loading || isExporting || filteredRemarks.length === 0;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      
-      {/* SECTION 1 — Export format grid (2x2) */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr',
-        gap: '12px', marginBottom: '20px',
-      }}>
-        {[
-          { icon:'📊', name:'Export CSV complet',
-            desc:'Toutes les remarques avec métadonnées complètes.',
-            key:'csv' },
-          { icon:'📄', name:'Rapport PDF',
-            desc:'Rapport formaté avec graphiques et synthèse IA.',
-            key:'pdf' },
-          { icon:'🗺', name:'Export GeoJSON',
-            desc:'Données spatiales des zones pour SIG.',
-            key:'geojson' },
-          { icon:'📈', name:'Excel Analytics',
-            desc:'Tableau croisé dynamique prêt pour Excel.',
-            key:'excel' },
-        ].map(opt => (
-          <div
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontFamily: 'DM Sans, sans-serif' }}>
+      {/* Format grid */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+        {EXPORT_FORMATS.map(opt => (
+          <button
             key={opt.key}
-            onClick={() => setExportFormat(opt.key)}
+            type="button"
+            onClick={() => { setExportFormat(opt.key); setExportSuccess(null); }}
             style={{
-              background: exportFormat === opt.key
-                ? 'rgba(193,68,14,0.1)' : 'rgba(255,255,255,0.03)',
-              border: exportFormat === opt.key
-                ? '0.5px solid #C1440E'
-                : '0.5px solid rgba(242,237,230,0.08)',
-              borderRadius: '10px', padding: '20px',
-              cursor: 'pointer', transition: 'all 0.25s',
+              flex: '1 1 200px',
+              minWidth: '200px',
+              background: exportFormat === opt.key ? 'rgba(193,68,14,0.1)' : 'rgba(255,255,255,0.03)',
+              border: exportFormat === opt.key ? '0.5px solid #C1440E' : '0.5px solid rgba(242,237,230,0.08)',
+              borderRadius: '10px',
+              padding: '20px',
+              cursor: 'pointer',
+              transition: 'all 0.25s',
               textAlign: 'center',
             }}
-            onMouseEnter={e => {
-              if (exportFormat !== opt.key) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                e.currentTarget.style.border = '0.5px solid rgba(242,237,230,0.15)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (exportFormat !== opt.key) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                e.currentTarget.style.border = '0.5px solid rgba(242,237,230,0.08)';
-              }
-            }}
           >
-            <div style={{fontSize:'26px',marginBottom:'10px'}}>
-              {opt.icon}
-            </div>
-            <div style={{
-              fontSize:'13px',fontWeight:500,
-              color:'#F2EDE6',marginBottom:'4px',
-            }}>{opt.name}</div>
-            <div style={{
-              fontSize:'11px',
-              color:'rgba(242,237,230,0.35)',lineHeight:1.5,
-            }}>{opt.desc}</div>
-          </div>
+            <div style={{ fontSize: '26px', marginBottom: '10px' }}>{opt.icon}</div>
+            <div style={{ fontSize: '13px', fontWeight: 500, color: '#F2EDE6', marginBottom: '4px' }}>{opt.name}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', lineHeight: 1.5 }}>{opt.desc}</div>
+          </button>
         ))}
       </div>
 
-      {/* SECTION 2 — Filters (3 col grid) */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-        gap: '12px', marginBottom: '16px',
-      }}>
-        {/* Zone cible */}
+      {/* Filters — 4 columns */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
         <div>
           <label htmlFor="export-zone" style={labelStyle}>Zone cible</label>
-          <select
-            id="export-zone"
-            name="zone_id"
-            value={filters.zone_id}
-            onChange={handleFilterChange}
-            style={selectStyle}
-          >
-            <option value="">Toutes les zones</option>
-            {zones.map(z => <option key={z.id} value={z.id}>{z.nom}</option>)}
+          <select id="export-zone" name="zone_id" value={filters.zone_id} onChange={handleFilterChange} style={selectStyle}>
+            <option value="" style={optionStyle}>Toutes les zones</option>
+            {zones.map(z => <option key={z.id} value={z.id} style={optionStyle}>{z.nom}</option>)}
           </select>
         </div>
 
-        {/* Statut */}
         <div>
-          <label htmlFor="export-statut" style={labelStyle}>Statut</label>
-          <select
-            id="export-statut"
-            name="statut"
-            value={filters.statut || ''}
-            onChange={handleFilterChange}
-            style={selectStyle}
-          >
-            <option value="">Tous les statuts</option>
-            <option value="urgent">Urgent</option>
-            <option value="actif">Actif</option>
-            <option value="planifie">Planifié</option>
-            <option value="rejete">Rejeté</option>
+          <label htmlFor="export-category" style={labelStyle}>Catégorie</label>
+          <select id="export-category" name="category" value={filters.category} onChange={handleFilterChange} style={selectStyle}>
+            <option value="" style={optionStyle}>Toutes les catégories</option>
+            {CATEGORIES.map(c => <option key={c.value} value={c.value} style={optionStyle}>{c.label}</option>)}
           </select>
         </div>
 
-        {/* Période */}
+        <div>
+          <label htmlFor="export-urgency" style={labelStyle}>Urgence</label>
+          <select id="export-urgency" name="urgency" value={filters.urgency} onChange={handleFilterChange} style={selectStyle}>
+            <option value="" style={optionStyle}>Tous les niveaux</option>
+            <option value="low" style={optionStyle}>Faible (1-2)</option>
+            <option value="medium" style={optionStyle}>Significatif (3)</option>
+            <option value="high" style={optionStyle}>Dangereux (4-5)</option>
+          </select>
+        </div>
+
         <div>
           <label htmlFor="export-period" style={labelStyle}>Période</label>
-          <select
-            id="export-period"
-            value={selectedPeriod}
-            onChange={handlePeriodChange}
-            style={selectStyle}
-          >
-            <option value="all">Toute la période</option>
-            <option value="7d">7 derniers jours</option>
-            <option value="30d">30 derniers jours</option>
-            <option value="year">Cette année</option>
-            {selectedPeriod === 'custom' && <option value="custom">Plage personnalisée</option>}
+          <select id="export-period" value={selectedPeriod} onChange={handlePeriodChange} style={selectStyle}>
+            <option value="all" style={optionStyle}>Toute la période</option>
+            <option value="7d" style={optionStyle}>7 derniers jours</option>
+            <option value="30d" style={optionStyle}>30 derniers jours</option>
+            <option value="year" style={optionStyle}>Cette année</option>
+            <option value="custom" style={optionStyle}>Personnalisée…</option>
           </select>
         </div>
       </div>
 
-      {/* SECTION 3 — Action buttons */}
-      <div style={{display:'flex',gap:'10px',marginTop:'16px'}}>
+      {(selectedPeriod === 'custom' || filters.dateStart || filters.dateEnd) && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div>
+            <label htmlFor="export-date-start" style={labelStyle}>Date début</label>
+            <input
+              id="export-date-start"
+              type="date"
+              name="dateStart"
+              value={filters.dateStart}
+              onChange={handleFilterChange}
+              style={{ ...selectStyle, colorScheme: 'dark' }}
+            />
+          </div>
+          <div>
+            <label htmlFor="export-date-end" style={labelStyle}>Date fin</label>
+            <input
+              id="export-date-end"
+              type="date"
+              name="dateEnd"
+              value={filters.dateEnd}
+              onChange={handleFilterChange}
+              style={{ ...selectStyle, colorScheme: 'dark' }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <button
+          type="button"
+          onClick={handleClearFilters}
+          style={{
+            padding: '6px 12px',
+            background: 'transparent',
+            color: 'rgba(242,237,230,0.45)',
+            border: '0.5px solid rgba(242,237,230,0.12)',
+            borderRadius: '6px',
+            fontSize: '11px',
+            cursor: 'pointer',
+          }}
+        >
+          Réinitialiser les filtres
+        </button>
+      </div>
+
+      {/* Live preview count */}
+      <div style={{
+        background: filteredRemarks.length > 0 ? 'rgba(193,68,14,0.08)' : 'rgba(255,255,255,0.03)',
+        border: `0.5px solid ${filteredRemarks.length > 0 ? 'rgba(193,68,14,0.25)' : 'rgba(242,237,230,0.08)'}`,
+        borderRadius: '8px',
+        padding: '14px 16px',
+      }}>
+        {loading ? (
+          <span style={{ fontSize: '13px', color: 'rgba(242,237,230,0.45)' }}>Chargement des données…</span>
+        ) : error ? (
+          <div style={{ fontSize: '13px', color: '#ef4444' }}>{error}</div>
+        ) : (
+          <>
+            <div style={{ fontSize: '15px', color: '#F2EDE6', fontWeight: 500 }}>
+              <strong style={{ color: '#E8B87A', fontFamily: 'DM Mono, monospace' }}>{filteredRemarks.length}</strong>
+              {' '}signalement{filteredRemarks.length !== 1 ? 's' : ''} correspond{filteredRemarks.length !== 1 ? 'ent' : ''} à ces filtres
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '4px' }}>
+              {getPeriodLabel(filters)}
+              {filters.zone_id && ` · Zone : ${zones.find(z => String(z.id) === filters.zone_id)?.nom || '—'}`}
+              {filters.category && ` · Catégorie : ${CATEGORIES.find(c => c.value === filters.category)?.label}`}
+              {filters.urgency && ` · Urgence filtrée`}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button
+          type="button"
           disabled={isExportDisabled}
           onClick={handleExport}
           style={{
-            flex: 1, padding: '12px',
+            flex: 1,
+            padding: '12px',
             background: isExportDisabled ? 'rgba(193,68,14,0.3)' : '#C1440E',
             color: isExportDisabled ? 'rgba(255,255,255,0.4)' : '#fff',
-            borderRadius: '6px', fontSize: '13px',
-            border: 'none', cursor: isExportDisabled ? 'not-allowed' : 'pointer',
-            fontWeight: 500, fontFamily: 'DM Sans, sans-serif',
-            transition: 'background 0.25s',
-          }}
-          onMouseEnter={e => {
-            if (!isExportDisabled) e.currentTarget.style.background = '#d34a10';
-          }}
-          onMouseLeave={e => {
-            if (!isExportDisabled) e.currentTarget.style.background = '#C1440E';
+            borderRadius: '6px',
+            fontSize: '13px',
+            border: 'none',
+            cursor: isExportDisabled ? 'not-allowed' : 'pointer',
+            fontWeight: 500,
           }}
         >
-          {isExporting ? 'Génération en cours...' : '⬇ Générer et télécharger'}
-        </button>
-        
-        <button
-          onClick={updatePreview}
-          style={{
-            padding: '12px 18px', background: 'transparent',
-            color: 'rgba(242,237,230,0.6)', borderRadius: '6px', fontSize: '13px',
-            border: '0.5px solid rgba(242,237,230,0.15)', cursor: 'pointer',
-            fontWeight: 500, fontFamily: 'DM Sans, sans-serif',
-            transition: 'all 0.25s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-            e.currentTarget.style.color = '#F2EDE6';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgba(242,237,230,0.6)';
-          }}
-        >
-          👁 Prévisualiser
+          {isExporting ? 'Génération en cours…' : `⬇ Générer et télécharger (${exportFormat.toUpperCase()})`}
         </button>
       </div>
 
       {exportSuccess !== null && (
-        <div style={{
-          background: 'rgba(82,190,128,0.1)',
-          border: '0.5px solid rgba(82,190,128,0.3)',
-          color: '#52BE80', borderRadius: '6px',
-          padding: '10px 14px', fontSize: '12px',
-          marginTop: '12px', textAlign: 'center'
-        }} role="status" aria-live="polite">
-          ✅ Export réussi — {exportSuccess} remarques exportées ({exportFormat.toUpperCase()})
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            background: 'rgba(82,190,128,0.1)',
+            border: '0.5px solid rgba(82,190,128,0.3)',
+            color: '#52BE80',
+            borderRadius: '6px',
+            padding: '10px 14px',
+            fontSize: '12px',
+            textAlign: 'center',
+          }}
+        >
+          Export réussi — {exportSuccess} signalement{exportSuccess !== 1 ? 's' : ''} ({exportFormat.toUpperCase()})
         </div>
       )}
 
-      <div style={{ display: 'none' }}>
-        {React && null}
-        {SkeletonCard && null}
-        {EmptyState && null}
-        {s && null}
-        {categories && null}
-        {previewData && null}
-        {isLoading && null}
-        {hoverBtn && null}
-        {setHoverBtn && null}
-        {dateError && null}
-        {dateTouched && null}
-        {validationStyles && null}
-        {handleDateBlur && null}
-        {handleClearFilters && null}
-      </div>
+      {!loading && !error && filteredRemarks.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+          <div style={{ flex: '1 1 300px', minWidth: '250px' }}>
+            <label style={labelStyle}>Signalements par catégorie</label>
+            <div style={{ width: '100%', height: '300px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={byCategory} margin={{ top: 8, right: 8, left: -8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,237,230,0.08)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(242,237,230,0.45)' }} />
+                  <YAxis tick={{ fontSize: 10, fill: 'rgba(242,237,230,0.45)' }} />
+                  <Tooltip
+                    contentStyle={{ background: '#1a1614', border: '0.5px solid rgba(242,237,230,0.12)', borderRadius: '6px', fontSize: '12px' }}
+                    labelStyle={{ color: '#F2EDE6' }}
+                  />
+                  <Bar dataKey="value" fill="#C1440E" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div style={{ flex: '1 1 300px', minWidth: '250px' }}>
+            <label style={labelStyle}>Répartition par urgence</label>
+            <div style={{ width: '100%', height: '300px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={byUrgency}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={({ name, value }) => `${name} (${value})`}
+                    labelLine={{ stroke: 'rgba(242,237,230,0.2)' }}
+                  >
+                    {byUrgency.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ background: '#1a1614', border: '0.5px solid rgba(242,237,230,0.12)', borderRadius: '6px', fontSize: '12px' }}
+                    labelStyle={{ color: '#F2EDE6' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!loading && filteredRemarks.length === 0 && (
+        <p style={{ fontSize: '12px', color: 'rgba(242,237,230,0.35)', textAlign: 'center', margin: 0 }}>
+          Aucun signalement ne correspond aux filtres sélectionnés. Ajustez les critères avant d&apos;exporter.
+        </p>
+      )}
     </div>
   );
 }

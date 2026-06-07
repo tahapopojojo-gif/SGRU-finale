@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AnnotationUrbaniste extends Model
 {
-    protected $fillable = ['zone_id', 'urbaniste_id', 'texte'];
+    protected $fillable = ['zone_id', 'urbaniste_id', 'texte', 'priorite'];
 
     public function zone(): BelongsTo
     {

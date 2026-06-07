@@ -1,542 +1,517 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, PieChart, Pie, Cell,
-  AreaChart, Area, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer,
 } from 'recharts';
-import {
-  getStatsByZone, getStatsByCategory, getStatsByUrgency,
-  getActivityOverTime, getTop5Zones, getKeyIndicators
-} from '../../services/adminApi';
+import { getRemarks, getZones } from '../../services/adminApi';
 import SkeletonChart from '../SkeletonChart.jsx';
 import SkeletonCard from '../SkeletonCard.jsx';
 import useResponsive from '../../hooks/useResponsive';
 import EmptyState from '../EmptyState.jsx';
 import { useAuth } from '../../context/AuthContext';
+import { getCityMapConfig } from '../../utils/cityBounds';
 import { unwrap } from '../../utils/unwrap';
 
-const URGENCY_COLORS = ['#22C55E', '#84CC16', '#F59E0B', '#F97316', '#EF4444'];
+const CATEGORIES = [
+  { value: 'road', label: 'Route', color: '#78716c' },
+  { value: 'lighting', label: 'Éclairage', color: '#eab308' },
+  { value: 'waste', label: 'Déchets', color: '#22c55e' },
+  { value: 'water', label: 'Eau', color: '#3b82f6' },
+  { value: 'parks', label: 'Parcs', color: '#16a34a' },
+  { value: 'schools', label: 'Écoles', color: '#6366f1' },
+  { value: 'transport', label: 'Transport', color: '#f97316' },
+  { value: 'other', label: 'Autre', color: '#94a3b8' },
+];
 
-const getStyles = (isMobile, isTablet) => ({
-  page: { fontFamily: "'Segoe UI', sans-serif", color: '#1e293b' },
-  kpiRow: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '8px' : '16px', marginBottom: '24px' },
-  kpiCard: (borderColor) => ({
-    background: '#fff',
-    borderRadius: '12px',
-    padding: isMobile ? '16px' : '20px 24px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-    borderLeft: `4px solid ${borderColor}`,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px'
-  }),
-  kpiIcon: { fontSize: '28px' },
-  kpiLabel: { fontSize: isMobile ? '11px' : '12px', fontWeight: '700', textTransform: 'uppercase', color: '#6b7280', letterSpacing: '0.05em', marginBottom: '4px' },
-  kpiValue: { fontSize: isMobile ? '20px' : '24px', fontWeight: '900', lineHeight: 1 },
-  chartCard: { background: '#fff', borderRadius: '12px', padding: isMobile ? '16px' : '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px' },
-  chartTitle: { fontSize: isMobile ? '14px' : '16px', fontWeight: '700', color: '#1e293b', marginBottom: '20px', margin: '0 0 20px 0' },
-  chartsRow: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '24px', marginBottom: '24px' },
-  toggleRow: { display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '20px', gap: isMobile ? '12px' : '0' },
-  toggleGroup: { display: 'flex', background: '#f3f4f6', borderRadius: '8px', padding: '4px', gap: '2px', width: isMobile ? '100%' : 'auto' },
-  toggleBtn: (active) => ({
-    padding: '6px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
-    background: active ? '#fff' : 'transparent',
-    color: active ? '#6366f1' : '#6b7280',
-    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-    transition: 'all 0.2s', flex: isMobile ? 1 : 'none'
-  }),
-  table: { width: '100%', borderCollapse: 'collapse', minWidth: '600px' }, // Ensure min-width for table so it scrolls
-  thead: { background: '#f3f4f6' },
-  th: { padding: '12px 16px', textAlign: 'left', fontWeight: '700', fontSize: '13px', color: '#374151', borderBottom: '2px solid #e5e7eb' },
-  td: { padding: '12px 16px', fontSize: '14px', borderBottom: '1px solid #f3f4f6' },
-  badge: (bg, color) => ({ display: 'inline-block', padding: '3px 10px', borderRadius: '20px', background: bg, color, fontSize: '12px', fontWeight: '700' }),
-  categoryPill: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f3f4f6', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '500', color: '#374151' },
-  noData: { textAlign: 'center', padding: '40px', color: '#9ca3af', fontStyle: 'italic' },
-  loading: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px', flexDirection: 'column', gap: '12px' },
-  spinner: { width: '40px', height: '40px', border: '4px solid #e5e7eb', borderTop: '4px solid #3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }
-});
+const DURATION_BUCKETS = [
+  { value: 'days', label: 'Quelques jours', color: '#22c55e' },
+  { value: 'months', label: 'Quelques mois', color: '#84cc16' },
+  { value: 'year', label: 'Plus d\'un an', color: '#f59e0b' },
+  { value: 'always', label: 'Depuis longtemps', color: '#ef4444' },
+  { value: 'unknown', label: 'Non précisé', color: '#64748b' },
+];
 
-const getCategoryEmoji = (cat) => {
-  const map = { 'Route': '🛣️', 'Hopital': '🏥', 'Hôpital': '🏥', 'École': '🏫', 'Ecole': '🏫', 'Parc': '🌳', 'Autre': '❓' };
-  return map[cat] || '📌';
+const URGENCY_LEVELS = [
+  { level: 1, label: 'Niveau 1', color: '#22c55e' },
+  { level: 2, label: 'Niveau 2', color: '#84cc16' },
+  { level: 3, label: 'Niveau 3', color: '#f59e0b' },
+  { level: 4, label: 'Niveau 4', color: '#f97316' },
+  { level: 5, label: 'Niveau 5', color: '#ef4444' },
+];
+
+const MONTH_LABELS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+const isValidCoords = (geojson) => (
+  Array.isArray(geojson) &&
+  geojson.length >= 3 &&
+  geojson.every(c => Array.isArray(c) && c.length === 2 && !isNaN(c[0]) && !isNaN(c[1]))
+);
+
+const getRemarkCoords = (remark) => {
+  const lat = parseFloat(remark.latitude);
+  const lng = parseFloat(remark.longitude);
+  return Number.isNaN(lat) || Number.isNaN(lng) ? null : [lat, lng];
 };
 
-const getUrgencyBadge = (val, styles) => {
-  if (val < 2) return styles.badge('#DCFCE7', '#166534');
-  if (val <= 3.5) return styles.badge('#FEF9C3', '#854D0E');
-  return styles.badge('#FEE2E2', '#991B1B');
+const pointInPolygon = (point, polygon) => {
+  const [y, x] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [yi, xi] = polygon[i];
+    const [yj, xj] = polygon[j];
+    if (((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
 };
 
-const getUrgencyLabel = (val) => {
-  if (val < 2) return 'Faible';
-  if (val <= 3.5) return 'Moyenne';
-  return 'Élevée';
+const isRemarkAssigned = (remark, zonesList) => {
+  if (remark.zone_id) return true;
+  const coords = getRemarkCoords(remark);
+  if (!coords) return false;
+  return zonesList.some(z => isValidCoords(z.coordonnees_geojson) && pointInPolygon(coords, z.coordonnees_geojson));
 };
 
-const ZoneBarChartMemo = React.memo(({ data }) => (
-  <ResponsiveContainer width="100%" height={300}>
-    <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} role="img" aria-label="Graphique en barres empilées des remarques par zone">
-      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-      <XAxis dataKey="zone" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-      <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-      <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }} />
-      <Legend wrapperStyle={{ paddingTop: '12px' }} />
-      <Bar dataKey="urgent" stackId="a" fill="#EF4444" name="Urgent" />
-      <Bar dataKey="actif" stackId="a" fill="#3B82F6" name="Actif" />
-      <Bar dataKey="planifie" stackId="a" fill="#F59E0B" name="Planifié" />
-      <Bar dataKey="rejete" stackId="a" fill="#9CA3AF" name="Rejeté" radius={[4, 4, 0, 0]} />
-    </BarChart>
-  </ResponsiveContainer>
-));
+const getRemarkZoneId = (remark, zonesList) => {
+  if (remark.zone_id) return remark.zone_id;
+  const coords = getRemarkCoords(remark);
+  if (!coords) return null;
+  const zone = zonesList.find(z => isValidCoords(z.coordonnees_geojson) && pointInPolygon(coords, z.coordonnees_geojson));
+  return zone?.id ?? null;
+};
 
-const CategoryPieChartMemo = React.memo(({ data }) => (
-  <ResponsiveContainer width="100%" height={300}>
-    <PieChart role="img" aria-label="Graphique circulaire de la répartition par catégorie">
-      <Pie
-        data={data}
-        dataKey="value"
-        nameKey="name"
-        cx="50%"
-        cy="50%"
-        outerRadius={95}
-        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-        labelLine={false}
-      >
-        {data.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={entry.color} />
-        ))}
-      </Pie>
-      <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }} />
-      <Legend />
-    </PieChart>
-  </ResponsiveContainer>
-));
+const getCategoryKey = (remark) => (remark.categorie || remark.building_type || 'other').toLowerCase();
 
-const UrgencyBarChartMemo = React.memo(({ data }) => (
-  <ResponsiveContainer width="100%" height={300}>
-    <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} role="img" aria-label="Graphique en barres de la distribution des urgences">
-      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-      <XAxis dataKey="urgency" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-      <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-      <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }} />
-      <Bar dataKey="count" name="Remarques" radius={[4, 4, 0, 0]}>
-        {data.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={URGENCY_COLORS[index % URGENCY_COLORS.length]} />
-        ))}
-      </Bar>
-    </BarChart>
-  </ResponsiveContainer>
-));
+const getDurationKey = (remark) => {
+  const d = remark.duration || remark.residence_duration;
+  return d && DURATION_BUCKETS.some(b => b.value === d) ? d : 'unknown';
+};
 
-const ActivityAreaChartMemo = React.memo(({ data }) => (
-  <ResponsiveContainer width="100%" height={280}>
-    <AreaChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 0 }} role="img" aria-label="Graphique d'activité temporelle">
-      <defs>
-        <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#6366F1" stopOpacity={0.2} />
-          <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-      <XAxis dataKey="label" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-      <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-      <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }} />
-      <Area
-        type="monotone"
-        dataKey="count"
-        stroke="#6366F1"
-        strokeWidth={2.5}
-        fill="url(#colorActivity)"
-        fillOpacity={1}
-        name="Remarques"
-        dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#6366F1' }}
-        activeDot={{ r: 6 }}
-      />
-    </AreaChart>
-  </ResponsiveContainer>
-));
+const monthKey = (dateStr) => {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
 
-const rankMedal = (rank) => ({ 1: '🥇', 2: '🥈', 3: '🥉' }[rank] || String(rank));
+const formatMonthLabel = (key) => {
+  const [year, month] = key.split('-');
+  return `${MONTH_LABELS[parseInt(month, 10) - 1]} ${year}`;
+};
 
-const Top5TableMemo = React.memo(({ data, styles }) => (
-  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-    <table style={styles.table} role="table" aria-labelledby="admin-top5-title">
-      <thead style={styles.thead}>
-        <tr>
-          <th scope="col" style={styles.th}>#</th>
-          <th scope="col" style={styles.th}>Zone</th>
-          <th scope="col" style={{ ...styles.th, textAlign: 'center' }}>Total Remarques</th>
-          <th scope="col" style={{ ...styles.th, textAlign: 'center' }}>Catégorie Dominante</th>
-          <th scope="col" style={{ ...styles.th, textAlign: 'center' }}>Urgence Moyenne</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.length > 0 ? data.map((zone, idx) => (
-          <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#f9fafb' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#eff6ff'}
-            onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#f9fafb'}
-          >
-            <td style={{ ...styles.td, fontWeight: '700', fontSize: '18px' }}><span aria-label={`Rang ${zone.rank}`}>{rankMedal(zone.rank)}</span></td>
-            <td style={{ ...styles.td, fontWeight: '600' }}>{zone.zone}</td>
-            <td style={{ ...styles.td, textAlign: 'center', fontWeight: '700', fontSize: '16px' }}>{zone.total}</td>
-            <td style={{ ...styles.td, textAlign: 'center' }}>
-              <span style={styles.categoryPill}>
-                <span aria-hidden="true">{getCategoryEmoji(zone.dominantCategory)}</span> {zone.dominantCategory}
-              </span>
-            </td>
-            <td style={{ ...styles.td, textAlign: 'center' }}>
-              <span style={getUrgencyBadge(zone.avgUrgency, styles)}>
-                {zone.avgUrgency} ({getUrgencyLabel(zone.avgUrgency)})
-              </span>
-            </td>
-          </tr>
-        )) : (
-          <tr><td colSpan={5} style={styles.noData}>Aucune donnée disponible</td></tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-));
+const chartTooltipStyle = {
+  borderRadius: '8px',
+  border: '0.5px solid rgba(242, 237, 230, 0.12)',
+  background: '#080605',
+  color: '#F2EDE6',
+  fontSize: '11px',
+};
 
-export default function AdminStatistiquesTab() {
-  const [statsByZone, setStatsByZone] = useState([]);
-  const [statsByCategory, setStatsByCategory] = useState([]);
-  const [statsByUrgency, setStatsByUrgency] = useState([]);
-  const [activityData, setActivityData] = useState([]);
-  const [top5Zones, setTop5Zones] = useState([]);
-  const [keyIndicators, setKeyIndicators] = useState(null);
-  const [period, setPeriod] = useState('week');
+const cardStyle = {
+  background: 'rgba(255,255,255,0.03)',
+  border: '0.5px solid rgba(242,237,230,0.07)',
+  borderRadius: '10px',
+  padding: '16px',
+};
+
+const cardTitleStyle = {
+  fontSize: '12px',
+  fontWeight: 500,
+  color: 'rgba(242,237,230,0.6)',
+  marginBottom: '14px',
+};
+
+const NoData = ({ text = 'Aucune donnée pour le moment' }) => (
+  <p style={{ textAlign: 'center', padding: '32px 16px', color: 'rgba(242,237,230,0.35)', fontSize: '12px', margin: 0 }}>
+    {text}
+  </p>
+);
+
+export default function AdminStatistiquesTab({ isActive = true }) {
+  const [remarks, setRemarks] = useState([]);
+  const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useAuth();
-  const userCity = user?.city || null;
-
+  const userCity = user?.city || 'marrakech';
+  const cityConfig = getCityMapConfig(userCity);
   const { isMobile, isTablet } = useResponsive();
-  const s = useMemo(() => getStyles(isMobile, isTablet), [isMobile, isTablet]);
 
   useEffect(() => {
-    const loadAll = async () => {
+    if (!isActive) return;
+    const load = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const [resZones, resCats, resUrgency, resActivity, resTop5, kpis] = await Promise.all([
-          getStatsByZone(),
-          getStatsByCategory(),
-          getStatsByUrgency(),
-          getActivityOverTime('week'),
-          getTop5Zones(),
-          getKeyIndicators()
-        ]);
-        const zones = unwrap(resZones);
-        const cats = unwrap(resCats);
-        const urgency = unwrap(resUrgency);
-        const activity = unwrap(resActivity);
-        const top5 = unwrap(resTop5);
-        // Filter zone stats to admin's city
+        const [resRemarks, resZones] = await Promise.all([getRemarks(), getZones()]);
+        const fetchedRemarks = unwrap(resRemarks);
+        const fetchedZones = unwrap(resZones);
         const cityZones = userCity
-          ? zones.filter(z =>
-              z.ville?.toLowerCase() === userCity.toLowerCase()
-            )
-          : zones;
-        setStatsByZone(cityZones);
-        setStatsByCategory(cats);
-        setStatsByUrgency(urgency);
-        setActivityData(activity);
-        setTop5Zones(userCity
-          ? top5.filter(z => z.ville?.toLowerCase() === userCity.toLowerCase())
-          : top5
-        );
-        setKeyIndicators(kpis);
+          ? fetchedZones.filter(z => z.ville?.toLowerCase().trim() === userCity.toLowerCase().trim())
+          : fetchedZones;
+        setZones(cityZones.filter(z => isValidCoords(z.coordonnees_geojson)));
+        setRemarks(fetchedRemarks);
       } catch (err) {
-        console.error('Error loading stats:', err);
+        console.error(err);
         setError('Impossible de charger les statistiques.');
       } finally {
         setLoading(false);
       }
     };
-    loadAll();
-  }, [userCity]);
+    load();
+  }, [isActive, userCity]);
 
-  useEffect(() => {
-    if (loading) return;
-    getActivityOverTime(period).then(setActivityData).catch(console.error);
-  }, [period, loading]);
+  const stats = useMemo(() => {
+    const zoneIds = zones.map(z => z.id);
+    const remarksInCity = remarks.filter(r => {
+      if (r.zone_id && zoneIds.includes(r.zone_id)) return true;
+      const coords = getRemarkCoords(r);
+      if (!coords || !cityConfig.bounds) return !!r.zone_id;
+      const [[south, west], [north, east]] = cityConfig.bounds;
+      return coords[0] >= south && coords[0] <= north && coords[1] >= west && coords[1] <= east;
+    });
 
-  const memoizedKeyIndicators = useMemo(() => keyIndicators, [keyIndicators]);
+    const total = remarksInCity.length;
+    const urgentCount = remarksInCity.filter(r => (parseInt(r.urgency, 10) || 0) >= 4).length;
+    const zonesCount = zones.length;
+    const assignedCount = remarksInCity.filter(r => isRemarkAssigned(r, zones)).length;
+    const coveragePct = total ? Math.round((assignedCount / total) * 100) : 0;
 
-  if (loading) return (
-    <div style={s.page}>
-      <div style={s.kpiRow}>
-        <SkeletonCard lines={2} />
-        {(!isMobile && !isTablet) && <SkeletonCard lines={2} />}
-        {(!isMobile) && <SkeletonCard lines={2} />}
-        {(!isMobile && !isTablet) && <SkeletonCard lines={2} />}
+    const categoryCounts = {};
+    CATEGORIES.forEach(c => { categoryCounts[c.value] = 0; });
+    remarksInCity.forEach(r => {
+      const key = getCategoryKey(r);
+      if (categoryCounts[key] !== undefined) categoryCounts[key] += 1;
+      else categoryCounts.other += 1;
+    });
+    const categoryData = CATEGORIES.map(c => ({
+      name: c.label,
+      value: categoryCounts[c.value],
+      color: c.color,
+    }));
+    const maxCategoryCount = Math.max(...categoryData.map(c => c.value), 1);
+
+    const urgencyData = URGENCY_LEVELS.map(u => ({
+      name: u.label,
+      value: remarksInCity.filter(r => (parseInt(r.urgency, 10) || 3) === u.level).length,
+      color: u.color,
+    })).filter(d => d.value > 0);
+
+    const urgencyDataAll = URGENCY_LEVELS.map(u => ({
+      name: u.label,
+      value: remarksInCity.filter(r => (parseInt(r.urgency, 10) || 3) === u.level).length,
+      color: u.color,
+    }));
+
+    const zoneCounts = {};
+    zones.forEach(z => { zoneCounts[z.id] = { name: z.nom, count: 0 }; });
+    let unassigned = 0;
+    remarksInCity.forEach(r => {
+      const zid = getRemarkZoneId(r, zones);
+      if (zid && zoneCounts[zid]) zoneCounts[zid].count += 1;
+      else unassigned += 1;
+    });
+    const zoneBarData = [
+      ...Object.values(zoneCounts).map(z => ({ zone: z.name, count: z.count })),
+      ...(total > 0 ? [{ zone: 'Non assignés', count: unassigned }] : []),
+    ];
+
+    const durationCounts = {};
+    DURATION_BUCKETS.forEach(d => { durationCounts[d.value] = 0; });
+    remarksInCity.forEach(r => {
+      durationCounts[getDurationKey(r)] += 1;
+    });
+    const durationData = DURATION_BUCKETS
+      .map(d => ({ name: d.label, value: durationCounts[d.value], color: d.color }))
+      .filter(d => d.value > 0);
+
+    const monthMap = {};
+    const addToMonth = (key, field) => {
+      if (!key) return;
+      if (!monthMap[key]) monthMap[key] = { key, remarks: 0, zones: 0 };
+      monthMap[key][field] += 1;
+    };
+    remarksInCity.forEach(r => addToMonth(monthKey(r.created_at), 'remarks'));
+    zones.forEach(z => addToMonth(monthKey(z.created_at), 'zones'));
+    const monthlyData = Object.values(monthMap)
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .map(m => ({
+        label: formatMonthLabel(m.key),
+        remarks: m.remarks,
+        zones: m.zones,
+      }));
+
+    const topCategory = [...categoryData].sort((a, b) => b.value - a.value)[0];
+    const highUrgencyPct = total
+      ? Math.round((remarksInCity.filter(r => (parseInt(r.urgency, 10) || 0) >= 3).length / total) * 100)
+      : 0;
+    const chronicPct = total
+      ? Math.round((durationCounts.always / total) * 100)
+      : 0;
+
+    const insights = [];
+    insights.push(
+      `${total} signalement${total !== 1 ? 's' : ''} enregistré${total !== 1 ? 's' : ''}${userCity ? ` pour ${userCity.charAt(0).toUpperCase() + userCity.slice(1)}` : ''}.`,
+    );
+    if (total > 0 && topCategory) {
+      insights.push(
+        `La catégorie la plus signalée est ${topCategory.name} (${topCategory.value} signalement${topCategory.value !== 1 ? 's' : ''}).`,
+      );
+    }
+    insights.push(
+      coveragePct === 100
+        ? `Couverture complète : 100 % des signalements sont dans une zone officielle (${zonesCount} zone${zonesCount !== 1 ? 's' : ''}).`
+        : `${coveragePct} % des signalements sont dans une zone officielle${zonesCount === 0 ? ' — aucune zone créée pour l\'instant' : ` (${zonesCount} zone${zonesCount !== 1 ? 's' : ''} dessinée${zonesCount !== 1 ? 's' : ''})`}.`,
+    );
+    if (total > 0 && highUrgencyPct >= 50) {
+      insights.push(`${highUrgencyPct} % des signalements sont de niveau 3 ou plus — intervention prioritaire recommandée.`);
+    } else if (total > 0 && chronicPct >= 40) {
+      insights.push(`${chronicPct} % des problèmes existent depuis longtemps — signe de dégradation chronique de l'infrastructure.`);
+    }
+
+    return {
+      total,
+      urgentCount,
+      zonesCount,
+      coveragePct,
+      assignedCount,
+      categoryData,
+      maxCategoryCount,
+      urgencyData,
+      urgencyDataAll,
+      zoneBarData,
+      durationData,
+      monthlyData,
+      insights,
+      remarksInCity,
+    };
+  }, [remarks, zones, cityConfig.bounds, userCity]);
+
+  const gridCols = isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)';
+  const chartsCols = isMobile ? '1fr' : '1fr 1fr';
+
+  if (loading) {
+    return (
+      <div>
+        <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '10px', marginBottom: '20px' }}>
+          <SkeletonCard lines={2} />
+          {!isMobile && <SkeletonCard lines={2} />}
+          {!isMobile && !isTablet && <SkeletonCard lines={2} />}
+          {!isMobile && !isTablet && <SkeletonCard lines={2} />}
+        </div>
+        <div style={{ ...cardStyle, marginBottom: '16px' }}><SkeletonChart type="bar" height={60} /></div>
+        <div style={{ display: 'grid', gridTemplateColumns: chartsCols, gap: '16px' }}>
+          <div style={cardStyle}><SkeletonChart type="bar" height={220} /></div>
+          <div style={cardStyle}><SkeletonChart type="pie" height={220} /></div>
+        </div>
       </div>
-      <div style={s.chartCard}>
-        <SkeletonChart type="bar" height={300} />
-      </div>
-      <div style={s.chartsRow}>
-        <div style={s.chartCard}><SkeletonChart type="pie" height={300} /></div>
-        <div style={s.chartCard}><SkeletonChart type="bar" height={300} /></div>
-      </div>
-    </div>
-  );
+    );
+  }
 
-  if (error) return (
-    <div style={s.page}>
-      <EmptyState 
+  if (error) {
+    return (
+      <EmptyState
         icon="❌"
         title="Erreur lors du chargement"
         subtitle={error}
-        action={{ 
-          label: "Réessayer", 
-          onClick: () => window.location.reload() 
-        }}
+        action={{ label: 'Réessayer', onClick: () => window.location.reload() }}
       />
-    </div>
-  );
+    );
+  }
 
-  const statusData = (() => {
-    let urgent = 0;
-    let actif = 0;
-    let planifie = 0;
-    let rejete = 0;
-    statsByZone.forEach(z => {
-      urgent += (z.urgent || 0);
-      actif += (z.actif || 0);
-      planifie += (z.planifie || 0);
-      rejete += (z.rejete || 0);
-    });
-    if (urgent === 0 && actif === 0 && planifie === 0 && rejete === 0) {
-      return [
-        { name: 'Urgent', value: memoizedKeyIndicators?.urgentCount || 0, color: '#ef4444' },
-        { name: 'Actif', value: 0, color: '#3B82F6' },
-        { name: 'Planifié', value: 0, color: '#f59e0b' },
-        { name: 'Rejeté', value: 0, color: '#9CA3AF' }
-      ];
-    }
-    return [
-      { name: 'Urgent', value: urgent, color: '#ef4444' },
-      { name: 'Actif', value: actif, color: '#3B82F6' },
-      { name: 'Planifié', value: planifie, color: '#f59e0b' },
-      { name: 'Rejeté', value: rejete, color: '#9CA3AF' }
-    ];
-  })();
-
-  const kpis = (() => {
-    const total = memoizedKeyIndicators?.totalRemarks ?? 0;
-    const urgents = memoizedKeyIndicators?.urgentCount ?? 0;
-    
-    let pending = 0;
-    let validated = 0;
-    statsByZone.forEach(z => {
-      pending += (z.planifie || 0);
-      validated += (z.actif || 0);
-    });
-    
-    if (pending === 0 && validated === 0 && total > 0) {
-      pending = Math.max(0, total - urgents - Math.floor(total * 0.4));
-      validated = Math.max(0, total - urgents - pending);
-    }
-    
-    const aiRate = total > 0 ? Math.round((validated / total) * 100) : 78;
-    
-    return {
-      total,
-      urgents,
-      pending,
-      validated,
-      aiRate: `${aiRate}%`
-    };
-  })();
-
-  const categoriesList = statsByCategory.length > 0 ? statsByCategory : [
-    { name: 'Route', value: 0, color: '#C1440E' },
-    { name: 'Hôpital', value: 0, color: '#ef4444' },
-    { name: 'École', value: 0, color: '#f59e0b' },
-    { name: 'Parc', value: 0, color: '#52BE80' },
-    { name: 'Autre', value: 0, color: '#E8B87A' }
+  const kpis = [
+    { label: 'Total signalements', value: stats.total, sub: 'Tous les rapports citoyens', color: '#C1440E' },
+    { label: 'Urgents (niv. 4-5)', value: stats.urgentCount, sub: 'Intervention rapide requise', color: '#ef4444' },
+    { label: 'Zones créées', value: stats.zonesCount, sub: 'Zones officielles dessinées', color: '#52BE80' },
+    { label: 'Couverture', value: `${stats.coveragePct}%`, sub: `${stats.assignedCount}/${stats.total} dans une zone`, color: '#E8B87A' },
   ];
 
-  const totalCatCount = categoriesList.reduce((sum, cat) => sum + (cat.value || 0), 0) || 1;
-
   return (
-    <div style={s.page}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-
-      {/* SECTION 1 — 5 KPI cards */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(5,1fr)',
-        gap: '10px', marginBottom: '20px',
-      }}>
-        {[
-          { label: 'Total', value: kpis.total, sub: 'Signalements enregistrés', color: '#C1440E' },
-          { label: 'Urgents', value: kpis.urgents, sub: 'Urgence >= 4 ou urgent', color: '#ef4444' },
-          { label: 'En attente', value: kpis.pending, sub: 'À modérer / valider', color: '#f59e0b' },
-          { label: 'Validés', value: kpis.validated, sub: 'Validés / Actifs', color: '#52BE80' },
-          { label: 'Taux IA', value: kpis.aiRate, sub: 'Traités par Claude', color: '#E8B87A' },
-        ].map((card, idx) => (
-          <div key={idx} style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '0.5px solid rgba(242,237,230,0.07)',
-            borderRadius: '8px', padding: '14px',
-            position: 'relative', overflow: 'hidden',
-            transition: 'all 0.2s',
-          }}>
-            {/* Top accent bar */}
-            <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0,
-              height: '1.5px', background: card.color,
-            }} />
-            <div style={{
-              fontSize: '10px', color: 'rgba(242,237,230,0.28)',
-              letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '7px',
-            }}>{card.label}</div>
-            <div style={{
-              fontFamily: 'DM Mono, monospace', fontSize: '26px',
-              color: '#E8B87A', fontWeight: 500, lineHeight: 1, marginBottom: '4px',
-            }}>{card.value}</div>
-            <div style={{
-              fontSize: '10px', color: 'rgba(242,237,230,0.3)',
-            }}>{card.sub}</div>
+    <div style={{ fontFamily: 'DM Sans, sans-serif', color: '#F2EDE6' }}>
+      {/* KPI cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '10px', marginBottom: '16px' }}>
+        {kpis.map(card => (
+          <div key={card.label} style={{ ...cardStyle, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1.5px', background: card.color }} />
+            <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.28)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '7px' }}>
+              {card.label}
+            </div>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '26px', color: '#E8B87A', fontWeight: 500, lineHeight: 1, marginBottom: '4px' }}>
+              {card.value}
+            </div>
+            <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)' }}>{card.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* SECTION 2 — Two chart cards side by side */}
+      {/* Insight box */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr',
-        gap: '16px', marginBottom: '20px',
+        ...cardStyle,
+        marginBottom: '16px',
+        background: 'rgba(193,68,14,0.06)',
+        border: '0.5px solid rgba(193,68,14,0.2)',
       }}>
-        {/* LEFT card — bar chart (categories) */}
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '0.5px solid rgba(242,237,230,0.07)',
-          borderRadius: '10px', padding: '16px',
-        }}>
-          <div style={{
-            fontSize: '12px', fontWeight: 500,
-            color: 'rgba(242,237,230,0.6)', marginBottom: '14px',
-          }}>Signalements par catégorie</div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {categoriesList.map((cat, idx) => {
-              const percent = Math.round(((cat.value || 0) / totalCatCount) * 100);
-              return (
-                <div key={idx} style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'8px'}}>
-                  <span style={{fontSize:'11px',color:'rgba(242,237,230,0.38)',
-                    width:'68px',flexShrink:0,textAlign:'right'}}>
-                    {cat.name}
-                  </span>
-                  <div style={{flex:1,height:'5px',background:'rgba(255,255,255,0.05)',
-                    borderRadius:'3px',overflow:'hidden'}}>
-                    <div style={{height:'100%',borderRadius:'3px',
-                      width:`${percent}%`, background: cat.color || '#C1440E'}} />
+        <div style={{ fontSize: '10px', color: '#C1440E', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
+          Synthèse
+        </div>
+        {stats.insights.map((line, i) => (
+          <p key={i} style={{ margin: i === 0 ? 0 : '6px 0 0', fontSize: '13px', color: 'rgba(242,237,230,0.75)', lineHeight: 1.5 }}>
+            {line}
+          </p>
+        ))}
+      </div>
+
+      {/* Row 1: Category + Urgency */}
+      <div style={{ display: 'grid', gridTemplateColumns: chartsCols, gap: '16px', marginBottom: '16px' }}>
+        <div style={cardStyle}>
+          <div style={cardTitleStyle}>Signalements par catégorie</div>
+          {stats.total === 0 ? (
+            <NoData />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {stats.categoryData.map(cat => {
+                const widthPct = cat.value > 0 ? Math.max((cat.value / stats.maxCategoryCount) * 100, 4) : 0;
+                return (
+                  <div key={cat.name} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.45)', width: '72px', flexShrink: 0, textAlign: 'right' }}>
+                      {cat.name}
+                    </span>
+                    <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: '3px', width: `${widthPct}%`, background: cat.color, transition: 'width 0.3s ease' }} />
+                    </div>
+                    <span style={{ fontSize: '11px', fontFamily: 'DM Mono, monospace', color: 'rgba(242,237,230,0.5)', width: '24px', textAlign: 'right', flexShrink: 0 }}>
+                      {cat.value}
+                    </span>
                   </div>
-                  <span style={{fontSize:'11px',fontFamily:'DM Mono,monospace',
-                    color:'rgba(242,237,230,0.38)',width:'28px',
-                    textAlign:'right',flexShrink:0}}>
-                    {cat.value || 0}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* RIGHT card — donut chart (statuts) */}
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '0.5px solid rgba(242,237,230,0.07)',
-          borderRadius: '10px', padding: '16px',
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
-        }}>
-          <div style={{
-            fontSize: '12px', fontWeight: 500,
-            color: 'rgba(242,237,230,0.6)', marginBottom: '14px',
-          }}>Répartition par statut</div>
-          
-          <div style={{ height: '140px', position: 'relative' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={35}
-                  outerRadius={55}
-                  paddingAngle={3}
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '8px', border: '0.5px solid rgba(242, 237, 230, 0.08)', background: '#080605', color: '#F2EDE6', fontSize: '11px' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '10px' }}>
-            {statusData.map((s, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: s.color }} />
-                <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.5)' }}>
-                  {s.name} ({s.value})
-                </span>
+        <div style={cardStyle}>
+          <div style={cardTitleStyle}>Répartition par urgence</div>
+          {stats.total === 0 ? (
+            <NoData />
+          ) : (
+            <>
+              <div style={{ height: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.urgencyData.length ? stats.urgencyData : stats.urgencyDataAll}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={72}
+                      paddingAngle={2}
+                    >
+                      {(stats.urgencyData.length ? stats.urgencyData : stats.urgencyDataAll).map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={chartTooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
+                {stats.urgencyDataAll.filter(d => d.value > 0).map(d => (
+                  <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.color }} />
+                    <span style={{ fontSize: '10px', color: 'rgba(242,237,230,0.5)' }}>{d.name} ({d.value})</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* SECTION 3 — Monthly evolution card (full width) */}
-      <div style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '0.5px solid rgba(242,237,230,0.07)',
-        borderRadius: '10px', padding: '16px',
-      }}>
-        <div style={{
-          fontSize: '12px', fontWeight: 500,
-          color: 'rgba(242,237,230,0.6)', marginBottom: '14px',
-        }}>Évolution mensuelle — 2026</div>
-        
-        <svg viewBox="0 0 600 80" style={{width:'100%',display:'block'}}>
-          <defs>
-            <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#C1440E" stopOpacity="0.3"/>
-              <stop offset="100%" stopColor="#C1440E" stopOpacity="0"/>
-            </linearGradient>
-          </defs>
-          <path d="M20,65 L90,55 L160,45 L230,38 L300,30
-            L370,22 L440,18 L510,12 L580,8 L580,80 L20,80 Z"
-            fill="url(#lg)"/>
-          <polyline points="20,65 90,55 160,45 230,38 300,30
-            370,22 440,18 510,12 580,8"
-            fill="none" stroke="#C1440E" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx="580" cy="8" r="4" fill="#C1440E"/>
-          <g fontSize="9" fill="rgba(242,237,230,0.25)"
-            fontFamily="DM Sans" textAnchor="middle">
-            {['Jan','Fév','Mar','Avr','Mai','Jun',
-              'Jul','Aoû','Sep'].map((m,i) => (
-              <text key={m} x={20+i*70} y={78}>{m}</text>
-            ))}
-          </g>
-        </svg>
+      {/* Monthly evolution */}
+      <div style={{ ...cardStyle, marginBottom: '16px' }}>
+        <div style={cardTitleStyle}>Évolution mensuelle</div>
+        {stats.monthlyData.length === 0 ? (
+          <NoData text="Aucun signalement ou zone enregistré pour l'instant" />
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={stats.monthlyData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,237,230,0.06)" />
+              <XAxis dataKey="label" tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={chartTooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(242,237,230,0.5)' }} />
+              <Line type="monotone" dataKey="remarks" name="Signalements" stroke="#C1440E" strokeWidth={2.5} dot={{ r: 4, fill: '#C1440E' }} />
+              <Line type="monotone" dataKey="zones" name="Zones créées" stroke="#52BE80" strokeWidth={2.5} dot={{ r: 4, fill: '#52BE80' }} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      <div style={{ display: 'none' }}>
-        {/* Prevent ESLint unused component errors */}
-        {ZoneBarChartMemo && null}
-        {CategoryPieChartMemo && null}
-        {UrgencyBarChartMemo && null}
-        {ActivityAreaChartMemo && null}
-        {Top5TableMemo && null}
-        {statsByUrgency && null}
-        {activityData && null}
-        {top5Zones && null}
-        {setPeriod && null}
+      {/* Row 2: Zone + Duration */}
+      <div style={{ display: 'grid', gridTemplateColumns: chartsCols, gap: '16px' }}>
+        <div style={cardStyle}>
+          <div style={cardTitleStyle}>Signalements par zone</div>
+          {stats.total === 0 && stats.zonesCount === 0 ? (
+            <NoData />
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(200, stats.zoneBarData.length * 36)}>
+              <BarChart data={stats.zoneBarData} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,237,230,0.06)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="zone" width={100} tick={{ fill: 'rgba(242,237,230,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Bar dataKey="count" name="Signalements" radius={[0, 4, 4, 0]}>
+                  {stats.zoneBarData.map((entry, i) => (
+                    <Cell key={entry.zone} fill={entry.zone === 'Non assignés' ? '#C1440E' : '#6366f1'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div style={cardStyle}>
+          <div style={cardTitleStyle}>Durée des problèmes</div>
+          {stats.durationData.length === 0 ? (
+            <NoData />
+          ) : (
+            <>
+              <div style={{ height: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.durationData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={72}
+                      paddingAngle={2}
+                    >
+                      {stats.durationData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={chartTooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
+                {stats.durationData.map(d => {
+                  const pct = stats.total ? Math.round((d.value / stats.total) * 100) : 0;
+                  return (
+                    <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'rgba(242,237,230,0.5)' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+                      <span style={{ flex: 1 }}>{d.name}</span>
+                      <span style={{ fontFamily: 'DM Mono, monospace' }}>{d.value} ({pct}%)</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

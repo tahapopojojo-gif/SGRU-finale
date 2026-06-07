@@ -25,6 +25,7 @@ class StoreAnnotationRequest extends FormRequest
             'zone_id' => 'required|exists:zones,id',
             'urbaniste_id' => 'required|exists:users,id',
             'texte' => 'required|string',
+            'priorite' => 'nullable|string|in:urgente,surveiller,informatif',
         ];
     }
 }

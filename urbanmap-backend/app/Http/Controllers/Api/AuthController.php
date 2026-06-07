@@ -74,4 +74,26 @@ class AuthController extends Controller
     {
         return response()->json(['data' => request()->user()]);
     }
+
+    public function updateProfile()
+    {
+        $user = request()->user();
+        $payload = request()->validate([
+            'nom' => ['required', 'string', 'max:255'],
+            'password' => ['nullable', 'string', 'min:6'],
+        ]);
+
+        $user->nom = $payload['nom'];
+        if (!empty($payload['password'])) {
+            $user->password = Hash::make($payload['password']);
+        }
+        $user->save();
+
+        return response()->json([
+            'data' => [
+                'user' => $user->fresh(),
+            ],
+        ]);
+    }
 }
+

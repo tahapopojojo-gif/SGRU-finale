@@ -272,6 +272,57 @@ select {
   }
 }
 
+/* Floating map controls — fixed above navbar (200) but below side panel (1500) */
+.map-floating-control {
+  position: fixed !important;
+  z-index: 250 !important;
+  pointer-events: auto;
+}
+
+.map-locate-control {
+  top: 62px;
+  left: 12px;
+}
+
+/* Below navbar user dropdown (~50px nav + menu height) */
+.map-layers-control {
+  top: 142px;
+  right: 12px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              top 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              left 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 769px) {
+  .map-layers-control--shifted {
+    transform: translateX(-360px);
+  }
+}
+
+@media (max-width: 768px) {
+  .map-layers-control--mobile-shifted {
+    top: 130px;
+    right: auto;
+    left: 12px;
+  }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.zone-label-tooltip {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.12) !important;
+  color: #1e293b !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
 .leaflet-control-layers-toggle {
   background-color: transparent !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke='%23F2EDE6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5z'/%3E%3Cpath d='M2 17l10 5 10-5'/%3E%3Cpath d='M2 12l10 5 10-5'/%3E%3C/svg%3E") !important;
@@ -377,6 +428,209 @@ select {
 }
 .draw-mode .leaflet-interactive {
   cursor: crosshair !important;
+}
+
+/* Admin zones map — keep overlays above Leaflet panes */
+.admin-zones-map {
+  position: relative;
+  min-width: 0;
+}
+
+.admin-zones-map .leaflet-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.admin-zones-map__ui {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+}
+
+.admin-zones-map__ui > * {
+  pointer-events: auto;
+}
+
+/* Hide native leaflet-draw chrome (custom toolbar is used instead) */
+.admin-zones-map .leaflet-draw-actions,
+.admin-zones-map .leaflet-draw-toolbar {
+  display: none !important;
+}
+
+.admin-zones-create-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(320px, 92vw);
+  z-index: 600;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: rgba(8, 6, 3, 0.98);
+  border-left: 0.5px solid rgba(193, 68, 14, 0.35);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.55);
+  animation: slideInRight 0.3s ease;
+}
+
+.admin-zones-create-panel input,
+.admin-zones-create-panel textarea {
+  color: #f2ede6;
+}
+
+.admin-zones-create-panel input::placeholder,
+.admin-zones-create-panel textarea::placeholder {
+  color: rgba(242, 237, 230, 0.35);
+}
+
+.admin-zones-priority-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-zones-priority-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 0.5px solid rgba(242, 237, 230, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(242, 237, 230, 0.75);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  min-height: unset;
+  min-width: unset;
+}
+
+.admin-zones-priority-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pill-color, #94a3b8);
+  flex-shrink: 0;
+}
+
+.admin-zones-priority-pill--active {
+  border-color: var(--pill-color, #c1440e);
+  background: color-mix(in srgb, var(--pill-color, #c1440e) 14%, transparent);
+  color: #f2ede6;
+  font-weight: 600;
+}
+
+.admin-zones-priority-pill:hover:not(.admin-zones-priority-pill--active) {
+  background: rgba(255, 255, 255, 0.07);
+  color: #f2ede6;
+}
+
+.admin-zones-save-error {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 0.5px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-zones-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10000;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.admin-zones-toast--success {
+  background: rgba(82, 190, 128, 0.95);
+  border: 0.5px solid rgba(82, 190, 128, 0.5);
+  color: #052e16;
+}
+
+.admin-zones-toast--error {
+  background: rgba(127, 29, 29, 0.96);
+  border: 0.5px solid rgba(239, 68, 68, 0.5);
+  color: #fecaca;
+}
+
+.admin-zones-toast--panel-open {
+  bottom: auto;
+  top: 88px;
+  right: 16px;
+}
+
+.zone-draw-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+}
+
+.zone-draw-toolbar__group {
+  display: flex;
+  align-items: center;
+}
+
+.zone-draw-toolbar__active {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(193, 68, 14, 0.12);
+  color: #C1440E;
+  font-weight: 600;
+}
+
+.zone-draw-toolbar__divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 2px;
+}
+
+.zone-draw-toolbar__btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.zone-draw-toolbar__btn:hover {
+  background: #f8fafc;
+}
+
+.zone-draw-toolbar__btn--cancel {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.25);
 }
 
 @keyframes dotpulse {

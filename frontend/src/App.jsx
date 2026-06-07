@@ -7,10 +7,12 @@ import HomePage from './pages/HomePage.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
-import PublicMapPage from './pages/PublicMapPage.jsx'
+import CitizenMapPage from './pages/CitizenMapPage.jsx'
+import MapPage from './pages/MapPage.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import UrbanisteDashboard from './pages/UrbanisteDashboard.jsx'
 import SuperAdminPage from './pages/SuperAdminPage.jsx'
+import AccountPage from './pages/AccountPage.jsx'
 import NotFound from './pages/NotFound.jsx'
 import ProtectedRoute, { getRoleDashboard } from './components/ProtectedRoute.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
@@ -33,6 +35,14 @@ function RoleRedirect() {
   return <Navigate to={getRoleDashboard(user?.role)} />
 }
 
+function DynamicMapRoute() {
+  const { user, token } = useAuth()
+  if (!token) return <Navigate to="/login" />
+  // Citizens get the citizen map; professionals get redirected to their dashboards
+  if (user?.role === 'citoyen') return <CitizenMapPage />
+  return <Navigate to={getRoleDashboard(user?.role)} replace />
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -45,8 +55,14 @@ function AppRoutes() {
       <Route path="/registre" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* Public map route */}
-      <Route path="/map" element={<PublicMapPage />} />
+      {/* Dynamic map route */}
+      <Route path="/map" element={<DynamicMapRoute />} />
+
+      <Route path="/account" element={
+        <ProtectedRoute>
+          <AccountPage />
+        </ProtectedRoute>
+      } />
 
       <Route path="/admin/dashboard" element={
         <ProtectedRoute roles={['admin']}>

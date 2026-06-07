@@ -1,7 +1,7 @@
 /* eslint-disable */
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { analyzeOpinion } from '../services/aiService'
-import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap, LayersControl, useMapEvents, Circle, Tooltip } from 'react-leaflet'
+import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap, useMapEvents, Circle, CircleMarker, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -10,12 +10,13 @@ import api from '../services/api.js'
 import L from 'leaflet'
 import 'leaflet-draw'
 import 'leaflet-draw/dist/leaflet.draw.css'
-import { validateRequired, validateTextLength, validateEmail } from '../services/validationService.js'
 import { useToast } from '../hooks/useToast.js'
 import { getCityMapConfig } from '../utils/cityBounds'
 import { getZones } from '../services/adminApi'
 import { unwrap } from '../utils/unwrap'
-import * as turf from '@turf/turf'
+import { driver as Driver } from 'driver.js'
+import 'driver.js/dist/driver.css'
+import { Plus } from 'lucide-react'
 
 // Fix Leaflet Default Icon issue in Vite/React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -38,8 +39,9 @@ const CITY_CENTERS = {
 }
 
 // Forces the map to fly to city center on mount and enforces bounds
-function MapController({ center, zoom, bounds, minZoom, selectedParcel }) {
+function MapController({ center, zoom, bounds, minZoom, selectedParcel, onMapReady }) {
   const map = useMap();
+  useEffect(() => { onMapReady?.(map) }, []);
   useEffect(() => {
     if (minZoom) map.setMinZoom(minZoom);
     if (bounds) map.setMaxBounds(bounds);
@@ -219,12 +221,19 @@ const formStyles = {
     gap: '8px', margin: '10px 0 12px',
   },
   urgencyBtn: {
-    fontSize: '26px', background: 'none', border: 'none',
-    cursor: 'pointer', opacity: 0.18, transition: 'all 0.2s',
+    width: '36px', height: '36px',
+    fontSize: '14px', fontWeight: 600,
+    background: 'rgba(255,255,255,0.04)',
+    border: '0.5px solid rgba(242,237,230,0.11)',
+    borderRadius: '6px',
+    cursor: 'pointer', opacity: 0.35, transition: 'all 0.2s',
     color: '#E8B87A',
   },
   urgencyBtnActive: {
-    opacity: 1, transform: 'scale(1.12)',
+    opacity: 1,
+    borderColor: '#C1440E',
+    background: 'rgba(193,68,14,0.12)',
+    transform: 'scale(1.05)',
   },
   urgencyLabel: {
     textAlign: 'center', fontWeight: 500,
@@ -333,62 +342,40 @@ const STATUS_COLORS = {
 }
 
 const CATEGORY_COLORS = {
-  park: '#22c55e',
-  school: '#3b82f6',
-  residential: '#eab308',
-  commercial: '#ec4899',
-  hospital: '#ef4444',
-  sports: '#f97316',
-  mosque: '#6366f1',
-  other: '#94a3b8'
+  road: '#78716c', route: '#78716c',
+  lighting: '#eab308', eclairage: '#eab308',
+  waste: '#22c55e', dechets: '#22c55e',
+  water: '#3b82f6', eau: '#3b82f6',
+  parks: '#16a34a', parc: '#16a34a',
+  schools: '#6366f1',
+  transport: '#f97316',
+  other: '#94a3b8', autre: '#94a3b8',
 }
 
-const BUILDING_TYPES = [
-  { value: 'park', label: '🌳 Parc' },
-  { value: 'school', label: '🏫 École' },
-  { value: 'residential', label: '🏘️ Résidentiel' },
-  { value: 'commercial', label: '🏪 Commercial' },
-  { value: 'hospital', label: '🏥 Hôpital' },
-  { value: 'sports', label: '⚽ Sports' },
-  { value: 'mosque', label: '🕌 Mosquée' },
-  { value: 'other', label: '🔧 Autre' },
+const PROBLEM_TYPES = [
+  { value: 'road', label: 'Route ou trottoir' },
+  { value: 'lighting', label: 'Éclairage public' },
+  { value: 'waste', label: 'Déchets et propreté' },
+  { value: 'water', label: 'Eau ou drainage' },
+  { value: 'parks', label: 'Parcs et espaces verts' },
+  { value: 'schools', label: 'Écoles ou bâtiments publics' },
+  { value: 'transport', label: 'Transports en commun' },
+  { value: 'other', label: 'Autre' },
 ]
 
-const REASONS = {
-  park: ['Manque d\'espaces verts', 'Besoin pour les enfants', 'Pollution élevée', 'Pas de loisirs'],
-  school: ['École trop loin', 'Manque de places', 'Population en croissance', 'Besoin urgent'],
-  residential: ['Manque de logements', 'Loyers trop chers', 'Croissance démographique', 'Moderniser le quartier'],
-  commercial: ['Manque de commerces', 'Chômage local', 'Zone mal desservie', 'Dynamiser le quartier'],
-  hospital: ['Hôpital trop loin', 'Manque de médecins', 'Urgences saturées', 'Population vieillissante'],
-  sports: ['Pas d\'infrastructure', 'Besoin pour la jeunesse', 'Promouvoir le sport', 'Manque d\'activités'],
-  mosque: ['Mosquée trop loin', 'Population en croissance', 'Besoin spirituel', 'Zone sans mosquée'],
-  other: ['Autre raison', 'Besoin spécifique', 'Projet communautaire', 'Initiative locale'],
+const URGENCY_LABELS = {
+  1: 'Gêne mineure',
+  2: 'Gênant mais gérable',
+  3: 'Problème important',
+  4: 'Dangereux',
+  5: 'Urgence, action immédiate requise',
 }
 
-const PROBLEMS = [
-  { value: 'dumping', label: '🚮 Déchets illégaux' },
-  { value: 'lighting', label: '💡 Pas d\'éclairage' },
-  { value: 'abandoned', label: '🏚️ Bâtiment abandonné' },
-  { value: 'flooding', label: '🌊 Risque inondation' },
-  { value: 'traffic', label: '🚗 Problème circulation' },
-  { value: 'crime', label: '⚠️ Insécurité' },
-  { value: 'noise', label: '🔊 Nuisances sonores' },
-  { value: 'none', label: '✅ Aucun problème' },
-]
-
-const PROFILES = [
-  { value: 'family', label: '👨‍👩‍👧 Famille' },
-  { value: 'single', label: '👤 Célibataire' },
-  { value: 'student', label: '🎓 Étudiant' },
-  { value: 'elderly', label: '👴 Retraité' },
-  { value: 'business', label: '💼 Commerçant' },
-]
-
-const RESIDENCE_DURATION = [
-  { value: 'less1', label: '< 1 an' },
-  { value: '1to5', label: '1 - 5 ans' },
-  { value: '5to10', label: '5 - 10 ans' },
-  { value: 'more10', label: '+ 10 ans' },
+const PROBLEM_DURATION = [
+  { value: 'days', label: 'Vient d\'apparaître (quelques jours)' },
+  { value: 'months', label: 'Quelques mois' },
+  { value: 'year', label: 'Plus d\'un an' },
+  { value: 'always', label: 'Aussi longtemps que je m\'en souvienne' },
 ]
 
 function MapAutoZoom({ city }) {
@@ -428,60 +415,25 @@ function MapAutoZoom({ city }) {
   return null
 }
 
-function HeatmapLayer({ points }) {
-  const map = useMap()
-
-  useEffect(() => {
-    if (!window.L.heatLayer || !points.length) return
-
-    const heatPoints = points.map(p => {
-      const pos = p.positions[0]
-      return [pos[0], pos[1], 1.0]
-    })
-
-    const layer = window.L.heatLayer(heatPoints, {
-      radius: 25,
-      blur: 15,
-      maxZoom: 17,
-      gradient: { 0.4: 'blue', 0.65: 'lime', 1: 'red' }
-    }).addTo(map)
-
-    return () => { map.removeLayer(layer) }
-  }, [map, points])
-
-  return null
+function UserLocationMarker({ position }) {
+  if (!position) return null
+  return (
+    <>
+      <Circle
+        center={position}
+        radius={80}
+        pathOptions={{ color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.15, weight: 2 }}
+      />
+      <Circle
+        center={position}
+        radius={8}
+        pathOptions={{ color: '#ffffff', fillColor: '#2563eb', fillOpacity: 1, weight: 3 }}
+      />
+    </>
+  )
 }
 
-function ZoneHeatmapLayer({ zones }) {
-  const map = useMap()
-
-  useEffect(() => {
-    if (!window.L.heatLayer || !zones.length) return
-
-    const points = []
-    zones.forEach(z => {
-      points.push([z.centre.lat, z.centre.lng, 1.0])
-      const offset = 0.003
-      points.push([z.centre.lat + offset, z.centre.lng, 0.6])
-      points.push([z.centre.lat - offset, z.centre.lng, 0.6])
-      points.push([z.centre.lat, z.centre.lng + offset, 0.6])
-      points.push([z.centre.lat, z.centre.lng - offset, 0.6])
-    })
-
-    const layer = window.L.heatLayer(points, {
-      radius: 40,
-      blur: 15,
-      maxZoom: 17,
-      gradient: { 0.4: '#3b82f6', 0.7: '#60a5fa', 1: '#93c5fd' }
-    }).addTo(map)
-
-    return () => { map.removeLayer(layer) }
-  }, [map, zones])
-
-  return null
-}
-
-function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole, zones }) {
+function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole }) {
   const map = useMapEvents({
     click(e) {
       if (mode === 'marker' && isActive) {
@@ -489,52 +441,20 @@ function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole,
       }
     }
   })
-  const [overlapWarning, setOverlapWarning] = useState(false)
-  const drawerRef = useRef(null)
-
-  const checkOverlap = useCallback((coords) => {
-    if (!coords || coords.length < 3) return false
-    const newPoly = turf.polygon([coords.map(c => [c[1], c[0]])])
-    return zones.some(z => {
-      const c = z.coordonnees_geojson
-      if (!c || c.length < 3) return false
-      const existingPoly = turf.polygon([c.map(p => [p[1], p[0]])])
-      return turf.booleanOverlap(newPoly, existingPoly) ||
-             turf.booleanContains(existingPoly, newPoly) ||
-             turf.booleanContains(newPoly, existingPoly)
-    })
-  }, [zones])
 
   useEffect(() => {
-    if (!isActive || mode !== 'polygon') return
-    const onVertex = (e) => {
-      if (!drawerRef.current) return
-      const markers = e.layers.getLayers().filter(l => l instanceof L.Marker)
-      if (markers.length < 3) { setOverlapWarning(false); return }
-      const coords = markers.map(m => [m.getLatLng().lat, m.getLatLng().lng])
-      setOverlapWarning(checkOverlap(coords))
-    }
-    map.on('draw:drawvertex', onVertex)
-    return () => map.off('draw:drawvertex', onVertex)
-  }, [map, mode, isActive, checkOverlap])
-
-  useEffect(() => {
-    if (drawerRef.current) {
-      drawerRef.current.disable()
-      drawerRef.current = null
-    }
+    let drawer;
     if (isActive && mode === 'polygon') {
-      const drawer = new L.Draw.Polygon(map, {
-        shapeOptions: { color: overlapWarning ? '#ef4444' : '#2563eb', weight: 4, fillOpacity: 0.2 },
+      drawer = new L.Draw.Polygon(map, {
+        shapeOptions: { color: '#2563eb', weight: 4, fillOpacity: 0.2 },
         showArea: false,
         allowIntersection: false,
         drawError: { color: '#ef4444', message: 'Intersection interdite' }
       })
       drawer.enable()
-      drawerRef.current = drawer
     }
-    return () => { if (drawerRef.current) { drawerRef.current.disable(); drawerRef.current = null } }
-  }, [mode, map, isActive, overlapWarning])
+    return () => { if (drawer) drawer.disable() }
+  }, [mode, map, isActive])
 
   useEffect(() => {
     const handleCreated = (e) => {
@@ -545,50 +465,26 @@ function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole,
         const data = ring.map(ll => [ll.lat, ll.lng])
         onShapeCreated('polygon', data)
         setMode('marker')
-        setOverlapWarning(false)
       }
     }
     map.on('draw:created', handleCreated)
     return () => map.off('draw:created', handleCreated)
   }, [map, onShapeCreated, setMode])
 
-  return overlapWarning ? (
-    <div style={{
-      position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)',
-      zIndex: 1000, background: 'rgba(239,68,68,0.9)', color: '#fff',
-      padding: '8px 16px', borderRadius: '8px', fontSize: '13px',
-      fontWeight: 600, fontFamily: 'DM Sans, sans-serif',
-      backdropFilter: 'blur(8px)',
-      border: '0.5px solid rgba(239,68,68,0.5)',
-    }}>
-      ⚠️ Chevauchement avec une zone existante
-    </div>
-  ) : null
+  return null
 }
 
 function FeedbackForm({ parcel, onSubmit, onClose }) {
-  const { toast } = useToast()
   const [step, setStep] = useState(1)
-  const totalSteps = 5
+  const totalSteps = 2
   const [address, setAddress] = useState('Chargement de l\'adresse...')
   const [form, setForm] = useState({
-    building_type: '',
-    reasons: ['Signalement citoyen'],
-    problems: ['Infrastructure / Autre'],
+    problem_type: '',
     urgency: 0,
-    profile: '',
-    residence_duration: '',
-    would_use: null,
+    duration: '',
     opinion: '',
     photo: null,
     photoFile: null,
-    name: 'Citoyen',
-    email: 'citoyen@urbanmap.ma',
-  });
-  const [touched, setTouched] = useState({
-    name: false,
-    email: false,
-    residence_duration: false
   });
   const [opinionCharCount, setOpinionCharCount] = useState(0);
   const [error, setError] = useState('')
@@ -607,58 +503,35 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
     }
   }, [parcel])
 
-  const toggle = (field, value) => {
-    const current = form[field]
-    if (current.includes(value)) {
-      setForm({ ...form, [field]: current.filter(v => v !== value) })
-    } else {
-      setForm({ ...form, [field]: [...current, value] })
-    }
-  }
-
-  const validationStyles = {
-    errorInput: { border: '2px solid #DC2626', backgroundColor: '#FEE2E2' },
-    validInput: { border: '2px solid #10B981', backgroundColor: '#DCFCE7' },
-    errorText: { color: '#DC2626', fontSize: '12px', marginTop: '4px' },
-    charCounter: { fontSize: '12px', color: '#6B7280', marginTop: '4px' }
-  };
-
   const handleOpinionChange = (e) => {
     const text = e.target.value;
-    if (text.length <= 500) {
+    if (text.length <= 300) {
       setForm({ ...form, opinion: text });
       setOpinionCharCount(text.length);
     }
   };
 
   const canNext = () => {
-    if (step === 1) return form.building_type !== '';
-    if (step === 2) return form.opinion.trim() !== '';
-    if (step === 3) return form.urgency > 0;
-    if (step === 4) return form.residence_duration !== '';
-    if (step === 5) return true; // Profile is optional
+    if (step === 1) return form.problem_type !== '' && form.urgency > 0 && form.duration !== '';
+    if (step === 2) return true;
     return true;
   }
 
   const handleNext = () => {
-    if (step === 1 && form.building_type === '') {
-      setError('Veuillez sélectionner une catégorie');
+    if (step === 1 && form.problem_type === '') {
+      setError('Veuillez sélectionner un type de problème');
       return;
     }
-    if (step === 2 && form.opinion.trim() === '') {
-      setError('Veuillez décrire le problème');
+    if (step === 1 && form.urgency === 0) {
+      setError('Veuillez indiquer le niveau d\'urgence');
       return;
     }
-    if (step === 2 && form.opinion && form.opinion.length > 500) {
-      setError('Description trop longue (500 max)');
+    if (step === 1 && form.duration === '') {
+      setError('Veuillez indiquer depuis combien de temps le problème existe');
       return;
     }
-    if (step === 3 && form.urgency === 0) {
-      setError("Veuillez sélectionner un niveau d'urgence");
-      return;
-    }
-    if (step === 4 && form.residence_duration === '') {
-      setError('Veuillez sélectionner depuis quand');
+    if (step === 2 && form.opinion.length > 300) {
+      setError('Description trop longue (300 caractères max)');
       return;
     }
     setError('');
@@ -666,14 +539,6 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
   }
 
   const handleSubmit = async () => {
-    if (step === 5) {
-      setTouched({ name: true, email: true, residence_duration: true });
-      if (!canNext()) {
-        setError('Veuillez compléter toutes les informations requises.');
-        return;
-      }
-    }
-
     const opinionText = form.opinion?.trim() || null
     let finalOpinion = null
     let opinionAiValidated = false
@@ -704,15 +569,16 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
       }
     }
 
+    const problemLabel = PROBLEM_TYPES.find(p => p.value === form.problem_type)?.label || form.problem_type
+
     onSubmit({
       ...form,
-      opinion: finalOpinion || form.opinion || 'Avis soumis',
+      opinion: finalOpinion || form.opinion || 'Signalement soumis sans description',
       opinion_ai_validated: opinionAiValidated,
-      opinion_ai_summary: null
+      opinion_ai_summary: null,
+      problem_label: problemLabel,
     })
   }
-
-  const progress = ((step - 1) / (totalSteps - 1)) * 100
 
   return (
     <div style={formStyles.wrapper}>
@@ -733,7 +599,7 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
         aria-valuemax={totalSteps}
         aria-label={`Étape ${step} sur ${totalSteps}`}
       >
-        {[1, 2, 3, 4, 5].map((sIndex) => (
+        {[1, 2].map((sIndex) => (
           <div
             key={sIndex}
             style={{
@@ -754,48 +620,85 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
       <p style={formStyles.stepLabel} aria-live="polite" aria-atomic="true">Étape {step}/{totalSteps}</p>
 
       {step === 1 && (
-        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-          <legend style={formStyles.question}><span aria-hidden="true">🏢</span> Que devrait-on construire ici? <span aria-hidden="true">*</span></legend>
-          <div style={formStyles.grid2}>
-            {BUILDING_TYPES.map(type => (
-              <button key={type.value} type="button"
-                aria-pressed={form.building_type === type.value}
-                style={{ ...formStyles.optionBtn, ...(form.building_type === type.value ? formStyles.optionBtnActive : {}) }}
-                onClick={() => { setForm({ ...form, building_type: type.value, reasons: [] }); setError('') }}>
-                {type.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      )}
-
-      {step === 2 && (
         <div>
+          <p style={{ ...formStyles.subQuestion, marginTop: 0, fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#E8B87A' }}>
+            Le problème
+          </p>
+
           <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-            <legend style={formStyles.question}><span aria-hidden="true">💬</span> Pourquoi ce besoin? <span style={formStyles.hint}>(plusieurs choix)</span></legend>
+            <legend style={formStyles.question}>Quel type de problème est-ce ? <span aria-hidden="true">*</span></legend>
             <div style={formStyles.grid1}>
-              {(REASONS[form.building_type] || []).map(reason => (
-                <button key={reason} type="button"
-                  aria-pressed={form.reasons.includes(reason)}
-                  style={{ ...formStyles.optionBtn, ...(form.reasons.includes(reason) ? formStyles.optionBtnActive : {}) }}
-                  onClick={() => { toggle('reasons', reason); setError('') }}>
-                  {form.reasons.includes(reason) ? '✓ ' : ''}{reason}
+              {PROBLEM_TYPES.map(type => (
+                <button key={type.value} type="button"
+                  aria-pressed={form.problem_type === type.value}
+                  style={{ ...formStyles.optionBtn, ...(form.problem_type === type.value ? formStyles.optionBtnActive : {}) }}
+                  onClick={() => { setForm({ ...form, problem_type: type.value }); setError('') }}>
+                  {type.label}
                 </button>
               ))}
             </div>
           </fieldset>
-          <label htmlFor="opinion-details" style={{ ...formStyles.hint, display: 'block', marginTop: '16px' }}>Détails supplémentaires (optionnel)</label>
+
+          <p style={{ ...formStyles.question, marginTop: '18px' }}>Quel est le niveau d'urgence ? <span aria-hidden="true">*</span></p>
+          <div style={formStyles.urgencyRow} role="radiogroup" aria-label="Niveau d'urgence de 1 à 5" aria-required="true">
+            {[1, 2, 3, 4, 5].map(n => (
+              <button key={n} type="button"
+                role="radio"
+                aria-checked={form.urgency === n}
+                aria-label={`Niveau d'urgence ${n}`}
+                style={{ ...formStyles.urgencyBtn, ...(form.urgency >= n ? formStyles.urgencyBtnActive : {}) }}
+                onClick={() => { setForm({ ...form, urgency: n }); setError('') }}>
+                <span aria-hidden="true">{n}</span>
+              </button>
+            ))}
+          </div>
+          <p style={formStyles.urgencyLabel}>
+            {form.urgency > 0 ? `${form.urgency} — ${URGENCY_LABELS[form.urgency]}` : 'Sélectionnez un niveau'}
+          </p>
+
+          <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+            <legend style={formStyles.question}>Depuis combien de temps ce problème existe-t-il ? <span aria-hidden="true">*</span></legend>
+            <div style={formStyles.grid1}>
+              {PROBLEM_DURATION.map(d => (
+                <button key={d.value} type="button"
+                  aria-pressed={form.duration === d.value}
+                  style={{ ...formStyles.optionBtn, ...(form.duration === d.value ? formStyles.optionBtnActive : {}) }}
+                  onClick={() => { setForm({ ...form, duration: d.value }); setError('') }}>
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div>
+          <p style={{ ...formStyles.subQuestion, marginTop: 0, fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#E8B87A' }}>
+            Dites-nous en plus
+          </p>
+
+          <label htmlFor="opinion-details" style={formStyles.question}>
+            Décrivez le problème en quelques mots <span style={formStyles.hint}>(optionnel)</span>
+          </label>
           <textarea id="opinion-details" style={formStyles.textarea}
-            placeholder="Détails supplémentaires..."
+            placeholder="ex. Le réverbère est en panne depuis l'hiver dernier et la rue est sombre la nuit"
             value={form.opinion}
             onChange={handleOpinionChange}
-            rows={2}
+            rows={4}
+            maxLength={300}
             aria-describedby="opinion-char-count"
           />
           <div id="opinion-char-count" style={{ textAlign: 'right', fontSize: '12px', color: '#6B7280', marginTop: '4px' }} aria-live="polite" aria-atomic="true">
-            {opinionCharCount}/500
+            {opinionCharCount}/300
           </div>
 
+          <p style={{ ...formStyles.question, marginTop: '16px' }}>
+            Ajouter une photo <span style={formStyles.hint}>(optionnel)</span>
+          </p>
+          <p style={{ ...formStyles.hint, marginTop: '-8px', marginBottom: '8px' }}>
+            Une photo nous aide à évaluer la gravité
+          </p>
           <div style={formStyles.uploadArea} onClick={() => document.getElementById('photo-input').click()}>
             <input
               id="photo-input"
@@ -812,125 +715,14 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
               }}
             />
             {form.photo ? (
-              <img src={form.photo} style={formStyles.imagePreview} alt="Preview" />
+              <img src={form.photo} style={formStyles.imagePreview} alt="Aperçu" />
             ) : (
               <>
                 <span style={formStyles.uploadIcon}>📸</span>
-                <span style={formStyles.uploadText}>Ajouter une photo (optionnel)</span>
+                <span style={formStyles.uploadText}>Appuyez pour ajouter une photo</span>
               </>
             )}
           </div>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div>
-          <p style={formStyles.question}><span aria-hidden="true">⚡</span> Quel est le niveau d'urgence? <span aria-hidden="true">*</span></p>
-          <div style={formStyles.urgencyRow} role="radiogroup" aria-label="Niveau d'urgence de 1 à 5" aria-required="true">
-            {[1, 2, 3, 4, 5].map(n => (
-              <button key={n} type="button"
-                role="radio"
-                aria-checked={form.urgency === n}
-                aria-label={`Urgence niveau ${n}`}
-                style={{ ...formStyles.urgencyBtn, ...(form.urgency >= n ? formStyles.urgencyBtnActive : {}) }}
-                onClick={() => { setForm({ ...form, urgency: n }); setError('') }}>
-                <span aria-hidden="true">⭐</span>
-              </button>
-            ))}
-          </div>
-          <p style={formStyles.urgencyLabel}>
-            {form.urgency === 1 && 'Pas urgent'}
-            {form.urgency === 2 && 'Peu urgent'}
-            {form.urgency === 3 && 'Modérément urgent'}
-            {form.urgency === 4 && 'Urgent'}
-            {form.urgency === 5 && '🚨 Très urgent!'}
-          </p>
-        </div>
-      )}
-
-      {step === 4 && (
-        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-          <legend style={formStyles.question}><span aria-hidden="true">🚨</span> Problèmes actuels? <span style={formStyles.hint}>(plusieurs)</span> <span aria-hidden="true">*</span></legend>
-          <div style={formStyles.grid2}>
-            {PROBLEMS.map(problem => (
-              <button key={problem.value} type="button"
-                aria-pressed={form.problems.includes(problem.value)}
-                style={{ ...formStyles.optionBtn, ...(form.problems.includes(problem.value) ? formStyles.optionBtnActive : {}) }}
-                onClick={() => { toggle('problems', problem.value); setError('') }}>
-                {problem.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      )}
-
-      {step === 5 && (
-        <div>
-          <p style={formStyles.question}><span aria-hidden="true">👤</span> Votre profil</p>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label htmlFor="citizen-name" style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155' }}>Nom complet <span aria-hidden="true">*</span></label>
-            <input
-              id="citizen-name"
-              type="text"
-              value={form.name}
-              onChange={e => { setForm({ ...form, name: e.target.value }); setError('') }}
-              onBlur={() => setTouched({ ...touched, name: true })}
-              style={{ ...formStyles.textarea, marginTop: '4px', padding: '10px', ...(touched.name ? (!validateRequired(form.name).valid || form.name.length < 2 ? validationStyles.errorInput : validationStyles.validInput) : {}) }}
-              placeholder="Votre nom"
-              required
-              aria-required="true"
-              aria-invalid={touched.name && (!validateRequired(form.name).valid || form.name.length < 2)}
-              aria-describedby={touched.name && (!validateRequired(form.name).valid || form.name.length < 2) ? 'citizen-name-error' : undefined}
-            />
-            {touched.name && (!validateRequired(form.name).valid || form.name.length < 2) && <div id="citizen-name-error" role="alert" style={validationStyles.errorText}>Le nom est requis (min 2 caractères)</div>}
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="citizen-email" style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155' }}>Email <span aria-hidden="true">*</span></label>
-            <input
-              id="citizen-email"
-              type="email"
-              value={form.email}
-              onChange={e => { setForm({ ...form, email: e.target.value }); setError('') }}
-              onBlur={() => setTouched({ ...touched, email: true })}
-              style={{ ...formStyles.textarea, marginTop: '4px', padding: '10px', ...(touched.email ? (!validateEmail(form.email).valid ? validationStyles.errorInput : validationStyles.validInput) : {}) }}
-              placeholder="votre@email.com"
-              required
-              aria-required="true"
-              aria-invalid={touched.email && !validateEmail(form.email).valid}
-              aria-describedby={touched.email && !validateEmail(form.email).valid ? 'citizen-email-error' : undefined}
-            />
-            {touched.email && !validateEmail(form.email).valid && <div id="citizen-email-error" role="alert" style={validationStyles.errorText}>Adresse email invalide</div>}
-          </div>
-
-          <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-            <legend style={formStyles.subQuestion}>Type de profil <span aria-hidden="true">*</span></legend>
-            <div style={formStyles.grid2}>
-              {PROFILES.map(p => (
-                <button key={p.value} type="button"
-                  aria-pressed={form.profile === p.value}
-                  style={{ ...formStyles.optionBtn, ...(form.profile === p.value ? formStyles.optionBtnActive : {}) }}
-                  onClick={() => { setForm({ ...form, profile: p.value }); setError('') }}>
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-            <legend style={formStyles.subQuestion}>Depuis combien de temps? <span aria-hidden="true">*</span></legend>
-            <div style={formStyles.grid2}>
-              {RESIDENCE_DURATION.map(d => (
-                <button key={d.value} type="button"
-                  aria-pressed={form.residence_duration === d.value}
-                  style={{ ...formStyles.optionBtn, ...(form.residence_duration === d.value ? formStyles.optionBtnActive : {}) }}
-                  onClick={() => { setForm({ ...form, residence_duration: d.value }); setError(''); setTouched({ ...touched, residence_duration: true }); }}>
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          {touched.residence_duration && !validateRequired(form.residence_duration).valid && <div role="alert" style={{ ...validationStyles.errorText, textAlign: 'center' }}>Veuillez sélectionner la durée</div>}
         </div>
       )}
 
@@ -993,9 +785,9 @@ function ProfessionalView({ parcel, onClose }) {
           <div style={styles.parcelStat}><span style={styles.parcelStatNum}>{parcel.urgency || 3}/5</span><span style={styles.parcelStatLabel}>Urgence Moy.</span></div>
         </div>
 
-        <p style={{ ...formStyles.subQuestion, marginTop: '20px' }}>Type d'équipement suggéré :</p>
+        <p style={{ ...formStyles.subQuestion, marginTop: '20px' }}>Type de problème :</p>
         <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '12px', fontWeight: '700', color: '#1e40af', marginBottom: '20px' }}>
-          {BUILDING_TYPES.find(b => b.value === parcel.building_type)?.label || 'Non spécifié'}
+          {PROBLEM_TYPES.find(b => b.value === parcel.building_type)?.label || 'Non spécifié'}
         </div>
 
         {parcel.photo && (
@@ -1043,11 +835,25 @@ export default function MapPage() {
   const { toast } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
+  
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate('/admin/dashboard', { replace: true })
+    } else if (user?.role === 'super_admin') {
+      navigate('/super-admin/users', { replace: true })
+    } else if (user?.role === 'urbaniste') {
+      navigate('/urbaniste/dashboard', { replace: true })
+    }
+  }, [user, navigate])
+
   const userCity = user?.city || 'marrakesh'
   // City-locked map config derived from user.city
   const cityConfig = getCityMapConfig(userCity)
-  const showPlanningOverlays = user?.role !== 'citoyen'
   const [mapStyle, setMapStyle] = useState('plan')
+  const [showLayersPanel, setShowLayersPanel] = useState(false)
+  const [userLocation, setUserLocation] = useState(null)
+  const [isLocating, setIsLocating] = useState(false)
+  const layersPanelRef = useRef(null)
   const [drawMode, setDrawMode] = useState('marker') // 'marker' | 'polygon'
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
 
@@ -1056,6 +862,53 @@ export default function MapPage() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  useEffect(() => {
+    if (!showLayersPanel) return
+    const handleOutsideClick = (e) => {
+      if (layersPanelRef.current && !layersPanelRef.current.contains(e.target)) {
+        setShowLayersPanel(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [showLayersPanel])
+
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      toast.error('La géolocalisation n\'est pas disponible sur cet appareil')
+      return
+    }
+    setIsLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        setUserLocation([latitude, longitude])
+        const map = mapRef.current
+        if (map) {
+          map.flyTo([latitude, longitude], 15, { animate: true, duration: 1.5 })
+          L.circleMarker([latitude, longitude], {
+            radius: 8,
+            fillColor: '#4285F4',
+            color: '#ffffff',
+            weight: 2,
+            fillOpacity: 1,
+          })
+            .bindPopup('📍 Vous êtes ici')
+            .addTo(map)
+            .openPopup()
+        }
+        setIsLocating(false)
+      },
+      () => {
+        setIsLocating(false)
+        toast.error('Impossible d\'accéder à votre position. Vérifiez les permissions de localisation.')
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    )
+  }
+
+  const mapRef = useRef(null)
 
   const [parcels, setParcels] = useState([])
   const [zones, setZones] = useState([])
@@ -1083,6 +936,11 @@ export default function MapPage() {
     }
   }, [location.state])
   const [selectedParcel, setSelectedParcel] = useState(null)
+
+  useEffect(() => {
+    if (selectedParcel) setShowLayersPanel(false)
+  }, [selectedParcel])
+
   const [submitted, setSubmitted] = useState(false)
   const [votedParcels, setVotedParcels] = useState([])
   const [filterStatus, setFilterStatus] = useState('all')
@@ -1104,23 +962,20 @@ export default function MapPage() {
   }
 
   const filteredParcels = parcels.filter(p => {
-    const matchCity = p.city === userCity
-    const matchStatus = filterStatus === 'all' ? true : p.status === filterStatus
+    if (!p.latitude || !p.longitude) return false
+
+    const matchStatus = filterStatus === 'all' ? true : p.statut === filterStatus
     const matchCategory = filterCategory === 'all' ? true : p.building_type === filterCategory
 
-    // Étape 2 — Filtre selon le rôle
     if (user?.role === 'citoyen') {
-      // Citoyen : Validées + Ses propres remarques
-      const isValidated = ['active', 'planning', 'urgent'].includes(p.status)
-      const isMine = p.user_email === user.email
-      return matchCity && matchCategory && (isValidated || isMine)
+      const isValidated = ['validee', 'active', 'planning', 'urgent'].includes(p.statut)
+      const isMine = p.user?.email === user.email
+      return matchCategory && (isValidated || isMine)
     } else if (user?.role === 'urbaniste') {
-      // Urbaniste : Seulement Validées
-      const isValidated = ['active', 'planning', 'urgent'].includes(p.status)
-      return matchCity && matchStatus && matchCategory && isValidated
+      const isValidated = ['validee', 'active', 'planning', 'urgent'].includes(p.statut)
+      return matchStatus && matchCategory && isValidated
     }
-    // Admin voit tout
-    return matchCity && matchStatus && matchCategory
+    return matchStatus && matchCategory
   })
 
   const handleParcelClick = (parcel) => {
@@ -1128,24 +983,8 @@ export default function MapPage() {
     setSubmitted(false)
   }
 
-  const checkOverlap = (newPolygonCoords) => {
-    const newPoly = turf.polygon([newPolygonCoords.map(c => [c[1], c[0]])])
-    return zones.some(existingZone => {
-      const existingCoords = existingZone.coordonnees_geojson
-      if (!existingCoords || existingCoords.length < 3) return false
-      const existingPoly = turf.polygon([existingCoords.map(c => [c[1], c[0]])])
-      return turf.booleanOverlap(newPoly, existingPoly) ||
-             turf.booleanContains(existingPoly, newPoly) ||
-             turf.booleanContains(newPoly, existingPoly)
-    })
-  }
-
   const handleShapeCreated = (type, data, extraData = {}) => {
     if (type === 'polygon' && !extraData.zone_nom) {
-      if (checkOverlap(data)) {
-        alert('⚠️ Cette zone chevauche une zone existante. Veuillez dessiner en dehors des zones existantes.')
-        return
-      }
       setPendingZone({ positions: data })
       return // don't open panel yet
     }
@@ -1177,23 +1016,19 @@ export default function MapPage() {
 
   const handleFormSubmit = async (formValues) => {
     try {
+      const problemLabel = formValues.problem_label || formValues.problem_type
       const formData = new FormData();
       formData.append('zone_id', selectedParcel.zone_id || '');
-      formData.append('categorie', formValues.building_type);
+      formData.append('categorie', formValues.problem_type);
+      formData.append('building_type', formValues.problem_type);
       formData.append('urgency', formValues.urgency);
-      formData.append('profile', formValues.profile);
-      formData.append('residence_duration', formValues.residence_duration);
-      formData.append('opinion', formValues.opinion || 'Avis soumis');
+      formData.append('duration', formValues.duration);
+      formData.append('opinion', formValues.opinion || 'Signalement soumis sans description');
       formData.append('latitude', selectedParcel.positions[0][0]);
       formData.append('longitude', selectedParcel.positions[0][1]);
+      formData.append('reasons[]', 'Signalement citoyen');
+      formData.append('problems[]', problemLabel);
 
-      // arrays must be appended item by item
-      (formValues.reasons ?? []).forEach(r => formData.append('reasons[]', r));
-      (formValues.problems ?? []).forEach(p => formData.append('problems[]', p));
-
-      if (formValues.building_type) {
-        formData.append('building_type', formValues.building_type);
-      }
       if (formValues.photoFile) {
         formData.append('photo', formValues.photoFile);
       }
@@ -1217,38 +1052,146 @@ export default function MapPage() {
     setSelectedParcel(null)
   }
 
+  // ─── Onboarding tour ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (user?.role !== 'citoyen') return
+    const hasSeenTour = localStorage.getItem('urbanmap_tour_done')
+    if (hasSeenTour) return
+
+    const driver = new Driver({
+      animate: true,
+      opacity: 0.75,
+      padding: 10,
+      allowClose: true,
+      overlayClickNext: false,
+      doneBtnText: 'Commencer !',
+      closeBtnText: 'Passer',
+      nextBtnText: 'Suivant →',
+      prevBtnText: '← Précédent',
+      onReset: () => localStorage.setItem('urbanmap_tour_done', 'true'),
+      steps: [
+        {
+          element: '#map-container',
+          popover: {
+            title: 'Carte de Marrakesh',
+            description: 'Voici la carte interactive de votre ville. Vous pouvez voir tous les signalements citoyens en temps réel.',
+            position: 'right',
+          },
+        },
+        {
+          element: '#locate-btn',
+          popover: {
+            title: '🧭 Me localiser',
+            description: 'Cliquez sur ce bouton pour vous situer sur la carte et découvrir les signalements près de chez vous.',
+            position: 'right',
+          },
+        },
+        {
+          element: '#add-report-btn',
+          popover: {
+            title: 'Signaler un problème',
+            description: 'Cliquez sur ce bouton puis choisissez un emplacement sur la carte pour signaler un problème urbain.',
+            position: 'top',
+          },
+        },
+        {
+          element: '#urbanmap-wrapper',
+          popover: {
+            title: 'Catégories',
+            description: 'Chaque couleur représente une catégorie : marron = route, jaune = éclairage, vert = déchets, bleu = eau, violet = écoles…',
+            position: 'left',
+          },
+        },
+        {
+          element: '#live-counter',
+          popover: {
+            title: 'En direct',
+            description: 'Suivez en temps réel le nombre total de signalements et de zones officielles dans Marrakesh.',
+            position: 'top',
+          },
+        },
+        {
+          element: '#add-report-btn',
+          popover: {
+            title: 'Vous êtes prêt !',
+            description: 'Commencez par signaler un problème près de chez vous.',
+            position: 'top',
+          },
+        },
+      ],
+    })
+
+    const timer = setTimeout(() => driver.drive(), 1500)
+    return () => clearTimeout(timer)
+  }, [user])
+
+  const restartTour = () => {
+    localStorage.removeItem('urbanmap_tour_done')
+    window.location.reload()
+  }
+
   return (
-    <div style={styles.wrapper} className={`${selectedParcel ? 'has-panel-open' : ''} ${drawMode === 'polygon' ? 'draw-mode' : ''}`}>
-      <style>{`
-        .leaflet-control-layers {
-          display: none !important;
-        }
-      `}</style>
-      {/* Left floating action */}
-      <div style={{
-        position: 'absolute',
-        left: '12px',
-        top: '80px',
-        zIndex: 100,
-      }}>
+    <div id="urbanmap-wrapper" style={styles.wrapper} className={`${selectedParcel ? 'has-panel-open' : ''} ${drawMode === 'polygon' ? 'draw-mode' : ''}`}>
+      {user?.role === 'citoyen' && (
         <button
+          id="add-report-btn"
           type="button"
-          aria-label="Signaler un point"
-          title="Signaler un point"
-          onClick={() => setDrawMode('marker')}
+          aria-label="Signaler un problème"
+          title="Signaler un problème"
+          onClick={() => toast.info('Cliquez sur la carte pour placer votre signalement')}
+          style={{
+            position: 'fixed',
+            bottom: '90px',
+            right: '20px',
+            width: '52px',
+            height: '52px',
+            borderRadius: '50%',
+            backgroundColor: '#C1440E',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            zIndex: 1000,
+          }}
+          title="Signaler un problème"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1)'
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.35)'
+          }}
+        >
+          <Plus size={22} />
+        </button>
+      )}
+      <div className="map-floating-control map-locate-control">
+        <button
+          id="locate-btn"
+          type="button"
+          aria-label="Ma position"
+          title="Ma position"
+          onClick={handleLocateMe}
+          disabled={isLocating}
           style={{
             width: '42px',
             height: '42px',
             borderRadius: '10px',
             border: '0.5px solid rgba(242,237,230,0.08)',
             background: 'rgba(8,6,3,0.88)',
-            color: drawMode === 'marker' ? '#C1440E' : 'rgba(242,237,230,0.55)',
+            color: isLocating ? '#C1440E' : 'rgba(242,237,230,0.72)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
+            cursor: isLocating ? 'wait' : 'pointer',
             backdropFilter: 'blur(18px)',
             boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+            opacity: isLocating ? 0.8 : 1,
           }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1261,38 +1204,125 @@ export default function MapPage() {
         </button>
       </div>
 
-      <button
-        type="button"
-        aria-label="Basculer Plan Satellite"
-        title={mapStyle === 'plan' ? 'Satellite' : 'Plan'}
-        onClick={() => setMapStyle(mapStyle === 'plan' ? 'satellite' : 'plan')}
-        style={{
-          position: 'absolute',
-          top: '80px',
-          right: '12px',
-          zIndex: 100,
-          width: '42px',
-          height: '42px',
-          borderRadius: '10px',
-          border: '0.5px solid rgba(242,237,230,0.08)',
-          background: 'rgba(8,6,3,0.88)',
-          color: 'rgba(242,237,230,0.72)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          backdropFilter: 'blur(18px)',
-          boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
-        }}
+      {/* Right — layers panel (shifts left when signalement form is open) */}
+      <div
+        ref={layersPanelRef}
+        className={[
+          'map-floating-control',
+          'map-layers-control',
+          selectedParcel ? 'map-layers-control--shifted' : '',
+          selectedParcel && isMobile ? 'map-layers-control--mobile-shifted' : '',
+        ].filter(Boolean).join(' ')}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="m12 2 9 5-9 5-9-5 9-5Z" />
-          <path d="m3 12 9 5 9-5" />
-          <path d="m3 17 9 5 9-5" />
-        </svg>
-      </button>
+        <button
+          type="button"
+          aria-label="Couches de la carte"
+          title="Couches de la carte"
+          aria-expanded={showLayersPanel}
+          onClick={() => setShowLayersPanel(prev => !prev)}
+          style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            border: showLayersPanel ? '0.5px solid rgba(193,68,14,0.4)' : '0.5px solid rgba(242,237,230,0.08)',
+            background: 'rgba(8,6,3,0.88)',
+            color: showLayersPanel ? '#C1440E' : 'rgba(242,237,230,0.72)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            backdropFilter: 'blur(18px)',
+            boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m12 2 9 5-9 5-9-5 9-5Z" />
+            <path d="m3 12 9 5 9-5" />
+            <path d="m3 17 9 5 9-5" />
+          </svg>
+        </button>
 
-      <div style={{
+        {showLayersPanel && (
+          <div style={{
+            position: 'absolute',
+            top: '48px',
+            right: 0,
+            minWidth: '200px',
+            background: 'rgba(8,6,3,0.96)',
+            border: '0.5px solid rgba(242,237,230,0.1)',
+            borderRadius: '10px',
+            padding: '12px',
+            backdropFilter: 'blur(18px)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          }}>
+            <p style={{
+              fontSize: '10px',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'rgba(242,237,230,0.35)',
+              margin: '0 0 10px 0',
+            }}>
+              Fond de carte
+            </p>
+            {[
+              { id: 'plan', label: 'Plan' },
+              { id: 'satellite', label: 'Satellite' },
+            ].map(option => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setMapStyle(option.id)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 10px',
+                  marginBottom: '4px',
+                  borderRadius: '6px',
+                  border: mapStyle === option.id ? '0.5px solid rgba(193,68,14,0.4)' : '0.5px solid transparent',
+                  background: mapStyle === option.id ? 'rgba(193,68,14,0.12)' : 'transparent',
+                  color: mapStyle === option.id ? '#F2EDE6' : 'rgba(242,237,230,0.55)',
+                  fontSize: '12px',
+                  fontFamily: 'DM Sans, sans-serif',
+                  cursor: 'pointer',
+                }}
+              >
+                {mapStyle === option.id ? '✓ ' : ''}{option.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {user?.role === 'citoyen' && (
+          <button
+            type="button"
+            aria-label="Aide"
+            title="Aide"
+            onClick={restartTour}
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              border: '0.5px solid rgba(242,237,230,0.08)',
+              background: 'rgba(8,6,3,0.88)',
+              color: 'rgba(242,237,230,0.72)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              backdropFilter: 'blur(18px)',
+              boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
+              fontSize: '16px',
+              fontWeight: 700,
+              fontFamily: 'DM Sans, sans-serif',
+              marginTop: '6px',
+            }}
+          >
+            ?
+          </button>
+        )}
+      </div>
+
+      <div id="live-counter" style={{
         position: 'absolute',
         left: '66px',
         bottom: '16px',
@@ -1341,18 +1371,13 @@ export default function MapPage() {
           gap: '8px',
         }}>
           <span style={{
-            color: '#E8B87A',
-            fontSize: '16px',
-            lineHeight: 1,
-          }}>Ø</span>
-          <span style={{
             fontSize: '10px',
             fontWeight: 600,
             color: 'rgba(242,237,230,0.32)',
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
           }}>
-            {filteredParcels.length} Signalements
+            {parcels.length} Signalements
           </span>
         </div>
 
@@ -1427,11 +1452,12 @@ export default function MapPage() {
         setFilterStatus={setFilterStatus}
         filterCategory={filterCategory}
         setFilterCategory={setFilterCategory}
-        buildingTypes={BUILDING_TYPES}
+        buildingTypes={PROBLEM_TYPES}
       />
 
 
       <MapContainer
+        id="map-container"
         center={cityConfig.center}
         zoom={cityConfig.zoom}
         minZoom={cityConfig.minZoom}
@@ -1439,36 +1465,27 @@ export default function MapPage() {
         maxBoundsViscosity={1.0}
         style={styles.map}
         zoomControl={false}>
-        <MapController center={cityConfig.center} zoom={cityConfig.zoom} bounds={cityConfig.bounds} minZoom={cityConfig.minZoom} selectedParcel={selectedParcel} />
-        <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="Plan">
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Satellite">
-            <TileLayer
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community"
-            />
-          </LayersControl.BaseLayer>
+        <MapController center={cityConfig.center} zoom={cityConfig.zoom} bounds={cityConfig.bounds} minZoom={cityConfig.minZoom} selectedParcel={selectedParcel} onMapReady={(m) => { mapRef.current = m }} />
 
-          <LayersControl.Overlay checked name="🔥 Heatmap (Remarques)">
-            <HeatmapLayer points={parcels} />
-          </LayersControl.Overlay>
-          <LayersControl.Overlay checked name="🛰️ Heatmap (Zones)">
-            <ZoneHeatmapLayer zones={showPlanningOverlays ? zones : []} />
-          </LayersControl.Overlay>
-        </LayersControl>
-
-        {mapStyle === 'satellite' && (
+        {mapStyle === 'plan' ? (
           <TileLayer
+            key="plan"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="© OpenStreetMap"
+          />
+        ) : (
+          <TileLayer
+            key="satellite"
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community"
+            attribution="Tiles &copy; Esri"
           />
         )}
 
+        <UserLocationMarker position={userLocation} />
+
         <MapAutoZoom city={userCity} />
 
-        {showPlanningOverlays && zones.map(z => {
+        {zones.map(z => {
           const isSelected = selectedParcel && selectedParcel.zone_id === z.id;
           return (
             <Polygon
@@ -1482,7 +1499,7 @@ export default function MapPage() {
               }}
               eventHandlers={{
                 click: (e) => {
-                  if (user?.role === 'citoyen') {
+                  if (user?.role !== 'citoyen') {
                     window.L.DomEvent.stopPropagation(e);
                     handleShapeCreated('marker', [e.latlng.lat, e.latlng.lng], { zone_id: z.id, zone_nom: z.nom });
                   }
@@ -1498,8 +1515,19 @@ export default function MapPage() {
               </Tooltip>
               {!selectedParcel && (
                 <Popup>
-                  <b>{z.nom}</b><br />
-                  {user?.role === 'citoyen' ? <span style={{ fontSize: '12px' }}>Cliquez ici pour soumettre un avis</span> : <span style={{ fontSize: '12px' }}>Zone officielle</span>}
+                  {user?.role === 'citoyen' ? (
+                    <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                      <b>Zone officielle : {z.nom}</b><br />
+                      <span style={{ fontSize: '13px', color: '#666' }}>
+                        Cette zone est activement surveillée<br />par les autorités de {userCity}.
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <b>{z.nom}</b><br />
+                      <span style={{ fontSize: '12px' }}>Zone officielle</span>
+                    </>
+                  )}
                 </Popup>
               )}
             </Polygon>
@@ -1512,28 +1540,25 @@ export default function MapPage() {
           setMode={setDrawMode}
           isActive={!selectedParcel}
           userRole={user?.role}
-          zones={zones}
         />
 
         {filteredParcels.map(parcel => {
-          const statusCfg = STATUS_COLORS[parcel.status] || STATUS_COLORS.pending
           const categoryColor = CATEGORY_COLORS[parcel.building_type] || '#94a3b8'
-          const hasVoted = votedParcels.includes(parcel.id)
           const isSelected = selectedParcel && selectedParcel.id === parcel.id
 
-          // Couleur : Citoyen voit catégorie, Pro voit statut
-          const markerColor = user?.role === 'citoyen' ? categoryColor : statusCfg.fill
-
           return (
-            <Polygon key={parcel.id} positions={parcel.positions}
+            <CircleMarker
+              key={parcel.id}
+              center={[parcel.latitude, parcel.longitude]}
+              radius={5}
               pathOptions={{
-                color: isSelected ? '#C1440E' : (hasVoted ? '#9ca3af' : markerColor),
-                fillColor: hasVoted ? '#d1d5db' : markerColor,
-                fillOpacity: 0.04,
-                weight: 2.5,
-                className: parcel.status === 'urgent' ? 'zone-urgent' : parcel.status === 'active' ? 'zone-active' : '',
+                color: isSelected ? '#C1440E' : categoryColor,
+                fillColor: categoryColor,
+                fillOpacity: 0.8,
+                weight: isSelected ? 2.5 : 1.5,
               }}
-              eventHandlers={{ click: () => handleParcelClick(parcel) }} />
+              eventHandlers={{ click: () => handleParcelClick(parcel) }}
+            />
           )
         })}
 
@@ -1784,10 +1809,6 @@ export default function MapPage() {
             <button
               onClick={() => {
                 if (!zoneName.trim()) return
-                if (checkOverlap(pendingZone.positions)) {
-                  alert('⚠️ Cette zone chevauche une zone existante. Veuillez choisir un emplacement différent.')
-                  return
-                }
                 // Now save to API with zoneName + zoneColor
                 handleShapeCreated('polygon', pendingZone.positions, {
                   zone_nom: zoneName,
@@ -1835,7 +1856,7 @@ function Legend({ role }) {
       </p>
 
       {role === 'citoyen' ? (
-        BUILDING_TYPES.map(type => (
+        PROBLEM_TYPES.map(type => (
           <div key={type.value} style={{
             display: 'flex', alignItems: 'center',
             gap: '8px', marginBottom: '7px',
@@ -1848,7 +1869,7 @@ function Legend({ role }) {
             <span style={{
               fontSize: '11px', color: 'rgba(242,237,230,0.45)',
             }}>
-              {type.label.split(' ').slice(1).join(' ')}
+              {type.label}
             </span>
           </div>
         ))
@@ -1875,7 +1896,7 @@ function Legend({ role }) {
             background: 'rgba(242,237,230,0.06)',
             margin: '10px 0',
           }} />
-          {BUILDING_TYPES.slice(0, 5).map(type => (
+          {PROBLEM_TYPES.slice(0, 5).map(type => (
             <div key={type.value} style={{
               display: 'flex', alignItems: 'center',
               gap: '8px', marginBottom: '7px',
@@ -1889,7 +1910,7 @@ function Legend({ role }) {
               <span style={{
                 fontSize: '11px', color: 'rgba(242,237,230,0.45)',
               }}>
-                {type.label.split(' ').slice(1).join(' ')}
+                {type.label}
               </span>
             </div>
           ))}

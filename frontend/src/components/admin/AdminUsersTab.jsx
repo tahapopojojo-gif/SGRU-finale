@@ -25,6 +25,24 @@ export default function AdminUsersTab() {
   const [emailMessage, setEmailMessage] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
+  // New Zone and Remarks state
+  const [zones, setZones] = useState([]);
+  const [selectedZoneId, setSelectedZoneId] = useState('');
+  const [remarks, setRemarks] = useState([]);
+
+  // Fetch zones and remarks on mount
+  useEffect(() => {
+    fetch('http://localhost:8000/api/zones')
+      .then(res => res.json())
+      .then(data => setZones(unwrap(data)))
+      .catch(() => {});
+
+    fetch('http://localhost:8000/api/remarques')
+      .then(res => res.json())
+      .then(data => setRemarks(unwrap(data)))
+      .catch(() => {});
+  }, []);
+
   const fetchUsersData = useCallback(async () => {
     setLoading(true);
     try {
@@ -71,11 +89,21 @@ export default function AdminUsersTab() {
 
   // Destinataires estimatifs calculation (active users matching role/group criteria)
   const estimatedRecipientsCount = useMemo(() => {
+    if (emailGroup === 'zone') {
+      if (!selectedZoneId) return 0;
+      const zoneIdNum = parseInt(selectedZoneId, 10);
+      // Count unique citizens (users with role 'citoyen') who posted in this zone
+      const citizensInZone = remarks
+        .filter(r => r.zone_id === zoneIdNum && r.user?.role === 'citoyen')
+        .map(r => r.user?.email);
+      const uniqueEmails = [...new Set(citizensInZone)].filter(Boolean);
+      return uniqueEmails.length;
+    }
     if (emailGroup === 'all') {
       return users.filter(u => u.statut === 'active').length;
     }
     return users.filter(u => u.role === emailGroup && u.statut === 'active').length;
-  }, [users, emailGroup]);
+  }, [users, emailGroup, selectedZoneId, remarks]);
 
   const handleSendEmail = async (e) => {
     e.preventDefault();
@@ -83,10 +111,14 @@ export default function AdminUsersTab() {
       toast.error("Veuillez remplir l'objet et le message.");
       return;
     }
+    if (emailGroup === 'zone' && !selectedZoneId) {
+      toast.error("Veuillez choisir une zone.");
+      return;
+    }
 
     setSendingEmail(true);
     try {
-      await sendGroupEmail(emailGroup, emailSubject, emailMessage);
+      await sendGroupEmail(emailGroup, emailSubject, emailMessage, selectedZoneId || null);
       toast.success("E-mails de groupe envoyés avec succès !");
       setEmailSubject('');
       setEmailMessage('');
@@ -463,14 +495,32 @@ export default function AdminUsersTab() {
             <select
               id="email-group-select"
               value={emailGroup}
-              onChange={e => setEmailGroup(e.target.value)}
+              onChange={e => { setEmailGroup(e.target.value); setSelectedZoneId(''); }}
               style={s.input}
             >
               <option value="citoyen" style={{ background: '#0f0c09' }}>Tous les citoyens</option>
               <option value="urbaniste" style={{ background: '#0f0c09' }}>Tous les urbanistes</option>
               <option value="admin" style={{ background: '#0f0c09' }}>Tous les admins</option>
               <option value="all" style={{ background: '#0f0c09' }}>Tous les utilisateurs actifs</option>
+              <option value="zone" style={{ background: '#0f0c09' }}>Citoyens d'une zone</option>
             </select>
+
+            {/* Zone picker — shown only when 'zone' group is selected */}
+            {emailGroup === 'zone' && (
+              <select
+                id="email-zone-select"
+                value={selectedZoneId}
+                onChange={e => setSelectedZoneId(e.target.value)}
+                style={{ ...s.input, marginTop: '8px' }}
+              >
+                <option value="" style={{ background: '#0f0c09' }}>-- Choisir une zone --</option>
+                {zones.map(zone => (
+                  <option key={zone.id} value={zone.id} style={{ background: '#0f0c09' }}>
+                    {zone.nom}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div style={s.formGroup}>

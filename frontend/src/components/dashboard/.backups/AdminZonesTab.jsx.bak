@@ -12,14 +12,14 @@ import { getCityMapConfig } from '../../utils/cityBounds';
 import { unwrap } from '../../utils/unwrap';
 
 const CATEGORIES = [
-  { value: 'road', label: 'Route', color: '#FF6B6B' },
-  { value: 'lighting', label: 'Éclairage', color: '#FFE66D' },
-  { value: 'waste', label: 'Déchets', color: '#A8E6CF' },
-  { value: 'water', label: 'Eau', color: '#74B9FF' },
-  { value: 'parks', label: 'Parcs', color: '#55EFC4' },
-  { value: 'schools', label: 'Écoles', color: '#A29BFE' },
-  { value: 'transport', label: 'Transport', color: '#FD79A8' },
-  { value: 'other', label: 'Autre', color: '#DFE6E9' },
+  { value: 'road', label: 'Route', color: '#78716c' },
+  { value: 'lighting', label: 'Éclairage', color: '#eab308' },
+  { value: 'waste', label: 'Déchets', color: '#22c55e' },
+  { value: 'water', label: 'Eau', color: '#3b82f6' },
+  { value: 'parks', label: 'Parcs', color: '#16a34a' },
+  { value: 'schools', label: 'Écoles', color: '#6366f1' },
+  { value: 'transport', label: 'Transport', color: '#f97316' },
+  { value: 'other', label: 'Autre', color: '#94a3b8' },
 ];
 
 const PRIORITY_OPTIONS = [
@@ -68,6 +68,11 @@ const isRemarkAssigned = (remark, zonesList) => {
   const coords = getRemarkCoords(remark);
   if (!coords) return false;
   return zonesList.some(z => isValidCoords(z.coordonnees_geojson) && pointInPolygon(coords, z.coordonnees_geojson));
+};
+
+const getUrgencyRadius = (urgency) => {
+  const u = parseInt(urgency, 10) || 3;
+  return { 1: 4, 2: 5, 3: 6, 4: 8, 5: 10 }[u] || 6;
 };
 
 const getSeverityColor = (avg) => {
@@ -147,19 +152,11 @@ function HeatmapLayer({ remarks }) {
   useEffect(() => {
     const heatPoints = remarks.map(r => [r.latitude, r.longitude, (parseInt(r.urgency, 10) || 3) / 5]);
     if (!heatPoints.length) return;
-    const heatLayer = window.L.heatLayer(heatPoints, {
-      radius: 60,
-      blur: 40,
-      maxZoom: 16,
-      max: 1.0,
-      gradient: {
-        0.0: 'rgba(0,0,0,0)',
-        0.2: 'rgba(0,255,255,0.3)',
-        0.4: 'rgba(0,255,0,0.5)',
-        0.6: 'rgba(255,255,0,0.7)',
-        0.8: 'rgba(255,100,0,0.85)',
-        1.0: 'rgba(255,0,0,1)',
-      },
+    const heatLayer = L.heatLayer(heatPoints, {
+      radius: 35,
+      blur: 25,
+      maxZoom: 17,
+      gradient: { 0.2: '#00ff00', 0.5: '#ffff00', 0.8: '#ff6600', 1.0: '#ff0000' }
     }).addTo(map);
     return () => map.removeLayer(heatLayer);
   }, [map, remarks]);
@@ -173,10 +170,9 @@ function ZoneDrawManager({ isDrawing, color, onShapeCreated, onCancel, onDrawerR
     let drawer;
     if (isDrawing) {
       drawer = new L.Draw.Polygon(map, {
-        shapeOptions: { color: '#C1440E', fillOpacity: 0.04, weight: 2.5 },
-        showArea: true,
+        shapeOptions: { color, weight: 3, fillOpacity: 0.25 },
+        showArea: false,
         allowIntersection: false,
-        drawError: { color: '#ef4444', message: 'Intersection interdite' },
       });
       drawer.enable();
       onDrawerReady?.(drawer);
@@ -570,7 +566,7 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
       const prioColor = PRIORITY_OPTIONS.find(p => p.value === createForm.priority)?.color || createForm.couleur;
       const remarkIds = pendingInsideRemarks.map(r => r.id);
       const assignedCount = remarkIds.length;
-      const result = await createZone({
+      await createZone({
         nom: createForm.nom.trim(),
         ville: userCity,
         couleur: prioColor,
@@ -583,11 +579,7 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
       setPendingPolygon(null);
       setPendingInsideRemarks([]);
       setCreateForm({ nom: '', priority: 'modere', notes: '', couleur: '#C1440E' });
-      const notified = result?.notified_admins ?? 0;
-      const parts = [];
-      if (assignedCount) parts.push(`${assignedCount} signalement(s) assigné(s)`);
-      if (notified) parts.push(`${notified} administrateur(s) notifié(s)`);
-      showToast('Zone créée — ' + parts.join(', '));
+      showToast(assignedCount ? `Zone créée — ${assignedCount} signalement(s) assigné(s)` : 'Zone créée avec succès');
       await fetchData();
     } catch (err) {
       console.error(err);
@@ -690,8 +682,8 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
               cityZoom={cityConfig.zoom}
             />
             <TileLayer
-              url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-              attribution="© Stadia Maps"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="© OpenStreetMap"
             />
 
             {zones.map(zone => {
@@ -705,8 +697,8 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
                   pathOptions={{
                     color: isSelected ? '#F2EDE6' : fillColor,
                     fillColor,
-                    fillOpacity: 0,
-                    weight: 2.5,
+                    fillOpacity: isSelected ? 0.35 : 0.15,
+                    weight: isSelected ? 2.5 : 1.5,
                   }}
                   eventHandlers={{ click: () => handleZoneClick(zone) }}
                 >
@@ -719,18 +711,26 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
 
             {showThermals && <HeatmapLayer remarks={visibleRemarks} />}
 
-              {visibleRemarks.map(remark => {
+            {visibleRemarks.map(remark => {
               const coords = getRemarkCoords(remark);
               if (!coords) return null;
               const cat = getCategoryMeta(remark.categorie || remark.building_type);
+              const radius = getUrgencyRadius(remark.urgency);
               const unassigned = !isRemarkAssigned(remark, zones);
 
               return (
                 <React.Fragment key={remark.id}>
+                  {unassigned && (
+                    <CircleMarker
+                      center={coords}
+                      radius={radius + 5}
+                      pathOptions={{ color: '#C1440E', fillColor: '#C1440E', fillOpacity: 0.12, weight: 2, className: 'pin-unassigned-pulse' }}
+                    />
+                  )}
                   <CircleMarker
                     center={coords}
-                    radius={5}
-                    pathOptions={{ color: '#ffffff', fillColor: cat.color, weight: 0.5, opacity: 0.6, fillOpacity: 0.85 }}
+                    radius={radius}
+                    pathOptions={{ color: cat.color, fillColor: cat.color, fillOpacity: 0.85, weight: 1 }}
                   >
                     <Tooltip direction="top" offset={[0, -4]}>
                       <div style={{ fontSize: '11px', color: '#111' }}>

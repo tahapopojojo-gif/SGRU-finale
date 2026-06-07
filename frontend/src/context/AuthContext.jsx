@@ -12,12 +12,27 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       const savedToken = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+      
       if (savedToken) {
+        setToken(savedToken);
+        if (savedUser) {
+          try {
+            setUser(JSON.parse(savedUser));
+          } catch (e) {
+            console.error('Failed to parse cached user', e);
+          }
+        }
+        
+        // Done with initial synchronous state, let the app mount immediately
+        setLoading(false);
+
+        // Revalidate token in background
         try {
           const data = await getCurrentUser();
-          // Laravel returns { id, nom, email, role, statut, city, ... }
-          setUser(data.user ?? data);
-          setToken(savedToken);
+          const freshUser = data.user ?? data;
+          setUser(freshUser);
+          localStorage.setItem('user', JSON.stringify(freshUser));
         } catch {
           // Token is invalid or expired — clean up
           localStorage.removeItem('token');
@@ -25,8 +40,9 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
           setUser(null);
         }
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     };
     initAuth();
   }, []);
@@ -62,7 +78,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ user, setUser, token, login, logout, isAuthenticated: !!token }}>
       {children}
     </AuthContext.Provider>
   );

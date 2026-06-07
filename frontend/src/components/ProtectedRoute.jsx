@@ -6,7 +6,7 @@ export function getRoleDashboard(role) {
   if (role === 'admin')       return '/admin/dashboard';
   if (role === 'urbaniste')   return '/urbaniste/dashboard';
   if (role === 'super_admin') return '/super-admin/users';
-  return '/map'; // citoyen
+  return '/account'; // citoyen
 }
 
 const ProtectedRoute = ({ children, roles = [] }) => {

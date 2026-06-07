@@ -16,6 +16,7 @@ class Remarque extends Model
         'reasons',
         'problems',
         'urgency',
+        'duration',
         'profile',
         'residence_duration',
         'opinion',

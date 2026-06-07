@@ -28,6 +28,9 @@ class StoreZoneRequest extends FormRequest
             'coordonnees_geojson' => 'required|array',
             'centre_lat' => 'required|numeric',
             'centre_lng' => 'required|numeric',
+            'notes' => 'nullable|string|max:2000',
+            'remark_ids' => 'sometimes|array',
+            'remark_ids.*' => 'integer|exists:remarques,id',
         ];
     }
 }

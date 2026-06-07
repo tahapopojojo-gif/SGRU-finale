@@ -49,6 +49,18 @@ export const createRemark = async (formData) => {
   return response.data;
 };
 
+// PUT /api/profile
+export const updateProfile = async (profileData) => {
+  const response = await axiosInstance.put('/profile', profileData);
+  return response.data.data || response.data;
+};
+
+// GET /api/my-remarks
+export const getMyRemarks = async () => {
+  const response = await axiosInstance.get('/my-remarks');
+  return response.data.data || response.data;
+};
+
 // Add default export for backwards compatibility
 export default {
   register,
@@ -57,4 +69,6 @@ export default {
   getCurrentUser,
   getRemarks,
   createRemark,
+  updateProfile,
+  getMyRemarks,
 };

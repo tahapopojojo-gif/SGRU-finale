@@ -24,7 +24,7 @@ const Login = () => {
             if (userRole === 'super_admin') navigate('/super-admin/users');
             else if (userRole === 'admin') navigate('/admin/dashboard');
             else if (userRole === 'urbaniste') navigate('/urbaniste/dashboard');
-            else navigate('/map');
+            else navigate('/account');
         } catch (err) {
             console.error('Login error:', err)
             let msg = 'Email ou mot de passe incorrect'

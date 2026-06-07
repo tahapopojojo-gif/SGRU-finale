@@ -85,18 +85,37 @@ export const getUrbanStatsByZone = async (zoneId, city) => {
                 : [];
   
   const totalRemarks = remarks.length;
-  const urgentCount = remarks.filter(r => r.statut === 'urgent').length;
+  const urgentCount = remarks.filter(r => (r.urgency || 0) >= 4).length;
   const avgUrgency = totalRemarks > 0 
     ? (remarks.reduce((acc, r) => acc + (r.urgency || 1), 0) / totalRemarks).toFixed(1) 
     : 0;
 
-  const categories = ["hopital", "ecole", "parc", "route", "autre"];
-  const catColors = { hopital: "#FF6384", ecole: "#36A2EB", parc: "#4BC0C0", route: "#FFCE56", autre: "#9966FF" };
-  const catLabels = { hopital: "Hôpital", ecole: "École", parc: "Parc", route: "Route", autre: "Autre" };
+  const categories = ["route", "eclairage", "dechets", "eau", "parc", "transport", "autre"];
+  const catColors = {
+    route: "#78716c",
+    eclairage: "#eab308",
+    dechets: "#22c55e",
+    eau: "#3b82f6",
+    parc: "#16a34a",
+    transport: "#f97316",
+    autre: "#94a3b8"
+  };
+  const catLabels = {
+    route: "Route",
+    eclairage: "Éclairage",
+    dechets: "Déchets",
+    eau: "Eau",
+    parc: "Parc",
+    transport: "Transport",
+    autre: "Autre"
+  };
   
   const byCategory = categories.map(cat => ({
     name: catLabels[cat],
-    value: remarks.filter(r => r.categorie === cat || r.category === cat).length,
+    value: remarks.filter(r => {
+      const c = (r.categorie || r.category || 'autre').toLowerCase().trim();
+      return c === cat;
+    }).length,
     color: catColors[cat]
   }));
 
@@ -105,27 +124,56 @@ export const getUrbanStatsByZone = async (zoneId, city) => {
     count: remarks.filter(r => r.urgency === level).length
   }));
 
-  const weeks = ["Sem 1", "Sem 2", "Sem 3", "Sem 4"];
-  const temporalData = weeks.map((week, idx) => {
+  // Generate irregular and real weekly/monthly temporal data
+  const now = new Date();
+  const temporalData = Array.from({ length: 6 }, (_, idx) => {
+    const targetMonth = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+    const label = targetMonth.toLocaleString('fr-FR', { month: 'short' });
     const count = remarks.filter(r => {
-      const date = new Date(r.created_at || Date.now());
-      const weekIdx = Math.floor((date.getDate() - 1) / 7);
-      return weekIdx === idx;
+      const d = new Date(r.created_at);
+      return d.getMonth() === targetMonth.getMonth() && d.getFullYear() === targetMonth.getFullYear();
     }).length;
-    return { label: week, count };
+    return { label, count };
   });
 
+  // Calculate duration breakdown
+  const chronicCount = remarks.filter(r => {
+    const dur = (r.residence_duration || r.duration || '').toLowerCase();
+    return dur.includes("an") || dur.includes("toujours");
+  }).length;
+  const chronicPct = totalRemarks > 0 ? `${Math.round((chronicCount / totalRemarks) * 100)}%` : '0%';
+
   const catCounts = remarks.reduce((acc, r) => {
-    const c = r.categorie || r.category;
-    if (c) acc[c] = (acc[c] || 0) + 1;
+    const c = (r.categorie || r.category || 'autre').toLowerCase().trim();
+    acc[c] = (acc[c] || 0) + 1;
     return acc;
   }, {});
   
-  let domCat = "N/A";
-  let maxCat = 0;
+  let domCat = "autre";
+  let maxCat = -1;
   for (const [c, count] of Object.entries(catCounts)) {
     if (count > maxCat) { maxCat = count; domCat = c; }
   }
+
+  // Calculate profile breakdown
+  const profiles = { "resident": 0, "conducteur": 0, "pieton": 0, "commercant": 0, "passant": 0 };
+  remarks.forEach(r => {
+    const prof = r.profile || r.reporter_profile;
+    if (prof && profiles[prof] !== undefined) {
+      profiles[prof]++;
+    }
+  });
+
+  // Calculate affected groups
+  const affected = {};
+  remarks.forEach(r => {
+    const groups = r.affected_groups || r.reasons || [];
+    if (Array.isArray(groups)) {
+      groups.forEach(g => {
+        affected[g] = (affected[g] || 0) + 1;
+      });
+    }
+  });
 
   return {
     totalRemarks,
@@ -134,7 +182,10 @@ export const getUrbanStatsByZone = async (zoneId, city) => {
     dominantCategory: catLabels[domCat] || "Autre",
     byCategory,
     byUrgency,
-    temporalData
+    temporalData,
+    chronicPct,
+    profiles,
+    affectedGroups: affected,
   };
 };
 

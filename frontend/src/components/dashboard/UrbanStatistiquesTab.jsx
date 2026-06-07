@@ -13,8 +13,23 @@ import EmptyState from '../EmptyState.jsx';
 import { useAuth } from '../../context/AuthContext';
 import { unwrap } from '../../utils/unwrap';
 
-const CAT_EMOJI = {
-  'Hôpital': '🏥', 'École': '🏫', 'Parc': '🌳', 'Route': '🛣️', 'Autre': '❓'
+const COLOR_PALETTE = [
+  '#f59e0b', '#3b82f6', '#22c55e', '#a855f7',
+  '#ef4444', '#06b6d4', '#f97316', '#84cc16',
+  '#ec4899', '#14b8a6',
+];
+
+const getEmoji = (cat) => {
+  const c = String(cat || '').toLowerCase();
+  if (c.includes('rout')) return '🛣️';
+  if (c.includes('eclair') || c.includes('éclair')) return '💡';
+  if (c.includes('dech') || c.includes('déche')) return '🗑️';
+  if (c.includes('eau')) return '💧';
+  if (c.includes('parc') || c.includes('vert')) return '🌳';
+  if (c.includes('trans')) return '🚌';
+  if (c.includes('hopit') || c.includes('hôpit')) return '🏥';
+  if (c.includes('ecol') || c.includes('écol')) return '🏫';
+  return '📌';
 };
 
 const UrbanBarChartMemo = React.memo(({ data }) => (
@@ -52,30 +67,7 @@ const UrbanAreaChartMemo = React.memo(({ data }) => (
   </ResponsiveContainer>
 ));
 
-const PIE_COLORS = ['#22C55E', '#84CC16', '#F59E0B', '#F97316', '#EF4444'];
 
-const UrbanPieChartMemo = React.memo(({ data }) => (
-  <ResponsiveContainer width="100%" height="100%">
-    <PieChart role="img" aria-label="Graphique circulaire des niveaux d'urgence">
-      <Pie
-        data={data}
-        cx="50%"
-        cy="50%"
-        innerRadius={60}
-        outerRadius={100}
-        paddingAngle={2}
-        dataKey="count"
-        label={({percent}) => `${(percent * 100).toFixed(0)}%`}
-      >
-        {data.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-        ))}
-      </Pie>
-      <Tooltip contentStyle={{ borderRadius: '8px', border: '0.5px solid rgba(242, 237, 230, 0.08)', background: '#080605', color: '#F2EDE6' }} />
-      <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" wrapperStyle={{ fontSize: '13px', color: 'rgba(242, 237, 230, 0.5)' }} />
-    </PieChart>
-  </ResponsiveContainer>
-));
 
 const UrbanTableMemo = React.memo(({ data, selectedZoneId, isZoneSelected, styles }) => (
   <table style={styles.table} role="table" aria-labelledby="urban-zones-comparison-title">
@@ -85,6 +77,7 @@ const UrbanTableMemo = React.memo(({ data, selectedZoneId, isZoneSelected, style
         <th scope="col" style={styles.th}>Remarques</th>
         <th scope="col" style={styles.th}>Urgence Moy.</th>
         <th scope="col" style={styles.th}>Cat. Dom.</th>
+        <th scope="col" style={styles.th}>Tendance</th>
       </tr>
     </thead>
     <tbody>
@@ -105,10 +98,57 @@ const UrbanTableMemo = React.memo(({ data, selectedZoneId, isZoneSelected, style
             </td>
             <td style={{ ...styles.td, fontWeight: 'bold' }}>{zone.totalRemarks}</td>
             <td style={styles.td}>
-              <span style={styles.badge(badgeBg, badgeColor)}>{zone.avgUrgency}</span>
+              <span style={{
+                padding: '3px 10px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 700,
+                background: zone.avgUrgency >= 4
+                  ? 'rgba(239,68,68,0.15)'
+                  : zone.avgUrgency >= 2.5
+                  ? 'rgba(245,158,11,0.15)'
+                  : 'rgba(34,197,94,0.12)',
+                color: zone.avgUrgency >= 4
+                  ? '#ef4444'
+                  : zone.avgUrgency >= 2.5
+                  ? '#f59e0b'
+                  : '#22c55e',
+                border: `0.5px solid ${
+                  zone.avgUrgency >= 4
+                    ? 'rgba(239,68,68,0.3)'
+                    : zone.avgUrgency >= 2.5
+                    ? 'rgba(245,158,11,0.3)'
+                    : 'rgba(34,197,94,0.25)'
+                }`,
+              }}>
+                {zone.avgUrgency || '—'}
+              </span>
             </td>
             <td style={styles.td}>
-              <span aria-hidden="true">{CAT_EMOJI[zone.dominantCategory] || '📌'}</span> {zone.dominantCategory}
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '12px',
+                color: 'rgba(242,237,230,0.6)',
+                textTransform: 'capitalize',
+              }}>
+                {getEmoji(zone.dominantCategory)}
+                {zone.dominantCategory || '—'}
+              </span>
+            </td>
+            <td style={styles.td}>
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: zone.trendDir === 'up' ? '#ef4444' : zone.trendDir === 'down' ? '#22c55e' : '#94a3b8',
+                fontWeight: 600,
+                fontSize: '12px',
+              }}>
+                {zone.trendDir === 'up' ? '↗' : zone.trendDir === 'down' ? '↘' : '→'}
+                {zone.trendPercent > 0 ? `+${zone.trendPercent}%` : zone.trendPercent < 0 ? `${zone.trendPercent}%` : 'Stable'}
+              </span>
             </td>
           </tr>
         );
@@ -116,6 +156,38 @@ const UrbanTableMemo = React.memo(({ data, selectedZoneId, isZoneSelected, style
     </tbody>
   </table>
 ));
+
+const getTemporalData = (remarks, period) => {
+  const now = new Date();
+  
+  if (period === '3months' || period === '6months') {
+    const monthCount = period === '3months' ? 3 : 6;
+    return Array.from({ length: monthCount }, (_, i) => {
+      const target = new Date(now.getFullYear(), now.getMonth() - (monthCount - 1 - i), 1);
+      const label = target.toLocaleString('fr-FR', { month: 'short' });
+      const count = remarks.filter(r => {
+        const d = new Date(r.created_at);
+        return d.getMonth() === target.getMonth() &&
+               d.getFullYear() === target.getFullYear();
+      }).length;
+      return { label, count };
+    });
+  }
+
+  if (period === '1year') {
+    return Array.from({ length: 12 }, (_, i) => {
+      const target = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+      const label = target.toLocaleString('fr-FR', { month: 'short' });
+      const count = remarks.filter(r => {
+        const d = new Date(r.created_at);
+        return d.getMonth() === target.getMonth() &&
+               d.getFullYear() === target.getFullYear();
+      }).length;
+      return { label, count };
+    });
+  }
+  return [];
+};
 
 export default function UrbanStatistiquesTab({ onSwitchTab }) {
   const { selectedZone, selectedZoneName, isZoneSelected } = useUrbanZone();
@@ -131,83 +203,207 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
     temporalData: []
   });
   const [allZones, setAllZones] = useState([]);
-  const [period, setPeriod] = useState('week');
+  const [period, setPeriod] = useState('3months');
   const [loading, setLoading] = useState(true);
 
   const { isMobile, isTablet } = useResponsive();
 
   useEffect(() => {
     fetchStats();
-  }, [selectedZone]);
+  }, [selectedZone, period]);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      // Pass userCity to scope zones and remarks
+      // 1. Fetch zones
       const zonesRes = await getZonesWithStats(userCity);
       const zonesData = unwrap(zonesRes);
-      setAllZones([...zonesData].sort((a, b) => b.totalRemarks - a.totalRemarks));
+      const uniqueZones = zonesData.filter(
+        (z, i, self) => i === self.findIndex(t => t.id === z.id)
+      );
 
-      if (isZoneSelected) {
-        const data = await getUrbanStatsByZone(selectedZone.id);
-        setStats(data);
-      } else {
-        // Aggregate global stats from city-filtered remarks
-        const remarksRes = await getValidatedRemarks(null, userCity);
-        const remarks = unwrap(remarksRes);
-        
-        const totalRemarks = remarks.length;
-        const urgentCount = remarks.filter(r => r.statut === 'urgent').length;
-        const avgUrgency = totalRemarks > 0 
-          ? (remarks.reduce((acc, r) => acc + r.urgency, 0) / totalRemarks).toFixed(1)
-          : 0;
+      // 2. Fetch all validated remarks for the city
+      const remarksRes = await getValidatedRemarks({ ville: userCity });
+      const remarks = unwrap(remarksRes);
+      const safeRemarks = Array.isArray(remarks) 
+        ? remarks.map(r => ({
+            ...r,
+            categorie: (r.categorie || r.category || 'autre').toLowerCase().trim()
+          }))
+        : [];
 
-        const categories = ["hopital", "ecole", "parc", "route", "autre"];
-        const catColors = { hopital: "#FF6384", ecole: "#36A2EB", parc: "#4BC0C0", route: "#FFCE56", autre: "#9966FF" };
-        const catLabels = { hopital: "Hôpital", ecole: "École", parc: "Parc", route: "Route", autre: "Autre" };
-        
-        const byCategory = categories.map(cat => ({
-          name: catLabels[cat],
-          value: remarks.filter(r => r.categorie === cat || r.category === cat).length,
-          color: catColors[cat]
-        }));
+      const CAT_LABEL = {
+        route: 'Route', eclairage: 'Éclairage', dechets: 'Déchets',
+        eau: 'Eau', parc: 'Parc', transport: 'Transport', autre: 'Autre'
+      };
 
-        const byUrgency = [1, 2, 3, 4, 5].map(level => ({
-          urgency: `Niveau ${level}`,
-          count: remarks.filter(r => r.urgency === level).length
-        }));
+      // 3. Compute stats for comparative table for ALL zones
+      const computedZones = uniqueZones.map(zone => {
+        const zoneRemarks = safeRemarks.filter(r => r.zone_id === zone.id);
+        const totalRemarks = zoneRemarks.length;
+        const avgUrgency = totalRemarks > 0
+          ? (zoneRemarks.reduce((acc, r) => acc + (r.urgency || 1), 0) / totalRemarks).toFixed(1)
+          : '0.0';
 
-        const weeks = ["Sem 1", "Sem 2", "Sem 3", "Sem 4"];
-        const temporalData = weeks.map((week, idx) => {
-          const count = remarks.filter(r => {
-            const date = new Date(r.created_at);
-            const weekIdx = Math.floor((date.getDate() - 1) / 7);
-            return weekIdx === idx;
-          }).length;
-          return { label: week, count };
-        });
-
-        const catCounts = remarks.reduce((acc, r) => {
-          const c = r.categorie || r.category;
+        const catCounts = zoneRemarks.reduce((acc, r) => {
+          const c = r.categorie;
           acc[c] = (acc[c] || 0) + 1;
           return acc;
         }, {});
-        let domCat = "N/A";
-        let maxCat = 0;
+        let domCat = "autre";
+        let maxCat = -1;
         for (const [c, count] of Object.entries(catCounts)) {
           if (count > maxCat) { maxCat = count; domCat = c; }
         }
 
-        setStats({
+        // Calculate Trend (current month June vs previous month May)
+        const now = new Date();
+        const curMonth = now.getMonth();
+        const curYear = now.getFullYear();
+        const prevMonth = curMonth === 0 ? 11 : curMonth - 1;
+        const prevYear = curMonth === 0 ? curYear - 1 : curYear;
+
+        const curMonthRemarks = zoneRemarks.filter(r => {
+          const d = new Date(r.created_at);
+          return d.getMonth() === curMonth && d.getFullYear() === curYear;
+        }).length;
+
+        const prevMonthRemarks = zoneRemarks.filter(r => {
+          const d = new Date(r.created_at);
+          return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
+        }).length;
+
+        let trendPercent = 0;
+        let trendDir = 'stable';
+        if (prevMonthRemarks > 0) {
+          trendPercent = Math.round(((curMonthRemarks - prevMonthRemarks) / prevMonthRemarks) * 100);
+          if (trendPercent > 0) trendDir = 'up';
+          else if (trendPercent < 0) trendDir = 'down';
+        } else if (curMonthRemarks > 0) {
+          trendPercent = 100;
+          trendDir = 'up';
+        }
+
+        return {
+          ...zone,
           totalRemarks,
-          urgentCount,
-          avgUrgency: parseFloat(avgUrgency),
-          dominantCategory: catLabels[domCat] || "Autre",
-          byCategory,
-          byUrgency,
-          temporalData
-        });
+          avgUrgency,
+          dominantCategory: CAT_LABEL[domCat] || 'Autre',
+          trendPercent,
+          trendDir
+        };
+      });
+      setAllZones(computedZones.sort((a, b) => b.totalRemarks - a.totalRemarks));
+
+      // 4. Filter remarks based on active zone selection
+      const activeRemarks = isZoneSelected
+        ? safeRemarks.filter(r => r.zone_id === selectedZone.id)
+        : safeRemarks;
+
+      const totalRemarks = activeRemarks.length;
+      const urgentCount = activeRemarks.filter(r => (r.urgency || 0) >= 4).length;
+      const avgUrgency = totalRemarks > 0 
+        ? (activeRemarks.reduce((acc, r) => acc + (r.urgency || 0), 0) / totalRemarks).toFixed(1)
+        : '0.0';
+
+      // Group by correct categories
+      const categories = ["route", "eclairage", "dechets", "eau", "parc", "transport", "autre"];
+      const catColors = {
+        route: "#78716c",
+        eclairage: "#eab308",
+        dechets: "#22c55e",
+        eau: "#3b82f6",
+        parc: "#16a34a",
+        transport: "#f97316",
+        autre: "#94a3b8"
+      };
+
+      const byCategory = categories.map(cat => ({
+        name: CAT_LABEL[cat],
+        value: activeRemarks.filter(r => r.categorie === cat).length,
+        color: catColors[cat],
+      }));
+
+      const byUrgency = [1, 2, 3, 4, 5].map(level => ({
+        name: level === 1 ? 'Très faible'
+            : level === 2 ? 'Faible'
+            : level === 3 ? 'Modéré'
+            : level === 4 ? 'Urgent'
+            : 'Critique',
+        count: activeRemarks.filter(r => r.urgency === level).length,
+        color: ['#22c55e','#84cc16','#f59e0b','#f97316','#ef4444'][level - 1]
+      }));
+
+      // Temporal data grouped by months of actual created_at dates
+      const temporalData = getTemporalData(activeRemarks, period);
+
+      // Dominant category with count
+      const catCounts = activeRemarks.reduce((acc, r) => {
+        const c = r.categorie;
+        acc[c] = (acc[c] || 0) + 1;
+        return acc;
+      }, {});
+      let domCat = "autre";
+      let maxCat = -1;
+      for (const [c, count] of Object.entries(catCounts)) {
+        if (count > maxCat) { maxCat = count; domCat = c; }
       }
+      const dominantCategory = totalRemarks > 0
+        ? `${CAT_LABEL[domCat] || 'Autre'} (${catCounts[domCat] || 0})`
+        : "N/A";
+
+      // Dominant duration and % chronic
+      const chronicCount = activeRemarks.filter(r => {
+        const dur = r.residence_duration || r.duration || '';
+        return dur.includes("an") || dur.includes("toujours") || dur.includes("mois");
+      }).length;
+      const chronicPct = totalRemarks > 0 ? Math.round((chronicCount / totalRemarks) * 100) : 0;
+      const dominantDuration = totalRemarks > 0
+        ? `${chronicPct}% problèmes chroniques`
+        : "0% problèmes chroniques";
+
+      // Durations breakdown
+      const durations = { "quelques jours": 0, "quelques mois": 0, "plus d'un an": 0, "depuis toujours": 0 };
+      activeRemarks.forEach(r => {
+        const dur = r.residence_duration || r.duration;
+        if (dur && durations[dur] !== undefined) {
+          durations[dur]++;
+        }
+      });
+
+      // Profiles breakdown
+      const profiles = { "resident": 0, "conducteur": 0, "pieton": 0, "commercant": 0, "passant": 0 };
+      activeRemarks.forEach(r => {
+        const prof = r.profile || r.reporter_profile;
+        if (prof && profiles[prof] !== undefined) {
+          profiles[prof]++;
+        }
+      });
+
+      // Affected groups breakdown
+      const affected = {};
+      activeRemarks.forEach(r => {
+        const groups = r.affected_groups || r.reasons || [];
+        if (Array.isArray(groups)) {
+          groups.forEach(g => {
+            affected[g] = (affected[g] || 0) + 1;
+          });
+        }
+      });
+
+      setStats({
+        totalRemarks,
+        urgentCount,
+        avgUrgency: parseFloat(avgUrgency),
+        dominantCategory,
+        dominantDuration,
+        byCategory,
+        byUrgency,
+        temporalData,
+        durations,
+        profiles,
+        affectedGroups: affected
+      });
     } catch (error) {
       console.error("Failed to fetch stats:", error);
     }
@@ -227,7 +423,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
     }),
     bannerTitle: { fontSize: isMobile ? '16px' : '18px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#F2EDE6' },
     bannerSubtitle: { fontSize: isMobile ? '12px' : '14px', color: 'rgba(242,237,230,0.4)', margin: 0 },
-    kpiRow: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '20px', marginBottom: '24px' },
+    kpiRow: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? '12px' : '20px', marginBottom: '24px' },
     kpiCard: {
       background: 'rgba(255,255,255,0.03)',
       border: '0.5px solid rgba(242,237,230,0.08)',
@@ -407,8 +603,40 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
         }} role="group" aria-label="Catégorie Dominante">
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #52BE80, transparent)' }} />
           <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Catégorie Dominante</div>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '28px', color: '#E8B87A', fontWeight: 500, lineHeight: 1 }}>{memoizedStats.dominantCategory}</div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginTop: '4px',
+          }}>
+            <span style={{ fontSize: '22px' }}>
+              {getEmoji(memoizedStats.dominantCategory)}
+            </span>
+            <span style={{
+              fontSize: '16px',
+              color: '#E8B87A',
+              fontWeight: 600,
+              textTransform: 'capitalize',
+            }}>
+              {memoizedStats.dominantCategory || '—'}
+            </span>
+          </div>
           <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>catégorie principale</div>
+        </div>
+
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.08)',
+          borderRadius: '10px', padding: '16px',
+          position: 'relative', overflow: 'hidden',
+          transition: 'all 0.2s',
+        }} role="group" aria-label="Durée Dominante">
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #a855f7, transparent)' }} />
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Durée Dominante</div>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '15px', color: '#E8B87A', fontWeight: 600, marginTop: '8px', lineHeight: 1.2 }}>
+            {memoizedStats.dominantDuration}
+          </div>
+          <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>problèmes de longue durée</div>
         </div>
       </div>
 
@@ -432,23 +660,37 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
             <h3 id="urban-chart-temporal-title" style={s.chartTitle}>Évolution Temporelle des Soumissions</h3>
             <p style={s.chartSubtitle}>Activité récente</p>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }} role="radiogroup" aria-label="Sélectionner la période">
-            <button 
-              onClick={() => setPeriod('week')}
-              role="radio"
-              aria-checked={period === 'week'}
-              style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', border: period === 'week' ? '0.5px solid #C1440E' : '0.5px solid rgba(242,237,230,0.12)', background: period === 'week' ? 'rgba(193,68,14,0.15)' : 'rgba(255,255,255,0.03)', color: period === 'week' ? '#F2EDE6' : 'rgba(242,237,230,0.4)', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
-            >
-              Semaine
-            </button>
-            <button 
-              onClick={() => setPeriod('month')}
-              role="radio"
-              aria-checked={period === 'month'}
-              style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', border: period === 'month' ? '0.5px solid #C1440E' : '0.5px solid rgba(242,237,230,0.12)', background: period === 'month' ? 'rgba(193,68,14,0.15)' : 'rgba(255,255,255,0.03)', color: period === 'month' ? '#F2EDE6' : 'rgba(242,237,230,0.4)', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
-            >
-              Mois
-            </button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[
+              { key: '3months', label: '3 mois' },
+              { key: '6months', label: '6 mois' },
+              { key: '1year',   label: '1 an' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setPeriod(key)}
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontFamily: 'DM Sans, sans-serif',
+                  transition: 'all 0.2s',
+                  border: period === key
+                    ? '0.5px solid #C1440E'
+                    : '0.5px solid rgba(242,237,230,0.12)',
+                  background: period === key
+                    ? 'rgba(193,68,14,0.15)'
+                    : 'rgba(255,255,255,0.03)',
+                  color: period === key
+                    ? '#F2EDE6'
+                    : 'rgba(242,237,230,0.4)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
         <div style={{ height: '280px', width: '100%' }}>
@@ -456,31 +698,205 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
         </div>
       </div>
 
-      {/* Bottom Row */}
-      <div style={s.bottomRow}>
+      {/* Dynamic Breakdown Section 1 */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         
-        {/* Chart 3: PieChart - Urgences */}
-        <div style={s.chartCard} role="figure" aria-labelledby="urban-chart-urgency-title">
-          <h3 id="urban-chart-urgency-title" style={s.chartTitle}>Niveaux d'Urgence</h3>
-          <div style={{ height: '300px', width: '100%' }}>
-            <UrbanPieChartMemo data={memoizedStats.byUrgency} />
+        {/* Répartition par catégorie */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.07)',
+          borderRadius: '10px',
+          padding: '20px',
+        }}>
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px' }}>
+            Répartition par catégorie
           </div>
+          {stats.byCategory
+            .filter(c => c.value > 0)
+            .sort((a, b) => b.value - a.value)
+            .map((cat, i) => {
+              const total = stats.byCategory.reduce((s, c) => s + c.value, 0)
+              const pct = total > 0 ? Math.round((cat.value / total) * 100) : 0
+              return (
+                <div key={i} style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <span style={{ fontSize: '12px', color: 'rgba(242,237,230,0.65)', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color, display: 'inline-block', flexShrink: 0 }} />
+                      {cat.name}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.3)', fontVariantNumeric: 'tabular-nums' }}>{cat.value}</span>
+                      <span style={{ fontSize: '11px', color: cat.color, fontWeight: 600, minWidth: '32px', textAlign: 'right' }}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: cat.color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
+                  </div>
+                </div>
+              );
+            })}
         </div>
 
-        {/* Comparative Table */}
-        <div style={{ ...s.chartCard, overflowY: 'auto', maxHeight: '416px' }}>
-          <h3 id="urban-zones-comparison-title" style={s.chartTitle}>Comparaison des Zones</h3>
-          <p style={s.chartSubtitle}>Toutes les zones actives</p>
-          <div style={{ marginTop: '16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <UrbanTableMemo 
-              data={memoizedAllZones} 
-              selectedZoneId={selectedZone?.id} 
-              isZoneSelected={isZoneSelected}
-              styles={s}
-            />
+        {/* Répartition par durée */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.07)',
+          borderRadius: '10px',
+          padding: '20px',
+        }}>
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px' }}>
+            Répartition par durée
           </div>
+          {Object.entries(stats.durations || {})
+            .map(([label, val]) => {
+              const total = Object.values(stats.durations || {}).reduce((a, b) => a + b, 0);
+              const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+              const color = label.includes("an") || label.includes("toujours") ? "#a855f7" : "#3b82f6";
+              return (
+                <div key={label} style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <span style={{ fontSize: '12px', color: 'rgba(242,237,230,0.65)', textTransform: 'capitalize' }}>
+                      {label}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.3)' }}>{val}</span>
+                      <span style={{ fontSize: '11px', color, fontWeight: 600, minWidth: '32px', textAlign: 'right' }}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* Dynamic Breakdown Section 2 */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+        
+        {/* Profil des signaleurs */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.07)',
+          borderRadius: '10px',
+          padding: '20px',
+        }}>
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px' }}>
+            Profil des signaleurs
+          </div>
+          {Object.entries(stats.profiles || {})
+            .map(([label, val]) => {
+              const total = Object.values(stats.profiles || {}).reduce((a, b) => a + b, 0);
+              const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+              const PROF_LABELS_FR = {
+                resident: 'Résident',
+                conducteur: 'Conducteur',
+                pieton: 'Piéton',
+                commercant: 'Commerçant',
+                passant: 'Passant'
+              };
+              return (
+                <div key={label} style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <span style={{ fontSize: '12px', color: 'rgba(242,237,230,0.65)' }}>
+                      {PROF_LABELS_FR[label] || label}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.3)' }}>{val}</span>
+                      <span style={{ fontSize: '11px', color: '#E8B87A', fontWeight: 600, minWidth: '32px', textAlign: 'right' }}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: '#E8B87A', borderRadius: '2px', transition: 'width 0.4s ease' }} />
+                  </div>
+                </div>
+              );
+            })}
         </div>
 
+        {/* Groupes affectés (Tag Cloud) */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(242,237,230,0.07)',
+          borderRadius: '10px',
+          padding: '20px',
+        }}>
+          <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px' }}>
+            Impact social & Groupes affectés
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {Object.entries(stats.affectedGroups || {}).length > 0 ? (
+              Object.entries(stats.affectedGroups || {})
+                .sort((a, b) => b[1] - a[1])
+                .map(([group, count]) => {
+                  const labelFR = {
+                    enfants_personnes_agees: 'Enfants & Personnes âgées',
+                    personnes_handicapees: 'Personnes handicapées',
+                    pietons: 'Piétons',
+                    cyclistes: 'Cyclistes',
+                    conducteurs: 'Conducteurs',
+                    residents: 'Résidents',
+                    commerces: 'Commerces & Boutiques'
+                  }[group] || group;
+
+                  return (
+                    <span
+                      key={group}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'rgba(193,68,14,0.08)',
+                        border: '0.5px solid rgba(193,68,14,0.3)',
+                        borderRadius: '100px',
+                        color: '#F2EDE6',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      {labelFR}
+                      <span style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        padding: '1px 5px',
+                        borderRadius: '50%',
+                        fontSize: '9px',
+                        color: '#E8B87A',
+                        fontWeight: 'bold',
+                      }}>
+                        {count}
+                      </span>
+                    </span>
+                  );
+                })
+            ) : (
+              <span style={{ fontSize: '12px', color: 'rgba(242,237,230,0.3)', fontStyle: 'italic' }}>
+                Aucune donnée sociale enregistrée
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Comparative Table (Full Width) */}
+      <div style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '0.5px solid rgba(242,237,230,0.07)',
+        borderRadius: '10px',
+        padding: '20px',
+        marginBottom: '24px'
+      }}>
+        <h3 id="urban-zones-comparison-title" style={s.chartTitle}>Comparaison des Zones</h3>
+        <p style={s.chartSubtitle}>Toutes les zones actives de {userCity ? userCity.charAt(0).toUpperCase() + userCity.slice(1) : 'Marrakesh'}</p>
+        <div style={{ marginTop: '16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <UrbanTableMemo 
+            data={memoizedAllZones} 
+            selectedZoneId={selectedZone?.id} 
+            isZoneSelected={isZoneSelected}
+            styles={s}
+          />
+        </div>
       </div>
 
     </div>

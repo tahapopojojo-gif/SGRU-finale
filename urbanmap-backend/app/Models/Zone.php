@@ -14,6 +14,7 @@ class Zone extends Model
         'coordonnees_geojson',
         'centre_lat',
         'centre_lng',
+        'notes',
     ];
 
     protected function casts(): array

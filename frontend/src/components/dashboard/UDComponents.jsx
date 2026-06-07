@@ -156,9 +156,9 @@ export function AiCard({ children, loading }) {
                 }} />
               ))}
             </span>
-            Claude analyse...
+            Gemini analyse...
           </span>
-        ) : 'Synthèse IA — Claude'}
+        ) : 'Synthèse IA — Gemini'}
       </div>
       <div style={{
         fontSize: '12px', color: 'rgba(242,237,230,0.6)',

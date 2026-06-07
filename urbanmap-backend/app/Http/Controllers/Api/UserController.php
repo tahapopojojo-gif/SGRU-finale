@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\GroupEmailMailable;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -38,28 +39,48 @@ class UserController extends Controller
     public function sendGroupEmail(Request $request)
     {
         $data = $request->validate([
-            'group' => ['required', 'string', 'in:citoyen,urbaniste,admin,all'],
+            'group'   => ['required', 'string', 'in:citoyen,urbaniste,admin,all,zone'],
             'subject' => ['required', 'string'],
             'message' => ['required', 'string'],
+            'zone_id' => ['nullable', 'integer', 'exists:zones,id'],
         ]);
 
-        $query = User::query();
+        if ($data['group'] === 'zone') {
+            // Find distinct citizens who submitted at least one remarque in this zone
+            $userIds = \App\Models\Remarque::where('zone_id', $data['zone_id'])
+                ->whereNotNull('user_id')
+                ->pluck('user_id')
+                ->unique();
 
-        if ($data['group'] === 'all') {
-            $query->where('statut', 'active');
+            $users = User::whereIn('id', $userIds)
+                ->where('role', 'citoyen')
+                ->where('statut', 'active')
+                ->get();
         } else {
-            $query->where('role', $data['group']);
+            $query = User::query();
+
+            if ($data['group'] === 'all') {
+                $query->where('statut', 'active');
+            } else {
+                $query->where('role', $data['group']);
+            }
+
+            $users = $query->get();
         }
 
-        $users = $query->get();
-
+        $queued = 0;
         foreach ($users as $user) {
-            Mail::to($user->email)->queue(new GroupEmailMailable($data['subject'], $data['message'], $user->nom));
+            try {
+                Mail::to($user->email)->queue(new GroupEmailMailable($data['subject'], $data['message'], $user->nom));
+                $queued++;
+            } catch (\Exception $e) {
+                Log::error("Failed to queue group email to {$user->email}: " . $e->getMessage());
+            }
         }
 
         return response()->json([
-            'success' => true,
-            'sent_to' => $users->count()
+            'success'  => true,
+            'sent_to'  => $queued,
         ]);
     }
 }

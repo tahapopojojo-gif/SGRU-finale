@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -14,6 +15,18 @@ const Navbar = ({
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [])
 
   const isMapPage = location.pathname === '/map'
 
@@ -234,19 +247,109 @@ const Navbar = ({
           </button>
         )}
 
-        {/* User avatar */}
-        <div style={{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: 'rgba(193,68,14,0.2)',
-          border: '0.5px solid rgba(193,68,14,0.4)',
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'center', cursor: 'pointer',
-          fontSize: '12px', color: '#C1440E', fontWeight: 600,
-        }}
-          onClick={logout}
-          title="Se déconnecter"
-        >
-          {user?.nom?.[0]?.toUpperCase() || 'U'}
+        {/* User avatar dropdown */}
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: 'rgba(193,68,14,0.2)',
+            border: '0.5px solid rgba(193,68,14,0.4)',
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'center', cursor: 'pointer',
+            fontSize: '12px', color: '#C1440E', fontWeight: 600,
+          }}
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            title="Menu utilisateur"
+          >
+            {user?.nom?.[0]?.toUpperCase() || 'U'}
+          </div>
+
+          {dropdownOpen && (
+            <div style={{
+              position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+              background: 'rgba(8,6,3,0.96)',
+              border: '0.5px solid rgba(193,68,14,0.25)',
+              borderRadius: '8px', padding: '6px 0',
+              minWidth: '150px', zIndex: 1000,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(16px)',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <button
+                onClick={() => {
+                  setDropdownOpen(false)
+                  navigate('/account')
+                }}
+                style={{
+                  padding: '8px 16px', background: 'transparent',
+                  border: 'none', color: '#F2EDE6', fontSize: '12px',
+                  textAlign: 'left', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                👤 Mon compte
+              </button>
+              {['admin', 'urbaniste', 'super_admin'].includes(user?.role) ? (
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false)
+                    if (user?.role === 'admin') navigate('/admin/dashboard')
+                    else if (user?.role === 'urbaniste') navigate('/urbaniste/dashboard')
+                    else if (user?.role === 'super_admin') navigate('/super-admin/users')
+                  }}
+                  style={{
+                    padding: '8px 16px', background: 'transparent',
+                    border: 'none', color: '#F2EDE6', fontSize: '12px',
+                    textAlign: 'left', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  📊 Tableau de Bord
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false)
+                    navigate('/map')
+                  }}
+                  style={{
+                    padding: '8px 16px', background: 'transparent',
+                    border: 'none', color: '#F2EDE6', fontSize: '12px',
+                    textAlign: 'left', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  🗺 La carte
+                </button>
+              )}
+              <div style={{ height: '0.5px', background: 'rgba(242,237,230,0.08)', margin: '4px 0' }} />
+              <button
+                onClick={() => {
+                  setDropdownOpen(false)
+                  logout()
+                }}
+                style={{
+                  padding: '8px 16px', background: 'transparent',
+                  border: 'none', color: '#C1440E', fontSize: '12px',
+                  textAlign: 'left', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                🚪 Se déconnecter
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
