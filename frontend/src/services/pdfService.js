@@ -290,7 +290,7 @@ export function generateRemarkPDF(remarque) {
     ['Zone', remarque.zone_nom || (remarque.zone?.nom) || 'Non spécifiée'],
     ['Catégorie', CAT_LABELS[remarque.categorie] || remarque.categorie || 'Autre'],
     ['Urgence', `${remarque.urgency || 3}/5`],
-    ['Statut', 'En attente de traitement'],
+    ['Statut', STATUT_LABELS[remarque.statut] || remarque.statut || 'Non spécifié'],
     ['Coordonnées', remarque.latitude && remarque.longitude ? `${parseFloat(remarque.latitude).toFixed(5)}, ${parseFloat(remarque.longitude).toFixed(5)}` : 'Non disponibles'],
     ['Durée du problème', remarque.duration === 'recent' ? 'Récemment' : remarque.duration === 'months' ? 'Quelques mois' : remarque.duration === 'years' ? 'Depuis des années' : 'Non précisée'],
     ['Profil', remarque.profile || 'Non précisé']

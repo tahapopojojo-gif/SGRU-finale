@@ -301,35 +301,11 @@ const formStyles = {
 
 // Custom styles removed since they were for the old navbarObject.assign(styles, customStyles);
 
-const MOCK_PARCELS = [
-  {
-    id: 1, name: 'Parcelle A - Zone Gueliz', city: 'marrakesh', region: 'gueliz',
-    status: 'urgent', deadline: '5 jours restants', votes: 23,
-    positions: [[31.6295, -8.0083], [31.6315, -8.0083], [31.6315, -8.0063], [31.6295, -8.0063]],
-  },
-  {
-    id: 2, name: 'Parcelle B - Zone Hivernage', city: 'marrakesh', region: 'hivernage',
-    status: 'active', deadline: '18 jours restants', votes: 45,
-    positions: [[31.6250, -8.0120], [31.6270, -8.0120], [31.6270, -8.0100], [31.6250, -8.0100]],
-  },
-  {
-    id: 3, name: 'Zone Sidi Maarouf', city: 'casablanca', region: 'sidi maarouf',
-    status: 'planning', deadline: 'Projet futur', votes: 8,
-    positions: [[33.5350, -7.6350], [33.5370, -7.6350], [33.5370, -7.6330], [33.5350, -7.6330]],
-  },
-  {
-    id: 4, name: 'Zone Agdal', city: 'rabat', region: 'agdal',
-    status: 'urgent', deadline: '2 jours restants', votes: 112,
-    positions: [[34.0050, -6.8500], [34.0070, -6.8500], [34.0070, -6.8480], [34.0050, -6.8480]],
-  },
-]
-
 const STATUS_COLORS = {
-  urgent: { color: '#dc2626', fill: '#ef4444', label: 'Urgent' },
-  active: { color: '#d97706', fill: '#f59e0b', label: 'Actif' },
-  planning: { color: '#16a34a', fill: '#22c55e', label: 'Planifié' },
-  pending: { color: '#ca8a04', fill: '#facc15', label: 'En attente' },
-  rejected: { color: '#64748b', fill: '#94a3b8', label: 'Rejeté' },
+  en_cours: { color: '#d97706', fill: '#f59e0b', label: 'En cours' },
+  resolu: { color: '#16a34a', fill: '#22c55e', label: 'Résolu' },
+  rejete: { color: '#64748b', fill: '#94a3b8', label: 'Rejeté' },
+  en_attente: { color: '#ca8a04', fill: '#facc15', label: 'En attente' },
 }
 
 const CATEGORY_COLORS = {
@@ -1111,12 +1087,12 @@ export default function MapPage() {
     // Étape 2 — Filtre selon le rôle
     if (user?.role === 'citoyen') {
       // Citoyen : Validées + Ses propres remarques
-      const isValidated = ['active', 'planning', 'urgent'].includes(p.status)
+      const isValidated = ['en_cours', 'resolu'].includes(p.status)
       const isMine = p.user_email === user.email
       return matchCity && matchCategory && (isValidated || isMine)
     } else if (user?.role === 'urbaniste') {
       // Urbaniste : Seulement Validées
-      const isValidated = ['active', 'planning', 'urgent'].includes(p.status)
+      const isValidated = ['en_cours', 'resolu'].includes(p.status)
       return matchCity && matchStatus && matchCategory && isValidated
     }
     // Admin voit tout
@@ -1516,7 +1492,7 @@ export default function MapPage() {
         />
 
         {filteredParcels.map(parcel => {
-          const statusCfg = STATUS_COLORS[parcel.status] || STATUS_COLORS.pending
+          const statusCfg = STATUS_COLORS[parcel.status] || STATUS_COLORS.en_attente
           const categoryColor = CATEGORY_COLORS[parcel.building_type] || '#94a3b8'
           const hasVoted = votedParcels.includes(parcel.id)
           const isSelected = selectedParcel && selectedParcel.id === parcel.id
@@ -1531,7 +1507,7 @@ export default function MapPage() {
                 fillColor: hasVoted ? '#d1d5db' : markerColor,
                 fillOpacity: 0.04,
                 weight: 2.5,
-                className: parcel.status === 'urgent' ? 'zone-urgent' : parcel.status === 'active' ? 'zone-active' : '',
+                className: '',
               }}
               eventHandlers={{ click: () => handleParcelClick(parcel) }} />
           )

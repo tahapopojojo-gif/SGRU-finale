@@ -341,35 +341,11 @@ const formStyles = {
 
 // Custom styles removed since they were for the old navbarObject.assign(styles, customStyles);
 
-const MOCK_PARCELS = [
-  {
-    id: 1, name: 'Parcelle A - Zone Gueliz', city: 'marrakesh', region: 'gueliz',
-    status: 'urgent', deadline: '5 jours restants', votes: 23,
-    positions: [[31.6295, -8.0083], [31.6315, -8.0083], [31.6315, -8.0063], [31.6295, -8.0063]],
-  },
-  {
-    id: 2, name: 'Parcelle B - Zone Hivernage', city: 'marrakesh', region: 'hivernage',
-    status: 'active', deadline: '18 jours restants', votes: 45,
-    positions: [[31.6250, -8.0120], [31.6270, -8.0120], [31.6270, -8.0100], [31.6250, -8.0100]],
-  },
-  {
-    id: 3, name: 'Zone Sidi Maarouf', city: 'casablanca', region: 'sidi maarouf',
-    status: 'planning', deadline: 'Projet futur', votes: 8,
-    positions: [[33.5350, -7.6350], [33.5370, -7.6350], [33.5370, -7.6330], [33.5350, -7.6330]],
-  },
-  {
-    id: 4, name: 'Zone Agdal', city: 'rabat', region: 'agdal',
-    status: 'urgent', deadline: '2 jours restants', votes: 112,
-    positions: [[34.0050, -6.8500], [34.0070, -6.8500], [34.0070, -6.8480], [34.0050, -6.8480]],
-  },
-]
-
 const STATUS_COLORS = {
-  urgent: { color: '#dc2626', fill: '#ef4444', label: 'Urgent' },
-  active: { color: '#d97706', fill: '#f59e0b', label: 'Actif' },
-  planning: { color: '#16a34a', fill: '#22c55e', label: 'Planifié' },
-  pending: { color: '#ca8a04', fill: '#facc15', label: 'En attente' },
-  rejected: { color: '#64748b', fill: '#94a3b8', label: 'Rejeté' },
+  en_cours: { color: '#d97706', fill: '#f59e0b', label: 'En cours' },
+  resolu: { color: '#16a34a', fill: '#22c55e', label: 'Résolu' },
+  rejete: { color: '#64748b', fill: '#94a3b8', label: 'Rejeté' },
+  en_attente: { color: '#ca8a04', fill: '#facc15', label: 'En attente' },
 }
 
 const CATEGORY_COLORS = {

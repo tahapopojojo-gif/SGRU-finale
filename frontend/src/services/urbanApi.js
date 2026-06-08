@@ -10,10 +10,10 @@ export const getZonesWithStats = async () => {
 
 // ─── REMARQUES ───────────────────────────────────────────────────────────────
 
-// GET /api/remarques?statut=en_cours (only in-progress remarks)
+// GET /api/remarques (filterable by statut, zone_id, etc.)
 export const getValidatedRemarks = async (params = {}) => {
   const response = await axiosInstance.get('/remarques', {
-    params: { statut: 'en_cours', ...params },
+    params,
   });
   return response.data.data || response.data;
 };

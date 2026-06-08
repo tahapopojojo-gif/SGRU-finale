@@ -135,10 +135,10 @@ const Navbar = ({
 
             {/* Status Filter Pills for Admin and Urbaniste */}
             {['admin', 'urbaniste'].includes(user?.role) && [
-              { value: 'all',      label: 'Tous', color: 'transparent' },
-              { value: 'urgent',   label: 'Urgent', color: '#dc2626' },
-              { value: 'active',   label: 'Actif', color: '#d97706' },
-              { value: 'planning', label: 'Planifié', color: '#16a34a' },
+              { value: 'all',      label: 'Tous',    color: 'transparent' },
+              { value: 'en_cours', label: 'En cours', color: '#d97706' },
+              { value: 'resolu',   label: 'Résolu',   color: '#16a34a' },
+              { value: 'rejete',   label: 'Rejeté',   color: '#64748b' },
             ].map(f => (
               <button
                 key={f.value}

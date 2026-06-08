@@ -992,7 +992,7 @@ const CATEGORY_LABELS = {
 
 To add a new chart or report page:
 
-1. **Fetch data:** Call `getValidatedRemarks({ statut: 'en_cours', ville: 'Marrakesh' })` from `urbanApi.js`, or use `adminApi.getDashboardStats()` for aggregates
+1. **Fetch data:** Call `getValidatedRemarks({ ville: 'Marrakesh' })` from `urbanApi.js`, or use `adminApi.getDashboardStats()` for aggregates
 2. **Normalize:** Each remark has all needed fields directly (no nested unwrapping needed for basic fields). For exports, use `normalizeRemarkRow(remark, zones, city)` from `exportService.js`
 3. **Compute:** Use native JS `Array.reduce()`, `Array.filter()`, etc. — all stats are computed client-side
 4. **Render:** Use `recharts` components (`BarChart`, `PieChart`, `AreaChart`, `LineChart`) with the dark theme palette
@@ -1028,3 +1028,13 @@ const CHART_COLORS = {
 - **Analytics data source:** The `getUrbanStatsByZone()` function in `urbanApi.js` computes all statistics from raw remark data on the frontend (category/urgency/duration/profile breakdowns, temporal trends, affected groups from `reasons` array). The backend `DashboardController::stats()` only provides aggregate counts (total by statut/zone/category). For detailed analytics, fetch remarks via `GET /remarques` and compute client-side.
 - **Data normalization:** `exportService.js` uses `normalizeRemarkRow()` to flatten remarks into export rows. The CSV headers are: `reference, date, latitude, longitude, category, urgency, duration, description, profile, reasons, zone_name, photo_url`.
 - **Phantom fields (historical):** The frontend previously accessed `reporter_profile`, `affected_groups`, `zone_nom` (flat), and `category` (English) as fallback fields that don't exist in the DB. All have been migrated to use the correct DB field names: `profile`, `reasons`, `zone.nom` (nested relation), and `categorie` (French).
+- **Statut audit cleanup (2026-06-08):** After changing the remark statut lifecycle to `en_attente → en_cours → resolu / rejete` and removing `validee`/`planifie`/`urgent`/`active`/`planning` from the system, an audit found stale references in several components. All have been cleaned:
+  - `Navbar.jsx` filter pills updated to use `en_cours`/`resolu`/`rejete`
+  - `MapPage.jsx` and `CitizenMapPage.jsx` `STATUS_COLORS` updated
+  - `MapPage.jsx` dead `MOCK_PARCELS` removed
+  - `MapPage.jsx` `isValidated` checks use `['en_cours', 'resolu']`
+  - `urbanApi.js` `getValidatedRemarks()` no longer hardcodes `statut: 'en_cours'`
+  - `pdfService.js` now reads `remarque.statut` dynamically instead of hardcoded "En attente de traitement"
+  - `UDComponents.jsx` orphaned `urgent` entry removed, fallback changed to `configs.en_cours`
+  - `index.css` orphaned `@keyframes urgentPulse`/`activeBreathe` + `.zone-urgent`/`.zone-active` removed
+  - `ValidationPanel.jsx` and `RemarquesTable.jsx` are dead code (not imported anywhere) — left in place but unused

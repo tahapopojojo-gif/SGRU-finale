@@ -198,9 +198,8 @@ export function StatusBadge({ status }) {
     en_cours:   { label: '🔄 En cours',  cls: 'rgba(59,130,246,0.4)', color: 'rgba(59,130,246,0.7)', bg: 'rgba(59,130,246,0.07)' },
     resolu:     { label: '✓ Résolu',     cls: 'rgba(82,190,128,0.4)', color: 'rgba(82,190,128,0.8)', bg: 'rgba(82,190,128,0.07)' },
     rejete:     { label: '❌ Rejetée',   cls: 'rgba(239,68,68,0.4)',  color: 'rgba(239,68,68,0.7)',  bg: 'rgba(239,68,68,0.07)' },
-    urgent:     { label: '🔴 Urgent',    cls: 'rgba(239,68,68,0.4)',  color: 'rgba(239,68,68,0.8)',  bg: 'rgba(239,68,68,0.08)' },
   }
-  const cfg = configs[status] || configs.en_attente
+  const cfg = configs[status] || configs.en_cours
   return (
     <span style={{
       fontSize: '10px', padding: '2px 8px',
