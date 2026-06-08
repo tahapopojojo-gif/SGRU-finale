@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { analyzeOpinion } from '../services/aiService'
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap, useMapEvents, Circle, CircleMarker, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -1067,11 +1067,14 @@ export default function MapPage() {
     setSelectedParcel(null)
   }
 
-  // ─── Onboarding tour ─────────────────────────────────────────────────
+  // ─── Onboarding tour — only on first login ─────────────────────────
+  const markTourSeen = useCallback(() => {
+    localStorage.setItem('urbanmap_tour_done', 'true')
+  }, [])
+
   useEffect(() => {
     if (user?.role !== 'citoyen') return
-    const hasSeenTour = localStorage.getItem('urbanmap_tour_done')
-    if (hasSeenTour) return
+    if (localStorage.getItem('urbanmap_tour_done')) return
 
     const driver = new Driver({
       animate: true,
@@ -1083,7 +1086,8 @@ export default function MapPage() {
       closeBtnText: 'Passer',
       nextBtnText: 'Suivant →',
       prevBtnText: '← Précédent',
-      onReset: () => localStorage.setItem('urbanmap_tour_done', 'true'),
+      onReset: markTourSeen,
+      onDestroyed: markTourSeen,
       steps: [
         {
           element: '#map-container',
@@ -1131,6 +1135,7 @@ export default function MapPage() {
             title: 'Vous êtes prêt !',
             description: 'Commencez par signaler un problème près de chez vous.',
             position: 'top',
+            onClose: markTourSeen,
           },
         },
       ],
@@ -1138,7 +1143,7 @@ export default function MapPage() {
 
     const timer = setTimeout(() => driver.drive(), 1500)
     return () => clearTimeout(timer)
-  }, [user])
+  }, [user, markTourSeen])
 
   const restartTour = () => {
     localStorage.removeItem('urbanmap_tour_done')

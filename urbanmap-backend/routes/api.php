@@ -9,8 +9,8 @@ use App\Http\Controllers\Api\ZoneController;
 use App\Http\Controllers\Api\ZoneSummaryController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 Route::get('/zones', [ZoneController::class, 'index']);
 Route::get('/remarques', [RemarqueController::class, 'index']); // Public — citizens see community pins without login
 
