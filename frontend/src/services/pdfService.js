@@ -12,11 +12,9 @@ const CAT_LABELS = {
 };
 
 const STATUT_LABELS = {
-  urgent: 'Urgent',
-  actif: 'Actif',
-  planifie: 'Planifié',
-  validee: 'Validée',
   en_attente: 'En attente',
+  en_cours: 'En cours',
+  resolu: 'Résolu',
   rejete: 'Rejeté'
 };
 

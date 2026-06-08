@@ -228,7 +228,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
       const safeRemarks = Array.isArray(remarks) 
         ? remarks.map(r => ({
             ...r,
-            categorie: (r.categorie || r.category || 'autre').toLowerCase().trim()
+            categorie: (r.categorie || 'autre').toLowerCase().trim()
           }))
         : [];
 
@@ -374,7 +374,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
       // Profiles breakdown
       const profiles = { "resident": 0, "conducteur": 0, "pieton": 0, "commercant": 0, "passant": 0 };
       activeRemarks.forEach(r => {
-        const prof = r.profile || r.reporter_profile;
+        const prof = r.profile;
         if (prof && profiles[prof] !== undefined) {
           profiles[prof]++;
         }
@@ -383,7 +383,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
       // Affected groups breakdown
       const affected = {};
       activeRemarks.forEach(r => {
-        const groups = r.affected_groups || r.reasons || [];
+        const groups = r.reasons || [];
         if (Array.isArray(groups)) {
           groups.forEach(g => {
             affected[g] = (affected[g] || 0) + 1;

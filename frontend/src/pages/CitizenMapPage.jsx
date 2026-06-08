@@ -26,6 +26,37 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
+function isPointInPolygon(lat, lng, polygon) {
+  let inside = false;
+  const n = polygon.length;
+  let j = n - 1;
+
+  for (let i = 0; i < n; i++) {
+    const xi = polygon[i][0];
+    const yi = polygon[i][1];
+    const xj = polygon[j][0];
+    const yj = polygon[j][1];
+
+    const intersect =
+      yi > lng !== yj > lng &&
+      lat < ((xj - xi) * (lng - yi)) / (yj - yi) + xi;
+
+    if (intersect) inside = !inside;
+    j = i;
+  }
+
+  return inside;
+}
+
+function detectZoneForPoint(lat, lng, zones) {
+  for (const zone of zones) {
+    if (isPointInPolygon(lat, lng, zone.coordonnees_geojson)) {
+      return { zone_id: zone.id, zone_nom: zone.nom };
+    }
+  }
+  return { zone_id: null, zone_nom: null };
+}
+
 // Local city center fallback (kept for heatmap/zone lookups)
 const CITY_CENTERS = {
   casablanca: { center: [33.5731, -7.5898], zoom: 13 },
@@ -433,11 +464,13 @@ function UserLocationMarker({ position }) {
   )
 }
 
-function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole }) {
+function InteractionManager({ mode, onShapeCreated, setMode, isActive, userRole, zones }) {
   const map = useMapEvents({
     click(e) {
       if (mode === 'marker' && isActive) {
-        onShapeCreated('marker', [e.latlng.lat, e.latlng.lng])
+        const { lat, lng } = e.latlng;
+        const zoneMatch = detectZoneForPoint(lat, lng, zones);
+        onShapeCreated('marker', [lat, lng], zoneMatch);
       }
     }
   })
@@ -968,11 +1001,11 @@ export default function MapPage() {
     const matchCategory = filterCategory === 'all' ? true : p.building_type === filterCategory
 
     if (user?.role === 'citoyen') {
-      const isValidated = ['validee', 'active', 'planning', 'urgent'].includes(p.statut)
+      const isValidated = ['en_cours', 'resolu'].includes(p.statut)
       const isMine = p.user?.email === user.email
       return matchCategory && (isValidated || isMine)
     } else if (user?.role === 'urbaniste') {
-      const isValidated = ['validee', 'active', 'planning', 'urgent'].includes(p.statut)
+      const isValidated = ['en_cours', 'resolu'].includes(p.statut)
       return matchStatus && matchCategory && isValidated
     }
     return matchStatus && matchCategory
@@ -1018,7 +1051,9 @@ export default function MapPage() {
     try {
       const problemLabel = formValues.problem_label || formValues.problem_type
       const formData = new FormData();
-      formData.append('zone_id', selectedParcel.zone_id || '');
+      if (selectedParcel.zone_id) {
+        formData.append('zone_id', selectedParcel.zone_id);
+      }
       formData.append('categorie', formValues.problem_type);
       formData.append('building_type', formValues.problem_type);
       formData.append('urgency', formValues.urgency);
@@ -1037,7 +1072,11 @@ export default function MapPage() {
 
       fetchData();
       setSubmitted(true);
-      toast.success('Remarque soumise avec succès');
+      toast.success(
+        selectedParcel.zone_nom
+          ? `Signalement envoyé — assigné à la zone ${selectedParcel.zone_nom} ✓`
+          : 'Signalement envoyé — aucune zone correspondante, un admin l\'examinera ✓'
+      );
       if (formValues.opinion_ai_validated) {
         toast.info("Avis analysé par l'IA");
       }
@@ -1540,6 +1579,7 @@ export default function MapPage() {
           setMode={setDrawMode}
           isActive={!selectedParcel}
           userRole={user?.role}
+          zones={zones}
         />
 
         {filteredParcels.map(parcel => {

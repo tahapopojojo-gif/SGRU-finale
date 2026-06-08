@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Mail\AccountStatusChangedMailable;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -26,12 +27,21 @@ class UserController extends Controller
     {
         $payload = request()->validate([
             'statut' => ['sometimes', Rule::in(['pending', 'active', 'rejected'])],
-            'role' => ['sometimes', Rule::in(['super_admin', 'admin', 'urbaniste', 'citoyen'])],
             'company_name' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $oldStatut = $user->statut;
         $user->update($payload);
+
+        // Send email notification for any statut change
+        if ($oldStatut !== $user->statut) {
+            try {
+                Mail::to($user->email)->queue(new AccountStatusChangedMailable($user, $oldStatut, $user->statut));
+            } catch (\Exception $e) {
+                Log::error("Failed to queue status change email to {$user->email}: " . $e->getMessage());
+            }
+        }
 
         return response()->json(['data' => $user->fresh()]);
     }

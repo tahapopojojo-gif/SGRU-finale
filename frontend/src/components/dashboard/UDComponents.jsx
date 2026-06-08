@@ -194,10 +194,10 @@ export function UDDivider() {
 
 export function StatusBadge({ status }) {
   const configs = {
-    validee:    { label: '✅ Validée',   cls: 'rgba(82,190,128,0.4)',  color: 'rgba(82,190,128,0.8)',  bg: 'rgba(82,190,128,0.07)' },
     en_attente: { label: '⏳ En attente',cls: 'rgba(245,158,11,0.4)', color: 'rgba(245,158,11,0.7)', bg: 'rgba(245,158,11,0.07)' },
+    en_cours:   { label: '🔄 En cours',  cls: 'rgba(59,130,246,0.4)', color: 'rgba(59,130,246,0.7)', bg: 'rgba(59,130,246,0.07)' },
+    resolu:     { label: '✓ Résolu',     cls: 'rgba(82,190,128,0.4)', color: 'rgba(82,190,128,0.8)', bg: 'rgba(82,190,128,0.07)' },
     rejete:     { label: '❌ Rejetée',   cls: 'rgba(239,68,68,0.4)',  color: 'rgba(239,68,68,0.7)',  bg: 'rgba(239,68,68,0.07)' },
-    planifie:   { label: '🔵 Planifiée', cls: 'rgba(93,173,226,0.4)', color: 'rgba(93,173,226,0.7)', bg: 'rgba(93,173,226,0.07)' },
     urgent:     { label: '🔴 Urgent',    cls: 'rgba(239,68,68,0.4)',  color: 'rgba(239,68,68,0.8)',  bg: 'rgba(239,68,68,0.08)' },
   }
   const cfg = configs[status] || configs.en_attente

@@ -23,7 +23,7 @@ class UpdateRemarqueRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'statut' => ['sometimes', Rule::in(['en_attente', 'validee', 'rejete', 'planifie'])],
+            'statut' => ['sometimes', Rule::in(['en_attente', 'en_cours', 'resolu', 'rejete'])],
             'commentaire_admin' => ['nullable', 'string'],
         ];
     }

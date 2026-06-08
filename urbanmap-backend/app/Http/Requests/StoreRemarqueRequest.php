@@ -25,7 +25,7 @@ class StoreRemarqueRequest extends FormRequest
         return [
             'zone_id' => ['nullable', 'exists:zones,id'],
             'categorie' => ['required', 'string', 'max:255'],
-            'statut' => ['nullable', Rule::in(['en_attente', 'validee', 'rejete', 'planifie'])],
+            'statut' => ['nullable', Rule::in(['en_attente', 'en_cours', 'resolu', 'rejete'])],
             'building_type' => ['nullable', 'string', 'max:255'],
             'reasons' => ['required', 'array'],
             'problems' => ['required', 'array'],

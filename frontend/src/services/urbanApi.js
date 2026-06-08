@@ -10,10 +10,10 @@ export const getZonesWithStats = async () => {
 
 // ─── REMARQUES ───────────────────────────────────────────────────────────────
 
-// GET /api/remarques?statut=validee (only validated remarks)
+// GET /api/remarques?statut=en_cours (only in-progress remarks)
 export const getValidatedRemarks = async (params = {}) => {
   const response = await axiosInstance.get('/remarques', {
-    params: { statut: 'validee', ...params },
+    params: { statut: 'en_cours', ...params },
   });
   return response.data.data || response.data;
 };
@@ -113,7 +113,7 @@ export const getUrbanStatsByZone = async (zoneId, city) => {
   const byCategory = categories.map(cat => ({
     name: catLabels[cat],
     value: remarks.filter(r => {
-      const c = (r.categorie || r.category || 'autre').toLowerCase().trim();
+      const c = (r.categorie || 'autre').toLowerCase().trim();
       return c === cat;
     }).length,
     color: catColors[cat]
@@ -144,7 +144,7 @@ export const getUrbanStatsByZone = async (zoneId, city) => {
   const chronicPct = totalRemarks > 0 ? `${Math.round((chronicCount / totalRemarks) * 100)}%` : '0%';
 
   const catCounts = remarks.reduce((acc, r) => {
-    const c = (r.categorie || r.category || 'autre').toLowerCase().trim();
+    const c = (r.categorie || 'autre').toLowerCase().trim();
     acc[c] = (acc[c] || 0) + 1;
     return acc;
   }, {});
@@ -158,7 +158,7 @@ export const getUrbanStatsByZone = async (zoneId, city) => {
   // Calculate profile breakdown
   const profiles = { "resident": 0, "conducteur": 0, "pieton": 0, "commercant": 0, "passant": 0 };
   remarks.forEach(r => {
-    const prof = r.profile || r.reporter_profile;
+    const prof = r.profile;
     if (prof && profiles[prof] !== undefined) {
       profiles[prof]++;
     }
@@ -167,7 +167,7 @@ export const getUrbanStatsByZone = async (zoneId, city) => {
   // Calculate affected groups
   const affected = {};
   remarks.forEach(r => {
-    const groups = r.affected_groups || r.reasons || [];
+    const groups = r.reasons || [];
     if (Array.isArray(groups)) {
       groups.forEach(g => {
         affected[g] = (affected[g] || 0) + 1;

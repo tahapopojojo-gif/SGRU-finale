@@ -29,7 +29,7 @@ const DURATION_LABELS = {
 
 const CSV_HEADERS = [
   'reference', 'date', 'latitude', 'longitude', 'category', 'urgency', 'duration',
-  'description', 'reporter_profile', 'affected_groups', 'zone_name', 'photo_url',
+  'description', 'profile', 'reasons', 'zone_name', 'photo_url',
 ];
 
 const isValidCoords = (geojson) => (
@@ -111,8 +111,8 @@ export const normalizeRemarkRow = (remark, zones, city) => {
     urgency: remark.urgency ?? '',
     duration: DURATION_LABELS[durationKey] || durationKey || '',
     description: (remark.opinion || '').replace(/\s+/g, ' ').trim(),
-    reporter_profile: remark.profile || '',
-    affected_groups: getAffectedGroups(remark),
+    profile: remark.profile || '',
+    reasons: getAffectedGroups(remark),
     zone_name: resolveZoneName(remark, zones),
     photo_url: getPhotoUrl(remark),
   };

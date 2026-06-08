@@ -201,7 +201,7 @@ export default function AdminExportTab({ isActive = true }) {
   const byCategory = useMemo(() => {
     const counts = {};
     filteredRemarks.forEach(r => {
-      const cat = r.categorie || r.category || 'autre';
+      const cat = r.categorie || 'autre';
       counts[cat] = (counts[cat] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));

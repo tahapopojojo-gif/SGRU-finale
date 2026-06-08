@@ -128,7 +128,7 @@ export default function UrbanOpinionsTab({ aiSummary }) {
     if (!text) return false;
 
     // 2. Category filter
-    if (filterCategory !== 'all' && (op.categorie !== filterCategory && op.category !== filterCategory)) {
+    if (filterCategory !== 'all' && op.categorie !== filterCategory) {
       return false;
     }
     
@@ -142,8 +142,8 @@ export default function UrbanOpinionsTab({ aiSummary }) {
     // 4. Search query
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const cat = (op.categorie || op.category || '').toLowerCase();
-      const zone = (op.zone_nom || '').toLowerCase();
+      const cat = (op.categorie || '').toLowerCase();
+      const zone = (op.zone?.nom || '').toLowerCase();
       if (!text.includes(q) && !cat.includes(q) && !zone.includes(q)) return false;
     }
 
@@ -152,7 +152,7 @@ export default function UrbanOpinionsTab({ aiSummary }) {
 
   // Grouping logic
   const groupedOpinions = filteredOpinions.reduce((acc, op) => {
-    const cat = op.categorie || op.category || 'autre';
+    const cat = op.categorie || 'autre';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(op);
     return acc;
@@ -335,10 +335,10 @@ export default function UrbanOpinionsTab({ aiSummary }) {
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <ReporterProfileTag profile={op.profile || op.reporter_profile} />
+                        <ReporterProfileTag profile={op.profile} />
                         <DurationTag duration={op.residence_duration || op.duration} />
                         
-                        {isExpanded && op.affected_groups && (
+                        {isExpanded && op.reasons && (
                           <div style={{
                             display: 'flex', gap: '6px', marginTop: '4px',
                             width: '100%', padding: '8px 0',
@@ -347,7 +347,7 @@ export default function UrbanOpinionsTab({ aiSummary }) {
                             <span style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', textTransform: 'uppercase' }}>
                               Impactés:
                             </span>
-                            {(Array.isArray(op.affected_groups) ? op.affected_groups : [op.affected_groups]).map((g, i) => (
+                            {(Array.isArray(op.reasons) ? op.reasons : [op.reasons]).map((g, i) => (
                               <span key={i} style={{ fontSize: '11px', color: '#E8B87A' }}>
                                 {g.replace(/_/g, ' ')}
                               </span>

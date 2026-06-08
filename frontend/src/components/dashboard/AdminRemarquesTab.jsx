@@ -106,8 +106,8 @@ function DetailMiniMap({ lat, lng }) {
 }
 
 function RemarkDetailPanel({ remark, city, onClose, onCreateZone, panelRef }) {
-  const cat = getCategoryMeta(remark.categorie || remark.building_type || remark.category);
-  const zoneName = remark.zone?.nom || remark.zone_nom || null;
+  const cat = getCategoryMeta(remark.categorie || remark.building_type);
+  const zoneName = remark.zone?.nom || null;
   const lat = parseFloat(remark.latitude);
   const lng = parseFloat(remark.longitude);
   const hasCoords = !isNaN(lat) && !isNaN(lng);
@@ -357,7 +357,7 @@ const AdminRemarquesTab = ({ isActive = true, onCreateZoneAround }) => {
   };
 
   const getZoneLabel = (remark) => {
-    if (remark.zone?.nom || remark.zone_nom) return remark.zone?.nom || remark.zone_nom;
+    if (remark.zone?.nom) return remark.zone.nom;
     return 'Non assignée';
   };
 

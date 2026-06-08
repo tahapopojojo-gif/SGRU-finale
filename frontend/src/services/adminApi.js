@@ -62,7 +62,7 @@ export const getPendingUsers = async () => {
   return response.data.data || response.data;
 };
 
-// PATCH /api/users/{id} (approve / reject / change role)
+// PATCH /api/users/{id} (approve / reject / suspend — statut only, role is immutable)
 export const updateUser = async (userId, data) => {
   const response = await axiosInstance.patch(`/users/${userId}`, data);
   return response.data.data || response.data;

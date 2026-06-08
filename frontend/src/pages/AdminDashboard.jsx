@@ -148,36 +148,6 @@ export default function AdminDashboard() {
 
           {/* Right: actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Notification bell */}
-            <div style={{
-              width: '32px', height: '32px', borderRadius: '6px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '0.5px solid rgba(242,237,230,0.1)',
-              display: 'flex', alignItems: 'center',
-              justifyContent: 'center', cursor: 'pointer',
-              position: 'relative', transition: 'all 0.2s',
-            }}
-              onMouseEnter={e =>
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-              }
-              onMouseLeave={e =>
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-              }
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24"
-                fill="none" stroke="rgba(242,237,230,0.5)" strokeWidth="1.5">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              {/* Red dot */}
-              <div style={{
-                position: 'absolute', top: '5px', right: '5px',
-                width: '7px', height: '7px', borderRadius: '50%',
-                background: '#ef4444',
-                border: '1.5px solid #060403',
-              }} />
-            </div>
-
             {/* Export CSV ghost */}
             <button
               onClick={() => setActiveTab('export')}

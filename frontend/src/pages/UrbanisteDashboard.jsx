@@ -107,7 +107,7 @@ function DashboardInner() {
       dechets: 'Déchets', eau: 'Eau', transport: 'Transport', autre: 'Autre',
     };
     const catCounts = zoneRemarks.reduce((acc, r) => {
-      const c = (r.categorie || r.category || 'autre').toLowerCase().trim();
+      const c = (r.categorie || 'autre').toLowerCase().trim();
       acc[c] = (acc[c] || 0) + 1;
       return acc;
     }, {});
@@ -139,7 +139,7 @@ function DashboardInner() {
       passant: 'passants'
     };
     const profCounts = zoneRemarks.reduce((acc, r) => {
-      const p = (r.profile || r.reporter_profile || 'pieton').toLowerCase().trim();
+      const p = (r.profile || 'pieton').toLowerCase().trim();
       acc[p] = (acc[p] || 0) + 1;
       return acc;
     }, {});

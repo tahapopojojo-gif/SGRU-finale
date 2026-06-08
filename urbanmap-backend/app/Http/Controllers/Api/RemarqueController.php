@@ -47,6 +47,7 @@ class RemarqueController extends Controller
             $payload = $request->validated();
             $user = $request->user();
             $payload['user_id'] = $user->id;
+            $payload['statut'] = 'en_cours'; // Auto-validated on submission
 
             // Ensure both fields are set and synced
             if (empty($payload['building_type']) && !empty($payload['categorie'])) {

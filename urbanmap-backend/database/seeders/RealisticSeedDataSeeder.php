@@ -629,7 +629,7 @@ class RealisticSeedDataSeeder extends Seeder
                 'zone_id' => $zoneMap[$r['zone_name']],
                 'categorie' => $r['category'],
                 'building_type' => $r['category'],
-                'statut' => 'validee', // Needs to be validated to be visible for analysis
+                'statut' => 'en_cours', // Visible to citizens on the map
                 'reasons' => ['Signalement citoyen'],
                 'problems' => [$r['category']],
                 'urgency' => $r['urgency'],

@@ -16,6 +16,15 @@ const BUILDING_TYPES = [
   { value: 'other', label: '🔧 Autre' },
 ]
 
+const STATUT_CONFIG = {
+  en_attente: { label: 'En attente',  color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)',  border: 'rgba(245, 158, 11, 0.25)', icon: '⏳' },
+  en_cours:   { label: 'En cours',    color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.08)',  border: 'rgba(59, 130, 246, 0.25)', icon: '🔄' },
+  resolu:     { label: 'Résolu',      color: '#52BE80', bg: 'rgba(82, 190, 128, 0.08)', border: 'rgba(82, 190, 128, 0.25)', icon: '✓' },
+  rejete:     { label: 'Rejetée',     color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)',  border: 'rgba(239, 68, 68, 0.25)',  icon: '✗' },
+}
+
+const getStatutBadge = (statut) => STATUT_CONFIG[statut] || { label: statut || 'Inconnu', color: 'rgba(242,237,230,0.5)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(242,237,230,0.1)', icon: '?' }
+
 const getCategoryDetails = (value) => {
   const matched = BUILDING_TYPES.find(b => b.value === value)
   if (!matched) return { icon: '🔧', label: 'Autre' }
@@ -214,17 +223,25 @@ export default function AccountPage() {
             color: 'rgba(242, 237, 230, 0.4)',
             marginTop: '5px'
           }}>
-            {isAdminOrUrbaniste 
-              ? 'Gérez vos informations de console et suivez votre activité de gestion.'
-              : "Gérez vos informations personnelles et suivez vos signalements d'urbanisme."}
+            {user?.role === 'admin'
+              ? 'Gérez vos informations et suivez votre activité de gestion.'
+              : user?.role === 'urbaniste'
+              ? 'Gérez vos informations et suivez votre activité d\'analyse.'
+              : 'Gérez vos informations personnelles.'}
           </p>
         </div>
 
         {/* Content Layout */}
         <div className="account-grid" style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(300px, 1fr) 2fr',
+          gridTemplateColumns: user?.role === 'admin' || user?.role === 'urbaniste'
+            ? 'minmax(300px, 1fr) 2fr'
+            : '1fr',
           gap: '30px',
+          ...(user?.role !== 'admin' && user?.role !== 'urbaniste' && {
+            maxWidth: '500px',
+            margin: '0 auto',
+          }),
         }}>
           {/* Section 1 — Profile Card */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -378,7 +395,8 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* Section 2 — Right Panel (Conditional: Activity Panel vs My Reports) */}
+          {/* Section 2 — Right Panel (Activity Panel: admin, urbaniste, citoyen) */}
+          {user?.role !== 'super_admin' && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{
               background: 'rgba(8, 6, 3, 0.88)',
@@ -667,18 +685,23 @@ export default function AccountPage() {
                                 <span style={{ fontSize: '14px', fontWeight: 600, color: '#F2EDE6' }}>
                                   {cat.label}
                                 </span>
-                                <span style={{
-                                  background: 'rgba(82, 190, 128, 0.08)',
-                                  border: '0.5px solid rgba(82, 190, 128, 0.25)',
-                                  color: '#52BE80',
-                                  borderRadius: '100px',
-                                  padding: '2px 8px',
-                                  fontSize: '10px',
-                                  fontWeight: 600,
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  Reçu ✓
-                                </span>
+                                {(() => {
+                                  const s = getStatutBadge(report.statut)
+                                  return (
+                                    <span style={{
+                                      background: s.bg,
+                                      border: `0.5px solid ${s.border}`,
+                                      color: s.color,
+                                      borderRadius: '100px',
+                                      padding: '2px 8px',
+                                      fontSize: '10px',
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap',
+                                    }}>
+                                      {s.icon} {s.label}
+                                    </span>
+                                  )
+                                })()}
                               </div>
 
                               <div style={{
@@ -725,6 +748,7 @@ export default function AccountPage() {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

@@ -31,7 +31,7 @@ class UnassignedReportsSeeder extends Seeder
                 'zone_id' => null,
                 'categorie' => $r['category'],
                 'building_type' => $r['category'],
-                'statut' => 'validee',
+                'statut' => 'en_cours',
                 'reasons' => ['Signalement citoyen'],
                 'problems' => $r['affected_groups'],
                 'urgency' => $r['urgency'],

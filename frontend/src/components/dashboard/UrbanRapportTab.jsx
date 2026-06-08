@@ -47,7 +47,7 @@ const ZoneTemplate = ({ data }) => (
     {data.topUrgent?.length > 0 ? data.topUrgent.map((r, i) => (
       <div key={i} style={{ marginBottom: '10px', padding: '12px', border: '1px solid #eee', borderRadius: '6px', background: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-          <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{r.categorie?.toUpperCase() || r.category?.toUpperCase()}</span>
+          <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{r.categorie?.toUpperCase()}</span>
           <span style={{ color: '#EF4444', fontWeight: 'bold', fontSize: '11px' }}>URGENCE {r.urgency}/5</span>
         </div>
         <p style={{ fontSize: '12px', margin: 0, color: '#444' }}>"{r.opinion || r.description || r.texte}"</p>
@@ -205,7 +205,7 @@ export default function UrbanRapportTab() {
           const w = `Sem. ${Math.ceil(d.getDate() / 7)} ${d.toLocaleString('fr-FR', {month:'short'})}`;
           if (!weekly[w]) weekly[w] = { count: 0, cats: {} };
           weekly[w].count++;
-          const c = r.categorie || r.category || 'autre';
+          const c = r.categorie || 'autre';
           weekly[w].cats[c] = (weekly[w].cats[c] || 0) + 1;
         });
         data.weekly = Object.entries(weekly).map(([w, v]) => ({

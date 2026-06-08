@@ -512,7 +512,7 @@ export default function UrbanCarteTab({ onSwitchTab }) {
 
               {/* Report dots — ONLY inside official zones */}
               {visibleRemarks.map((r, i) => {
-                const cat = (r.categorie || r.category || 'autre').toLowerCase().trim();
+                const cat = (r.categorie || 'autre').toLowerCase().trim();
                 const isFiltered = activeCatFilter && cat !== activeCatFilter;
                 return (
                   <CircleMarker
@@ -529,7 +529,7 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                   >
                     <Tooltip direction="top" sticky>
                       <div style={{ fontSize: '11px', fontWeight: 600, color: '#060403', textTransform: 'capitalize' }}>
-                        {r.categorie || r.category || 'Autre'}
+                        {r.categorie || 'Autre'}
                       </div>
                       <div style={{ fontSize: '10px', color: '#374151' }}>
                         Urgence {r.urgency || 1}/5
