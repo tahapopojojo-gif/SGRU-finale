@@ -241,8 +241,8 @@ urbanmap-backend/
 **Public (no auth):**
 | Method | Path | Handler | Notes |
 |--------|------|---------|-------|
-| POST | `/register` | AuthController@register | Rate limited: 5/1min |
-| POST | `/login` | AuthController@login | Rate limited: 5/1min |
+| POST | `/register` | AuthController@register | |
+| POST | `/login` | AuthController@login | |
 | GET | `/zones` | ZoneController@index | |
 | GET | `/remarques` | RemarqueController@index | Public read |
 
@@ -317,8 +317,8 @@ urbanmap-backend/
 |---------|-------|
 | `LoginRequest` | email (required, email), password (required, string) |
 | `RegisterRequest` | nom, email (unique:users), password (min:6), role (in:[super_admin,admin,urbaniste,citoyen]), company_name (nullable), city (nullable) |
-| **`StoreRemarqueRequest`** | zone_id (nullable,exists:zones,id), categorie (required), statut (nullable,in:[...]), building_type (nullable), reasons (required,array), problems (required,array), urgency (required,1-5), duration (nullable), profile (nullable — defaults to 'citoyen'), residence_duration (nullable — defaults to 'non_renseigne'), opinion (required), photo (nullable,image,max:5120KB), latitude (required,numeric), longitude (required,numeric) |
-| `UpdateRemarqueRequest` | statut (sometimes,in:[...]), commentaire_admin (nullable,string) |
+| **`StoreRemarqueRequest`** | zone_id (nullable,exists:zones,id), categorie (required), statut (nullable,in:[en_attente,en_cours,resolu,rejete]), building_type (nullable), reasons (required,array), problems (required,array), urgency (required,1-5), duration (nullable), profile (nullable — defaults to 'citoyen'), residence_duration (nullable — defaults to 'non_renseigne'), opinion (required), photo (nullable,image,max:5120KB), latitude (required,numeric), longitude (required,numeric) |
+| `UpdateRemarqueRequest` | statut (sometimes,in:[en_attente,en_cours,resolu,rejete]), commentaire_admin (nullable,string) |
 | `StoreZoneRequest` | nom (required), ville (required), couleur (required), coordonnees_geojson (required,array), centre_lat (required,numeric), centre_lng (required,numeric), notes (nullable), remark_ids (sometimes,array,each:integer,exists) |
 | `StoreAnnotationRequest` | zone_id (required,exists), urbaniste_id (required,exists), texte (required), priorite (nullable,in:[urgente,surveiller,informatif]) |
 | `UpdateAnnotationRequest` | texte (required), priorite (nullable,in:[urgente,surveiller,informatif]) |
@@ -503,7 +503,7 @@ Routes:
 
 ### 3.3 Pages
 
-**`CitizenMapPage.jsx`** (~1910 lines) — The main citizen-facing map. Features:
+**`CitizenMapPage.jsx`** (~1815 lines) — The main citizen-facing map. Features:
 - Leaflet map with OpenStreetMap and satellite tile layers
 - City center fallback coordinates for 7 Moroccan cities
 - `MapController` — view centering, bounds enforcement, fly-to animation
@@ -519,7 +519,7 @@ Routes:
 - Driver.js onboarding tour (6 steps, triggered once via localStorage)
 - Live counter (signalements + zones count)
 
-**`MapPage.jsx`** (~1900 lines) — Professional/legacy map. Similar to CitizenMapPage but:
+**`MapPage.jsx`** (~1746 lines) — Professional/legacy map. Similar to CitizenMapPage but:
 - Uses `@turf/turf` for polygon overlap detection
 - 5-step FeedbackForm (building_type, reasons/opinion, urgency, problems, profile)
 - `HeatmapLayer` and `ZoneHeatmapLayer` via `leaflet.heat`
@@ -548,7 +548,7 @@ Routes:
 
 **`exportService.js`** — Export utilities: CSV export with BOM for Excel, Excel export via `xlsx` library, cross-tabulation matrix (Category × Zone), urgency breakdown sheet, zone summary statistics. Uses `normalizeRemarkRow()` to flatten remarks into export rows with computed fields (`category` label, `zone_name`, `profile`, `reasons`, `duration` label, photo URL).
 
-**`pdfService.js`** — PDF generation (currently unused by live components — `UrbanRapportTab` uses its own rendering).
+**`pdfService.js`** — PDF generation for zone reports and remark receipts. Uses `jspdf` + `jspdf-autotable`. Statut labels are dynamically read from `remarque.statut` via `STATUT_LABELS` map.
 
 ### 3.5 Context Providers
 
@@ -585,7 +585,7 @@ Routes:
 - **PDF export:** `jspdf` + `jspdf-autotable` + `html2canvas`.
 - **Excel export:** `xlsx` library.
 - **Skeletons:** Custom `SkeletonCard`, `SkeletonChart`, `SkeletonTable`, `SkeletonLoader`.
-- **Tour:** `driver.js` v1.4.0 (named export `{ driver }`, API: constructor with `steps` array, `.drive()` method).
+- **Tour:** `driver.js` v1.4.0 (named export `{ driver }`, API: constructor with `steps` array, `.drive()` method). Persistence via `localStorage.setItem('urbanmap_tour_done', 'true')` across 3 callbacks: `onReset`, `onDestroyed`, and last-step `popover.onClose`.
 
 ---
 
@@ -596,7 +596,7 @@ Routes:
 **Purpose:** Allow citizens to view urban reports on a map and submit new ones.
 
 **Key behaviors:**
-- Fetches all remarks from `GET /remarques` (public endpoint)
+- Fetches all remarks from `GET /remarques` (public endpoint, no statut filter — filtering is done client-side)
 - Fetches zones from `GET /zones`
 - Renders remarks as **colored CircleMarkers** (radius 5), color determined by `CATEGORY_COLORS` map (supports French aliases: route→#8B4513, eclairage→#FFD700, dechets→#2E8B57, eau→#1E90FF, parc→#228B22, transport→#6A5ACD)
 - Renders zones as **Polygon** outlines with `fillOpacity: 0.04`, color from zone data
@@ -846,10 +846,16 @@ Uses **Driver.js v1.4.0** (not older versions with `defineSteps`/`start` API). C
 import { driver as Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 
+const markTourSeen = useCallback(() => {
+  localStorage.setItem('urbanmap_tour_done', 'true')
+}, [])
+
 const driver = new Driver({
   animate: true,
   steps: [{ element: '#id', popover: { title, description, position } }],
-  onReset: () => localStorage.setItem('tour_done', 'true'),
+  onReset: markTourSeen,
+  onDestroyed: markTourSeen,                // fires when all steps complete
+  // last step can also have: onClose: markTourSeen,
 })
 driver.drive()  // NOT driver.start()
 ```
@@ -1028,6 +1034,8 @@ const CHART_COLORS = {
 - **Analytics data source:** The `getUrbanStatsByZone()` function in `urbanApi.js` computes all statistics from raw remark data on the frontend (category/urgency/duration/profile breakdowns, temporal trends, affected groups from `reasons` array). The backend `DashboardController::stats()` only provides aggregate counts (total by statut/zone/category). For detailed analytics, fetch remarks via `GET /remarques` and compute client-side.
 - **Data normalization:** `exportService.js` uses `normalizeRemarkRow()` to flatten remarks into export rows. The CSV headers are: `reference, date, latitude, longitude, category, urgency, duration, description, profile, reasons, zone_name, photo_url`.
 - **Phantom fields (historical):** The frontend previously accessed `reporter_profile`, `affected_groups`, `zone_nom` (flat), and `category` (English) as fallback fields that don't exist in the DB. All have been migrated to use the correct DB field names: `profile`, `reasons`, `zone.nom` (nested relation), and `categorie` (French).
+- **Login rate limit removed:** The `throttle:5,1` middleware was removed from `POST /login` and `POST /register` in `routes/api.php` during development to avoid 429 errors. Re-add if needed for production.
+- **Onboarding tour persistence:** Uses `useCallback` memoization + 3 Driver.js callbacks (`onReset`, `onDestroyed`, last-step `popover.onClose`) to reliably set `urbanmap_tour_done` in localStorage. Previously `onReset` alone was unreliable when completing all steps.
 - **Statut audit cleanup (2026-06-08):** After changing the remark statut lifecycle to `en_attente → en_cours → resolu / rejete` and removing `validee`/`planifie`/`urgent`/`active`/`planning` from the system, an audit found stale references in several components. All have been cleaned:
   - `Navbar.jsx` filter pills updated to use `en_cours`/`resolu`/`rejete`
   - `MapPage.jsx` and `CitizenMapPage.jsx` `STATUS_COLORS` updated
