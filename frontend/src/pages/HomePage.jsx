@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { User, Shield, Compass, Crown } from 'lucide-react'
+import { User, Shield, Compass, Maximize2 } from 'lucide-react'
 
 const R = '#C1440E', G = '#E8B87A', T = '#F2EDE6'
 const amiri = { fontFamily:"'Amiri',serif" }
@@ -46,11 +47,21 @@ function Navbar() {
         <Link to="/map" style={navLinkStyle}
           onMouseEnter={e=>e.target.style.color=G}
           onMouseLeave={e=>e.target.style.color='rgba(242,237,230,0.65)'}>Carte Publique</Link>
-        {['Signaler','Villes','À propos'].map(l=>(
-          <span key={l} style={navLinkStyle}
-            onMouseEnter={e=>e.target.style.color=G}
-            onMouseLeave={e=>e.target.style.color='rgba(242,237,230,0.65)'}>{l}</span>
-        ))}
+        <a href="#comment-ca-fonctionne" style={navLinkStyle}
+          onMouseEnter={e=>e.target.style.color=G}
+          onMouseLeave={e=>e.target.style.color='rgba(242,237,230,0.65)'}>
+          Signaler
+        </a>
+        <a href="#villes" style={navLinkStyle}
+          onMouseEnter={e=>e.target.style.color=G}
+          onMouseLeave={e=>e.target.style.color='rgba(242,237,230,0.65)'}>
+          Villes
+        </a>
+        <a href="#a-propos" style={navLinkStyle}
+          onMouseEnter={e=>e.target.style.color=G}
+          onMouseLeave={e=>e.target.style.color='rgba(242,237,230,0.65)'}>
+          À propos
+        </a>
       </div>
 
       {/* CTA */}
@@ -59,10 +70,26 @@ function Navbar() {
           color:T, padding:'8px 20px', borderRadius:6, fontSize:13, ...dm, textDecoration:'none' }}>
           Connexion
         </Link>
-        <Link to="/register" style={{ background:R, color:'#fff', padding:'8px 20px',
-          borderRadius:6, fontSize:13, ...dm, textDecoration:'none', fontWeight:500 }}
-          onMouseEnter={e=>e.currentTarget.style.background='#A8380C'}
-          onMouseLeave={e=>e.currentTarget.style.background=R}>
+        <Link to="/register" style={{
+          background:'transparent',
+          color:'#C1440E',
+          border:'0.5px solid #C1440E',
+          padding:'8px 20px',
+          borderRadius:6,
+          fontSize:13,
+          fontFamily:"'DM Sans',sans-serif",
+          textDecoration:'none',
+          fontWeight:500,
+          transition:'all .15s',
+        }}
+          onMouseEnter={e=>{
+            e.currentTarget.style.background='#C1440E'
+            e.currentTarget.style.color='#fff'
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.background='transparent'
+            e.currentTarget.style.color='#C1440E'
+          }}>
           Commencer →
         </Link>
       </div>
@@ -131,11 +158,29 @@ function Hero() {
           </p>
 
           <div style={{ display:'flex', gap:16 }}>
-            <Link to="/register" style={{ background:R, color:'#fff', padding:'14px 32px',
-              borderRadius:7, fontSize:13, fontWeight:500, textDecoration:'none', ...dm,
-              transition:'all .18s', display:'inline-block' }}
-              onMouseEnter={e=>{ e.currentTarget.style.background='#A8380C'; e.currentTarget.style.transform='translateY(-2px)' }}
-              onMouseLeave={e=>{ e.currentTarget.style.background=R; e.currentTarget.style.transform='translateY(0)' }}>
+            <Link to="/register" style={{
+              background:'transparent',
+              color:'#C1440E',
+              border:'0.5px solid #C1440E',
+              padding:'14px 32px',
+              borderRadius:7,
+              fontSize:13,
+              fontWeight:500,
+              textDecoration:'none',
+              fontFamily:"'DM Sans',sans-serif",
+              transition:'all .18s',
+              display:'inline-block',
+            }}
+              onMouseEnter={e=>{
+                e.currentTarget.style.background='#C1440E'
+                e.currentTarget.style.color='#fff'
+                e.currentTarget.style.transform='translateY(-2px)'
+              }}
+              onMouseLeave={e=>{
+                e.currentTarget.style.background='transparent'
+                e.currentTarget.style.color='#C1440E'
+                e.currentTarget.style.transform='translateY(0)'
+              }}>
               Soumettre un signalement
             </Link>
             <Link to="/map" style={{ border:'0.5px solid rgba(242,237,230,0.35)', background:'transparent',
@@ -165,7 +210,8 @@ function Hero() {
             <span style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
               background:'rgba(14,11,8,0.9)', border:'0.5px solid rgba(193,68,14,0.4)',
               borderRadius:6, padding:'6px 12px', fontSize:11, color:'rgba(242,237,230,0.8)',
-              cursor:'pointer', ...dm }}>⛶ Plein écran</span>
+              cursor:'pointer', ...dm }}>
+              <Maximize2 size={11} style={{flexShrink:0}} /> Plein écran</span>
           </div>
         </div>
       </div>
@@ -175,17 +221,48 @@ function Hero() {
 
 /* ─── STATS BAR ─── */
 function StatsBar() {
-  const stats=[{n:'3',l:'Villes actives'},{n:'1 240',l:'Citoyens engagés'},
-    {n:'486',l:'Signalements traités'},{n:'94%',l:'Modération par IA'},{n:'38',l:'Zones cartographiées'}]
+  const [data, setData] = useState({
+    citoyens: '—',
+    signalements: '—',
+    zones: '—',
+    villes: '—',
+  })
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/public-stats`)
+      .then(r => r.json())
+      .then(d => setData({
+        citoyens:     d.citoyens?.toLocaleString('fr-FR') || '—',
+        signalements: d.signalements?.toLocaleString('fr-FR') || '—',
+        zones:        d.zones?.toLocaleString('fr-FR') || '—',
+        villes:       d.villes?.toLocaleString('fr-FR') || '—',
+      }))
+      .catch(() => {})
+  }, [])
+
+  const stats = [
+    { n: data.villes,       l: 'Villes actives' },
+    { n: data.citoyens,     l: 'Citoyens engagés' },
+    { n: data.signalements, l: 'Signalements traités' },
+    { n: '94%',             l: 'Modération par IA' },
+    { n: data.zones,        l: 'Zones cartographiées' },
+  ]
+
   return (
-    <div style={{ borderTop:'1px solid rgba(242,237,230,0.08)', borderBottom:'1px solid rgba(242,237,230,0.08)' }}>
+    <div style={{
+      borderTop:'1px solid rgba(242,237,230,0.08)',
+      borderBottom:'1px solid rgba(242,237,230,0.08)'
+    }}>
       <div style={{ maxWidth:1152, margin:'0 auto', padding:'32px 48px',
         display:'flex' }}>
         {stats.map(({n,l},i)=>(
           <div key={l} style={{ flex:1, textAlign:'center', padding:'0 24px',
-            borderRight: i<stats.length-1 ? '1px solid rgba(242,237,230,0.1)' : 'none' }}>
-            <div style={{ ...amiri, fontSize:38, color:G }}>{n}</div>
-            <div style={{ ...dm, fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase',
+            borderRight: i<stats.length-1
+              ? '1px solid rgba(242,237,230,0.1)' : 'none' }}>
+            <div style={{ fontFamily:"'Amiri',serif", fontSize:38,
+              color:'#E8B87A' }}>{n}</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10,
+              letterSpacing:'0.12em', textTransform:'uppercase',
               color:'rgba(242,237,230,0.4)', marginTop:6 }}>{l}</div>
           </div>
         ))}
@@ -203,7 +280,7 @@ function HowItWorks() {
     {n:'04',t:'La ville agit',d:"L'admin valide les signalements, planifie les interventions et notifie les citoyens de l'avancement."},
   ]
   return (
-    <section style={{ position:'relative', zIndex:10 }}>
+    <section id="comment-ca-fonctionne" style={{ position:'relative', zIndex:10 }}>
       <div style={{ maxWidth:1152, margin:'0 auto', padding:'96px 48px' }}>
         <p style={{ ...dm, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:R, marginBottom:16 }}>
           Comment ça fonctionne
@@ -239,7 +316,6 @@ function Roles() {
     {bg:'rgba(193,68,14,0.15)',ic:'#C1440E',Icon:User,name:'Citoyen',desc:"Signalez des problèmes urbains géolocalisés et suivez leur statut en temps réel.",tag:'Accès public',to:'/register'},
     {bg:'rgba(26,82,118,0.25)',ic:'#5DADE2',Icon:Shield,name:'Administrateur',desc:"Gérez les zones, modérez les signalements et administrez le territoire assigné.",tag:'Accès restreint',to:null},
     {bg:'rgba(232,184,122,0.15)',ic:'#E8B87A',Icon:Compass,name:'Urbaniste',desc:"Analysez les heatmaps, synthétisez les données IA et générez des rapports professionnels.",tag:'Professionnel',to:null},
-    {bg:'rgba(39,174,96,0.12)',ic:'#52BE80',Icon:Crown,name:'Super Admin',desc:"Validez les comptes, auditez le système et supervisez l'ensemble de la plateforme.",tag:'Système',to:null},
   ]
   const cardBase={ background:'transparent', border:'0.5px solid rgba(242,237,230,0.1)',
     borderRadius:10, padding:28, cursor:'pointer', transition:'all .18s' }
@@ -249,7 +325,7 @@ function Roles() {
       <div style={{ maxWidth:1152, margin:'0 auto', padding:'80px 48px' }}>
         <p style={{ ...dm, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:R, marginBottom:16 }}>Accès par rôle</p>
         <h2 style={{ ...amiri, fontSize:42, color:T }}>Un outil pour chaque acteur de la ville</h2>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginTop:48 }}>
+        <div style={{ display:'grid',           gridTemplateColumns:'repeat(3,1fr)', gap:16, marginTop:48 }}>
           {roles.map(({bg,ic,Icon,name,desc,tag,to})=>{
             const card=(
               <div style={cardBase}
@@ -327,7 +403,7 @@ function Cities() {
     {name:'Fès · Bientôt',count:'En préparation',barColor:'rgba(242,237,230,0.1)',barW:'15%',pct:'—',fes:true},
   ]
   return (
-    <section style={{ background:'rgba(255,255,255,0.015)', borderTop:'1px solid rgba(242,237,230,0.06)' }}>
+    <section id="villes" style={{ background:'rgba(255,255,255,0.015)', borderTop:'1px solid rgba(242,237,230,0.06)' }}>
       <div style={{ maxWidth:1152, margin:'0 auto', padding:'80px 48px' }}>
         <p style={{ ...dm, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:R, marginBottom:16 }}>Villes actives</p>
         <h2 style={{ ...amiri, fontSize:42, color:T }}>Disponible à travers le Maroc</h2>
@@ -359,7 +435,7 @@ function Cities() {
 /* ─── FOOTER ─── */
 function Footer() {
   return (
-    <footer style={{ borderTop:'1px solid rgba(242,237,230,0.08)' }}>
+    <footer id="a-propos" style={{ borderTop:'1px solid rgba(242,237,230,0.08)' }}>
       <div style={{ maxWidth:1152, margin:'0 auto', padding:'48px 48px',
         display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <span style={{ ...amiri, fontSize:18, color:G }}>UrbanMap المغرب</span>
@@ -379,7 +455,7 @@ function Footer() {
 /* ─── PAGE ROOT ─── */
 export default function HomePage() {
   return (
-    <div style={{ background:'#0E0B08', color:T, minHeight:'100vh', overflowX:'hidden', ...dm }}>
+    <div style={{ background:'#0E0B08', color:T, minHeight:'100vh', overflowX:'hidden', scrollBehavior:'smooth', ...dm }}>
       {/* Zellige bg */}
       <div style={{ position:'fixed', inset:0, opacity:0.03, pointerEvents:'none', zIndex:0,
         backgroundImage:`url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23F2EDE6' stroke-width='0.5'%3E%3Cpolygon points='30,2 58,16 58,44 30,58 2,44 2,16'/%3E%3Cpolygon points='30,10 50,20 50,40 30,50 10,40 10,20'/%3E%3Cline x1='30' y1='2' x2='30' y2='10'/%3E%3Cline x1='58' y1='16' x2='50' y2='20'/%3E%3Cline x1='58' y1='44' x2='50' y2='40'/%3E%3Cline x1='30' y1='58' x2='30' y2='50'/%3E%3Cline x1='2' y1='44' x2='10' y2='40'/%3E%3Cline x1='2' y1='16' x2='10' y2='20'/%3E%3C/g%3E%3C/svg%3E")`

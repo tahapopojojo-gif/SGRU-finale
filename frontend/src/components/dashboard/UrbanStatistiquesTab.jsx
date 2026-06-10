@@ -143,7 +143,7 @@ const UrbanTableMemo = React.memo(({ data, selectedZoneId, isZoneSelected, style
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                color: zone.trendDir === 'up' ? '#ef4444' : zone.trendDir === 'down' ? '#22c55e' : '#94a3b8',
+                color: zone.trendDir === 'up' ? '#C1440E' : zone.trendDir === 'down' ? 'rgba(242,237,230,0.5)' : 'rgba(242,237,230,0.25)',
                 fontWeight: 600,
                 fontSize: '12px',
               }}>
@@ -486,7 +486,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
     chartSubtitle: { fontSize: isMobile ? '11px' : '12px', color: 'rgba(242,237,230,0.4)', margin: 0 },
     bottomRow: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '24px' },
     table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '400px' },
-    th: { padding: '12px 16px', borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)', color: 'rgba(242, 237, 230, 0.4)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase' },
+    th: { padding: '12px 16px', borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)', color: 'rgba(242, 237, 230, 0.4)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.07em', textTransform: 'uppercase' },
     td: { padding: '12px 16px', borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)', fontSize: '14px', color: '#F2EDE6', fontWeight: '500' },
     tr: (isHighlighted, color) => ({
       background: isHighlighted ? `${color}20` : 'transparent',
@@ -577,7 +577,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
         }} role="group" aria-label="Total Remarques">
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #C1440E, transparent)' }} />
           <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Total Remarques</div>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '28px', color: '#E8B87A', fontWeight: 500, lineHeight: 1 }}>{memoizedStats.totalRemarks}</div>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', color: '#E8B87A', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1 }}>{memoizedStats.totalRemarks}</div>
           <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>remarques validées</div>
         </div>
 
@@ -588,9 +588,9 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
           position: 'relative', overflow: 'hidden',
           transition: 'all 0.2s',
         }} role="group" aria-label="Cas Urgents">
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #ef4444, transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #C1440E, transparent)' }} />
           <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Cas Urgents</div>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '28px', color: '#E8B87A', fontWeight: 500, lineHeight: 1 }}>{memoizedStats.urgentCount}</div>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', color: '#E8B87A', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1 }}>{memoizedStats.urgentCount}</div>
           <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>nécessitent attention</div>
         </div>
 
@@ -603,7 +603,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
         }} role="group" aria-label="Urgence Moyenne">
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #E8B87A, transparent)' }} />
           <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Urgence Moyenne</div>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '28px', color: '#E8B87A', fontWeight: 500, lineHeight: 1 }}>{memoizedStats.avgUrgency} / 5</div>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', color: '#E8B87A', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1 }}>{memoizedStats.avgUrgency} / 5</div>
           <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>indice moyen</div>
         </div>
 
@@ -614,7 +614,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
           position: 'relative', overflow: 'hidden',
           transition: 'all 0.2s',
         }} role="group" aria-label="Catégorie Dominante">
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #52BE80, transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, rgba(242,237,230,0.2), transparent)' }} />
           <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Catégorie Dominante</div>
           <div style={{
             display: 'flex',
@@ -644,9 +644,9 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
           position: 'relative', overflow: 'hidden',
           transition: 'all 0.2s',
         }} role="group" aria-label="Durée Dominante">
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, #a855f7, transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '10px 10px 0 0', background: 'linear-gradient(90deg, rgba(242,237,230,0.15), transparent)' }} />
           <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Durée Dominante</div>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '15px', color: '#E8B87A', fontWeight: 600, marginTop: '8px', lineHeight: 1.2 }}>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, letterSpacing: '-0.01em', fontSize: '15px', color: '#E8B87A', marginTop: '8px', lineHeight: 1.2 }}>
             {memoizedStats.dominantDuration}
           </div>
           <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', marginTop: '5px' }}>problèmes de longue durée</div>
@@ -691,14 +691,14 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
                   fontFamily: 'DM Sans, sans-serif',
                   transition: 'all 0.2s',
                   border: period === key
-                    ? '0.5px solid #C1440E'
-                    : '0.5px solid rgba(242,237,230,0.12)',
+                    ? '0.5px solid rgba(193,68,14,0.7)'
+                    : '0.5px solid rgba(242,237,230,0.1)',
                   background: period === key
-                    ? 'rgba(193,68,14,0.15)'
-                    : 'rgba(255,255,255,0.03)',
+                    ? 'transparent'
+                    : 'transparent',
                   color: period === key
-                    ? '#F2EDE6'
-                    : 'rgba(242,237,230,0.4)',
+                    ? '#C1440E'
+                    : 'rgba(242,237,230,0.35)',
                 }}
               >
                 {label}
@@ -764,7 +764,7 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
             .map(([label, val]) => {
               const total = Object.values(stats.durations || {}).reduce((a, b) => a + b, 0);
               const pct = total > 0 ? Math.round((val / total) * 100) : 0;
-              const color = label.includes("an") || label.includes("toujours") ? "#a855f7" : "#3b82f6";
+              const color = label.includes("an") || label.includes("toujours") ? '#C1440E' : 'rgba(242,237,230,0.4)';
               return (
                 <div key={label} style={{ marginBottom: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>

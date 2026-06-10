@@ -275,7 +275,7 @@ function DashboardInner() {
       <div style={{
         background: 'rgba(8,6,3,0.96)',
         borderBottom: '0.5px solid rgba(242,237,230,0.07)',
-        padding: '20px 28px 0',
+        padding: isMobile ? '12px 16px 0' : '20px 28px 0',
         position: 'sticky', top: '52px', zIndex: 100,
         backdropFilter: 'blur(16px)',
       }}>
@@ -304,6 +304,7 @@ function DashboardInner() {
               <CityBadge />
             </span>
           </h1>
+          {!isMobile && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               onClick={() => setActiveTab('rapport')}
@@ -342,6 +343,7 @@ function DashboardInner() {
               <Sparkles size={13} /> Synthèse IA
             </button>
           </div>
+          )}
         </div>
 
         {/* Tab bar */}
@@ -386,7 +388,7 @@ function DashboardInner() {
               }}
             >
               <span style={{ opacity: activeTab === tab.id ? 1 : 0.5, display: 'flex' }}>{tab.icon}</span>
-              {tab.label}
+              {!isMobile && tab.label}
             </button>
           ))}
         </nav>
@@ -394,7 +396,7 @@ function DashboardInner() {
 
       {/* Body */}
       <div style={{
-        padding: '24px 28px',
+        padding: isMobile ? '12px 16px' : '24px 28px',
         paddingBottom: ['carte', 'rapport'].includes(activeTab) ? '16px' : '24px',
         position: 'relative', zIndex: 1,
       }}>

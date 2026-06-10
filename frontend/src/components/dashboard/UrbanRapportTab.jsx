@@ -7,7 +7,7 @@ import html2canvas from 'html2canvas';
 import SkeletonChart from '../SkeletonChart.jsx';
 import { unwrap } from '../../utils/unwrap';
 import { AiCard, SectionLabel } from './UDComponents';
-import { BarChart2, Building2, TrendingUp, Sparkles, Download, Eye, Loader } from 'lucide-react';
+import { BarChart2, Building2, TrendingUp, Sparkles, Download, Eye, Loader, X } from 'lucide-react';
 
 // ─── REPORT SUB-COMPONENTS ──────────────────────────────────────────────────
 
@@ -355,7 +355,9 @@ export default function UrbanRapportTab() {
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-        <button onClick={handleGeneratePDF} disabled={isGenerating} style={{ flex: 1, padding: '12px', background: '#C1440E', borderRadius: '8px', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={handleGeneratePDF} disabled={isGenerating} style={{ flex: 1, padding: '12px', background: 'transparent', border: '0.5px solid #C1440E', borderRadius: '8px', color: '#C1440E', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#C1440E'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#C1440E'; }}>
           {isGenerating
             ? <><Loader size={13} style={{ marginRight: '6px', animation: 'spin 1s linear infinite' }} /> Génération...</>
             : <><Download size={13} style={{ marginRight: '6px' }} /> Générer PDF</>
@@ -375,7 +377,7 @@ export default function UrbanRapportTab() {
           <div style={{ background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '900px', height: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '15px 25px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#000' }}>
               <h3 style={{ margin: 0 }}>Aperçu du Rapport - {reportData.name}</h3>
-              <button onClick={() => setShowPreview(false)} style={{ cursor: 'pointer', fontSize: '20px', border: 'none', background: 'none' }}>✕</button>
+              <button onClick={() => setShowPreview(false)} style={{ cursor: 'pointer', fontSize: '20px', border: 'none', background: 'none' }}><X size={16} /></button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '30px', background: '#eee' }}>
               <div style={{ background: '#fff', margin: '0 auto', width: '210mm', minHeight: '297mm', boxShadow: '0 5px 15px rgba(0,0,0,0.2)' }}>

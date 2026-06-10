@@ -1,6 +1,6 @@
 # UrbanMap Maroc — Full Project Documentation
 
-> **Purpose:** A civic-tech platform for Moroccan cities (initially Marrakesh) where citizens report urban problems (roads, lighting, waste, water, parks, transport) and authorities manage them via a dashboard.
+> **Purpose:** A civic-tech platform for Moroccan cities where citizens report urban problems (roads, lighting, waste, water, parks, transport) and authorities manage them via a dashboard.
 >
 > **Stack:** Laravel 12 (backend API) + React 19 / Vite (frontend SPA) + SQLite (dev) + Leaflet (maps) + SMTP/Gmail (email).
 >
@@ -28,7 +28,7 @@
 
 ### 0.1 What Is This App?
 
-UrbanMap Maroc is a **civic-tech platform** that connects citizens with urban authorities. Citizens report problems in their city (potholes, broken streetlights, garbage, water leaks, etc.) via an interactive map, and urban planners ("urbanistes") and administrators review, manage, and resolve those reports. It is designed specifically for Moroccan cities, starting with **Marrakesh**.
+UrbanMap Maroc is a **civic-tech platform** that connects citizens with urban authorities across **24+ Moroccan cities** (Casablanca, Rabat, Marrakech, Fès, Tanger, Agadir, etc.). Citizens report problems in their city (potholes, broken streetlights, garbage, water leaks, etc.) via an interactive map, and urban planners ("urbanistes") and administrators review, manage, and resolve those reports.
 
 ### 0.2 Why Does It Exist?
 
@@ -79,7 +79,7 @@ Status changed to "resolu" or "rejete" → Email notification sent to citizen
 - **Zones:** City districts defined as polygon coordinates on the map. Each remark is optionally linked to a zone (zone_id).
 - **Statut lifecycle (2026-06-08 cleanup):** `en_attente → en_cours → resolu / rejete`. Removed old states: `validee`, `planifie`, `urgent`, `active`, `planning`.
 - **Validation:** No separate "validation" step — remarks are auto-validated with statut `en_cours` on submission.
-- **City data:** All entities reference a city (ville). Currently only "Marrakesh" is seeded. The city bounds config is in `cityBounds.js`.
+- **City data:** The frontend (Register.jsx) ships with **24+ cities** across 5 regions (Nord, Centre, Sud, Oriental, Souss-Massa). City bounds config is in `cityBounds.js`. The backend seeds focus on Marrakesh, but the architecture is city-agnostic.
 
 ### 0.6 Credentials (Dev)
 
@@ -374,14 +374,24 @@ frontend/
 │   │   ├── CitizenMapPage.jsx      ← Public map (citizen report flow + tour)
 │   │   ├── MapPage.jsx             ← Professional map (urbaniste/admin)
 │   │   ├── Login.jsx               ← Login form
-│   │   ├── Register.jsx            ← Registration form
+│   │   ├── Register.jsx            ← Registration form (3-step wizard)
 │   │   ├── HomePage.jsx            ← Landing/role selector
 │   │   ├── AdminDashboard.jsx      ← Admin dashboard (tabs)
 │   │   ├── UrbanisteDashboard.jsx  ← Urbaniste dashboard (tabs)
-│   │   └── SuperAdminPage.jsx      ← Super admin oversight
+│   │   ├── SuperAdminPage.jsx      ← Super admin oversight
+│   │   ├── AccountPage.jsx         ← User account settings
+│   │   ├── ForgotPassword.jsx      ← Password reset request
+│   │   └── NotFound.jsx            ← 404 page
 │   ├── components/
 │   │   ├── Navbar.jsx              ← Top navigation bar
 │   │   ├── Toast.jsx               ← Toast notification system
+│   │   ├── EmptyState.jsx          ← Empty state placeholder
+│   │   ├── ErrorBoundary.jsx       ← React error boundary
+│   │   ├── ProtectedRoute.jsx      ← Auth + role gate wrapper
+│   │   ├── SkeletonCard.jsx        ← Card skeleton loader
+│   │   ├── SkeletonChart.jsx       ← Chart skeleton loader
+│   │   ├── SkeletonLoader.jsx      ← Generic skeleton loader
+│   │   ├── SkeletonTable.jsx       ← Table skeleton loader
 │   │   ├── admin/
 │   │   │   └── AdminUsersTab.jsx   ← User management tab (admin)
 │   │   ├── dashboard/
@@ -394,32 +404,49 @@ frontend/
 │   │   │   ├── UrbanOpinionsTab.jsx
 │   │   │   ├── UrbanAnnotationsTab.jsx
 │   │   │   ├── UrbanRapportTab.jsx
-│   │   │   └── (ValidationPanel.jsx (dead code))
-│   │   │   └── (RemarquesTable.jsx (dead code))
+│   │   │   ├── ValidationPanel.jsx (dead code)
+│   │   │   ├── RemarquesTable.jsx (dead code)
+│   │   │   ├── HeatmapPanel.jsx
+│   │   │   ├── AnnotationPanel.jsx
+│   │   │   ├── UDComponents.jsx
+│   │   │   ├── StatsCards.jsx
+│   │   │   ├── ZoneManagement.jsx
+│   │   │   └── UserManagement.jsx
 │   │   ├── ui/
+│   │   │   ├── Avatar.jsx
+│   │   │   ├── Badge.jsx
 │   │   │   ├── Button.jsx
+│   │   │   ├── Card.jsx
+│   │   │   ├── Input.jsx
 │   │   │   ├── Modal.jsx
 │   │   │   ├── Select.jsx
-│   │   │   └── Spinner.jsx
+│   │   │   ├── Spinner.jsx
+│   │   │   └── Tooltip.jsx
 │   │   └── layout/
 │   │       ├── DashboardLayout.jsx
-│   │       └── Sidebar.jsx
+│   │       ├── Sidebar.jsx
+│   │       └── PageHeader.jsx
 │   ├── services/
 │   │   ├── api.js                  ← Axios instance (base URL, auth interceptor)
+│   │   ├── axiosInstance.js        ← Axios instance (alternative, used for file uploads)
 │   │   ├── adminApi.js             ← Admin-specific API calls
 │   │   ├── urbanApi.js             ← Urbaniste-specific API calls
 │   │   ├── exportService.js        ← Excel/CSV export utilities
 │   │   ├── pdfService.js           ← PDF generation
-│   │   └── aiService.js            ← AI opinion analysis
+│   │   ├── aiService.js            ← AI opinion analysis
+│   │   ├── errorHandler.js         ← Centralized error handling
+│   │   └── validationService.js    ← Form validation utilities
 │   ├── context/
-│   │   └── AuthContext.jsx         ← Auth state provider
+│   │   ├── AuthContext.jsx         ← Auth state provider
+│   │   ├── ToastContext.jsx        ← Toast notifications provider
+│   │   └── UrbanZoneContext.jsx    ← Urban zone state provider
 │   ├── hooks/
 │   │   ├── useAuth.js              ← Auth hook
 │   │   ├── useToast.js             ← Toast hook
-│   │   └── usePaginator.js         ← Pagination logic
+│   │   └── useResponsive.js        ← Responsive breakpoint hook
 │   ├── utils/
 │   │   ├── cityBounds.js           ← Map bounds per city
-│   │   ├── exportUtils.js          ← Export helpers
+│   │   ├── cityCoordinates.js      ← City center coordinates
 │   │   └── unwrap.js               ← Data unwrapping utility
 │   ├── index.css                   ← Global styles (dark theme, animations)
 │   ├── main.jsx                    ← App entry point
@@ -434,46 +461,61 @@ frontend/
 ```
 main.jsx → ReactDOM.createRoot
    └── App.jsx
-        ├── AuthProvider (context)
-        └── BrowserRouter
-             ├── /                 → HomePage
-             ├── /login           → Login
-             ├── /register        → Register
-             ├── /citizen-map     → CitizenMapPage
-             ├── /map             → MapPage (urbaniste/admin)
-             ├── /admin           → AdminDashboard (role: admin/super_admin)
-             ├── /urbaniste       → UrbanisteDashboard (role: urbaniste)
-             └── /super-admin     → SuperAdminPage (role: super_admin)
+        ├── ToastProvider (context)
+        ├── ErrorBoundary
+        ├── BrowserRouter
+        │    ├── /                  → HomePage
+        │    ├── /dashboard         → RoleRedirect (auto-redirects to role dashboard)
+        │    ├── /login             → Login
+        │    ├── /register          → Register
+        │    ├── /registre          → Register (aliased)
+        │    ├── /forgot-password   → ForgotPassword
+        │    ├── /map               → DynamicMapRoute (citizen → CitizenMapPage, pro → dashboard)
+        │    ├── /account           → AccountPage (protected)
+        │    ├── /admin/dashboard   → AdminDashboard (role: admin)
+        │    ├── /urbaniste/dashboard → UrbanisteDashboard (role: urbaniste/admin)
+        │    ├── /super-admin/users → SuperAdminPage (role: super_admin)
+        │    └── *                  → NotFound
+        └── AuthProvider (context)
 ```
 
 - **Auth gate:** `App.jsx` checks `localStorage` for token and calls `GET /api/user` on mount. If valid, redirects away from login/register.
-- **Role gates:** Each dashboard page checks the user's role and redirects if unauthorized.
+- **Role gates:** Each dashboard page checks the user's role via `ProtectedRoute` and redirects if unauthorized.
+- **Toast system:** Global `ToastContext` + `ErrorBoundary` wrap the entire app.
 
 ### 3.3 Pages
 
 | Page | Route | Role | Description |
 |------|-------|------|-------------|
-| `HomePage` | `/` | Anyone | Landing page with role selection cards (Citizen, Urbaniste, Admin, Super Admin). Uses Lucide icons. |
-| `Login` | `/login` | Guest | Role selector + email/password form. Uses Lucide role icons. |
-| `Register` | `/register` | Guest | Registration form (citizen). City autocomplete. Dark theme. |
+| `HomePage` | `/` | Anyone | Landing page with role selection cards. Uses Lucide icons. |
+| `Login` | `/login` | Guest | Role selector + email/password form. Dark theme. |
+| `Register` | `/register` | Guest | 3-step registration wizard (role → city → info). 24+ cities. Lucide icons. |
+| `ForgotPassword` | `/forgot-password` | Guest | Password reset request form. |
 | `CitizenMapPage` | `/citizen-map` | Anyone | Public interactive map. Drop pins, submit reports, onboarding tour (Driver.js). |
 | `MapPage` | `/map` | urbaniste/admin | Professional map with validated remarks overlay, zone polygons, panel system. |
-| `AdminDashboard` | `/admin` | admin/super_admin | Tabbed dashboard: Remarques, Stats, Zones, Export, Users. |
-| `UrbanisteDashboard` | `/urbaniste` | urbaniste | Tabbed dashboard: Carte, Statistiques, Opinions, Annotations, Rapport. |
-| `SuperAdminPage` | `/super-admin` | super_admin | Oversight page with platform stats and role lock controls. |
+| `AdminDashboard` | `/admin/dashboard` | admin/super_admin | Tabbed dashboard: Remarques, Stats, Zones, Export, Users. |
+| `UrbanisteDashboard` | `/urbaniste/dashboard` | urbaniste/admin | Tabbed dashboard: Carte, Statistiques, Opinions, Annotations, Rapport. |
+| `SuperAdminPage` | `/super-admin/users` | super_admin | Oversight page with platform stats (KPIs), role breakdown chart (recharts), user management with inline statut changes and pagination. |
+| `AccountPage` | `/account` | Any auth | User account settings/profile management. |
+| `NotFound` | `*` | Anyone | 404 page for unmatched routes. |
 
 ### 3.4 Services / API Layer
 
 - **`api.js`** — Axios instance. Base URL from env (`VITE_API_URL`). Automatically attaches `Authorization: Bearer {token}` from localStorage. Handles 401 redirect.
+- **`axiosInstance.js`** — Alternative Axios instance (may be used for file uploads with different content-type handling).
 - **`adminApi.js`** — Functions: `getUsers()`, `updateUser()`, `sendEmail()`, `sendGroupEmail()`, `getDashboardStats()`, `getZones()`, `createZone()`, `updateZone()`, `deleteZone()`.
 - **`urbanApi.js`** — Functions: `getValidatedRemarks({ ville, statut, categorie })`, `getUrbanStatsByZone(remarks)` (client-side computation), `getZones()`, `getAnnotations()`, `createAnnotation()`, `updateAnnotation()`, `deleteAnnotation()`.
 - **`exportService.js`** — `normalizeRemarkRow()`, `exportExcel()` (multi-sheet Excel via xlsx library), `exportCSV()`.
 - **`pdfService.js`** — PDF generation for individual remarks using the browser's print API or jsPDF.
 - **`aiService.js`** — AI analysis of citizen opinions (summary generation).
+- **`errorHandler.js`** — Centralized error handling utilities (format API errors, extract messages).
+- **`validationService.js`** — Form validation helpers (email format, password strength, required fields).
 
 ### 3.5 Context Providers
 
 - **AuthContext:** Provides `user`, `token`, `login()`, `register()`, `logout()`, `loading` across the app. Stores token in localStorage.
+- **ToastContext:** Provides `toasts`, `addToast()`, `removeToast()` for global notifications.
+- **UrbanZoneContext:** Provides zone-related state for the professional map experience.
 
 ### 3.6 Components
 
@@ -481,6 +523,13 @@ main.jsx → ReactDOM.createRoot
 |-----------|----------|-------------|
 | `Navbar` | `Navbar.jsx` | Fixed top bar with UrbanMap logo, role-based nav links, user menu, live indicator. |
 | `Toast` | `Toast.jsx` | Toast notification system with types (success, error, warning, info). Uses Lucide icons. |
+| `EmptyState` | `EmptyState.jsx` | Placeholder for empty data states (no results, no remarks). |
+| `ErrorBoundary` | `ErrorBoundary.jsx` | React error boundary with fallback UI. |
+| `ProtectedRoute` | `ProtectedRoute.jsx` | Auth + role-based route guard wrapper. |
+| `SkeletonCard` | `SkeletonCard.jsx` | Card skeleton placeholder for loading states. |
+| `SkeletonChart` | `SkeletonChart.jsx` | Chart skeleton placeholder for loading states. |
+| `SkeletonLoader` | `SkeletonLoader.jsx` | Generic skeleton loader. |
+| `SkeletonTable` | `SkeletonTable.jsx` | Table skeleton placeholder. |
 | `AdminUsersTab` | `admin/AdminUsersTab.jsx` | User table with role/statut management, email sending features. |
 | `AdminRemarquesTab` | `dashboard/AdminRemarquesTab.jsx` | Admin remark management with CRUD, filters, category icons from Lucide. |
 | `AdminStatistiquesTab` | `dashboard/AdminStatistiquesTab.jsx` | Charts (recharts) for category breakdown, urgency distribution, status overview. |
@@ -491,21 +540,34 @@ main.jsx → ReactDOM.createRoot
 | `UrbanOpinionsTab` | `dashboard/UrbanOpinionsTab.jsx` | Citizen remarks listing with filters, zone links, category icons, details modal. |
 | `UrbanAnnotationsTab` | `dashboard/UrbanAnnotationsTab.jsx` | Zone annotations CRUD with priority pills and zone selector. |
 | `UrbanRapportTab` | `dashboard/UrbanRapportTab.jsx` | Report builder with stats, download, and insight cards. |
+| `HeatmapPanel` | `dashboard/HeatmapPanel.jsx` | Zone heatmap visualization panel. |
+| `AnnotationPanel` | `dashboard/AnnotationPanel.jsx` | Inline annotation creation/editing panel. |
+| `UDComponents` | `dashboard/UDComponents.jsx` | Shared urbaniste dashboard components (status configs, color maps). |
+| `StatsCards` | `dashboard/StatsCards.jsx` | KPI stat cards (total, by status, by category). |
+| `ZoneManagement` | `dashboard/ZoneManagement.jsx` | Zone CRUD with inline editing. |
+| `UserManagement` | `dashboard/UserManagement.jsx` | User CRUD with role/statut editing. |
+| `Avatar` | `ui/Avatar.jsx` | User avatar with initials fallback. |
+| `Badge` | `ui/Badge.jsx` | Status/category badge. |
 | `Button` | `ui/Button.jsx` | Reusable button with loading spinner (Loader2 from Lucide), variants. |
+| `Card` | `ui/Card.jsx` | Reusable card wrapper. |
+| `Input` | `ui/Input.jsx` | Styled input field. |
 | `Modal` | `ui/Modal.jsx` | Overlay modal with close button (X from Lucide). |
 | `Select` | `ui/Select.jsx` | Styled select with chevron (ChevronDown from Lucide). |
 | `Spinner` | `ui/Spinner.jsx` | Animated loading spinner (Loader2 from Lucide). |
+| `Tooltip` | `ui/Tooltip.jsx` | Hover tooltip. |
 | `DashboardLayout` | `layout/DashboardLayout.jsx` | Dashboard wrapper with sidebar + header. Menu toggle uses Menu from Lucide. |
 | `Sidebar` | `layout/Sidebar.jsx` | Navigation sidebar with role-based items. Uses multiple Lucide icons. |
+| `PageHeader` | `layout/PageHeader.jsx` | Reusable page header with title and subtitle. |
 
 ### 3.7 Key UI Patterns
 
 - **Tabs:** All dashboards use a tab-based layout. Active tab state managed by `useState`. Tab buttons use Lucide icons.
 - **Tables:** Consistent dark table styling with `rgba(242,237,230,0.06)` row backgrounds, hover effects.
 - **Charts:** recharts library with custom dark theme palette (card bg `#1e293b`, grid `#334155`, text `#94a3b8`).
-- **Category colors:** Every category has a fixed color used across all charts, maps, and badges.
-- **Pagination:** `usePaginator` hook (`useAppPaginator` was renamed to `usePaginator` during cleanup) provides `page`, `totalPages`, `next()`, `prev()`, `setPage()`.
+- **Category colors:** Every category has a fixed color defined inline in each component that uses them (no shared constants file — defined per-component in CitizenMapPage.jsx, MapPage.jsx, UrbanCarteTab.jsx, etc.).
+- **Pagination:** Custom pagination with prev/next buttons + page counter (implemented inline, no shared hook).
 - **Filter pills:** Status filter pills with active state highlighting.
+- **Responsive:** `useResponsive` hook provides `isMobile` flag. Layout adapts for mobile: stacked KPIs, narrower padding, collapsed nav.
 
 ---
 
@@ -546,9 +608,12 @@ main.jsx → ReactDOM.createRoot
 
 ### 4.5 Super Admin Page
 
-- Overview of platform activity: total users, remarks, zones.
-- Role lock mechanism to prevent unauthorized role changes.
-- Uses Lucide icons for stats cards.
+- Platform-level KPIs: total users, pending users, total remarks, total zones (with Lucide icon cards).
+- Role breakdown bar chart (recharts) showing citoyen/admin/urbaniste distribution.
+- Two tabs: "En attente" (pending approvals) and "Tous les utilisateurs" (all users).
+- Pending tab: Activate/reject buttons with confirmation dialogs.
+- All users tab: Inline statut selector (dropdown) with Save/Cancel buttons. Pagination (8 users/page).
+- Loading states: full skeleton placeholder while stats load.
 
 ### 4.6 Email System
 
@@ -564,6 +629,12 @@ main.jsx → ReactDOM.createRoot
 - Persistence via localStorage key `urbanmap_tour_done`.
 - 3 safety mechanisms to mark tour done: `onReset`, `onDestroyed`, and last-step `popover.onClose`.
 - Uses `useCallback` memoization to prevent re-creation of step handlers.
+
+### 4.8 Registration (Register.jsx — 3-Step Wizard)
+
+- **Step 1 – Role:** Citizen, Urbaniste, or Administrator role cards with icons, descriptions, and feature badges. Highlighted default (Citoyen).
+- **Step 2 – City:** Searchable city selector with 24+ cities grouped by region (Nord, Centre, Sud, Oriental). Region filter tabs, activity indicators, status badges. Selected city preview with change option.
+- **Step 3 – Info:** Full name, email, neighborhood (citizen only) with pill selector, department/service (admin/urbaniste only) with autocomplete suggestions, password + confirmation. Ghost-style submit button with hover fill effect.
 
 ---
 
@@ -646,9 +717,12 @@ All detailed statistics are computed **client-side** in `urbanApi.js` via `getUr
 
 ### 7.3 Category System
 
-Used for consistent coloring across all charts and map pins:
+Category colors are defined inline in each component that uses them — there is no shared constants file. Each component (CitizenMapPage.jsx, MapPage.jsx, UrbanCarteTab.jsx, etc.) has its own `CATEGORY_COLORS` or equivalent object.
+
+Standard categories:
 
 ```js
+// Example from CitizenMapPage.jsx
 const CATEGORY_COLORS = {
   route: '#8B4513', eclairage: '#FFD700', dechets: '#2E8B57',
   eau: '#1E90FF', parc: '#228B22', transport: '#6A5ACD',
@@ -720,6 +794,9 @@ const CHART_COLORS = {
   - `UDComponents.jsx` orphaned `urgent` entry removed, fallback changed to `configs.en_cours`
   - `index.css` orphaned `@keyframes urgentPulse`/`activeBreathe` + `.zone-urgent`/`.zone-active` removed
   - `ValidationPanel.jsx` and `RemarquesTable.jsx` are dead code (not imported anywhere) — left in place but unused
+- **Category colors are NOT centralized:** Each component (CitizenMapPage.jsx, MapPage.jsx, UrbanCarteTab.jsx, etc.) defines its own `CATEGORY_COLORS` inline. Changes must be applied across all files.
+- **Two Axios instances:** `api.js` (standard) and `axiosInstance.js` (may be used for uploads). Both exist in `services/`.
+- **Responsive design:** `useResponsive` hook is used in SuperAdminPage.jsx and likely other pages for mobile layout adaptation.
 
 ---
 
@@ -753,8 +830,10 @@ All UI icons across the app have been migrated from emoji characters to **Lucide
 |-----------|------------|
 | `HomePage.jsx` | User, Shield, Compass, Crown |
 | `Login.jsx` | User, Compass, Shield |
-| `Register.jsx` | User, Compass, Shield, Search |
-| `CitizenMapPage.jsx` | Plus |
+| `Register.jsx` | User, Compass, Shield, Search, Building2 |
+| `ForgotPassword.jsx` | (various) |
+| `AccountPage.jsx` | (various) |
+| `CitizenMapPage.jsx` | Plus, Truck, Lightbulb, Trash2, Droplets, Trees, Bus, MapPin |
 | `AdminDashboard.jsx` | ClipboardList, Map, BarChart2, Download, Users |
 | `UrbanisteDashboard.jsx` | Map, BarChart2, MessageSquare, BookMarked, FileText, Download, Sparkles |
 | `SuperAdminPage.jsx` | Users, Clock, MapPin, Map |
@@ -891,3 +970,31 @@ Replaced all emoji characters (⚠️, 🚛, 💡, 🗑️, 💧, 🌳, 🚌, et
 - Fixed `UrbanStatistiquesTab.jsx` missing line chart data key
 - Fixed `UrbanRapportTab.jsx` skeleton loader integration
 - Fixed all Lucide import paths and SVG element type conflicts
+
+### 10.10 Mandatory Description for "Autre" Category (2026-06-10)
+
+- When a citizen selects "Autre" as the problem type in the report form (`CitizenMapPage.jsx`), the description field becomes **mandatory** (not optional)
+- Label changes dynamically from `(optionnel)` to `(obligatoire)` 
+- Placeholder changes to prompt for a precise description
+- Submit button is disabled if "Autre" + description is empty
+- A validation error is shown if the user tries to proceed without filling the description
+- Only affects the "Autre" category — all other categories keep description as optional
+
+### 10.11 Register.jsx — Visual Changes (2026-06-10)
+
+- **Step 2 continue button:** Changed from solid (`#C1440E` background) to ghost style (`transparent` background, `#C1440E` text/border). Hover fills solid `#C1440E` with white text only when a city is selected.
+- **Step 3 submit button:** Changed from solid to ghost style matching the Step 2 pattern. Hover fills solid only when not loading.
+- **Department emoji replaced:** Replaced `🏢` emoji in the department suggestions dropdown with Lucide's `Building2` icon for consistent vector rendering.
+- Added `Building2` import from `lucide-react` (line 3).
+- Added `display: flex`, `alignItems: 'center'`, `gap: '8px'` to suggestion items for proper icon alignment.
+
+### 10.12 PROJECT.md Alignment (2026-06-10)
+
+- Updated project description to reflect support for **24+ Moroccan cities** (removed "initially Marrakesh" limitation).
+- Updated frontend directory structure to include all missing pages (AccountPage, ForgotPassword, NotFound), components (Skeleton*, EmptyState, ErrorBoundary, ProtectedRoute, Badge, Card, Input, Avatar, Tooltip, etc.), services (axiosInstance, errorHandler, validationService), context (ToastContext, UrbanZoneContext), and hooks (useResponsive).
+- Updated routing section with all actual routes (/forgot-password, /registre, /account, /super-admin/users, *).
+- Updated services, context, hooks, and UI patterns sections.
+- Noted that category colors are defined inline per-component (not centralized).
+- Added Register.jsx 3-step wizard feature description.
+- Expanded SuperAdminPage.jsx feature description with KPIs, role chart, pagination.
+- Updated Lucide icon mapping for Register.jsx (Building2).

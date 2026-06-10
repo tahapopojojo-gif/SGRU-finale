@@ -113,10 +113,12 @@ const cardStyle = {
 };
 
 const cardTitleStyle = {
-  fontSize: '12px',
+  fontSize: '11px',
   fontWeight: 500,
-  color: 'rgba(242,237,230,0.6)',
+  color: 'rgba(242,237,230,0.4)',
   marginBottom: '14px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.07em',
 };
 
 const NoData = ({ text = 'Aucune donnée pour le moment' }) => (
@@ -319,8 +321,8 @@ export default function AdminStatistiquesTab({ isActive = true }) {
 
   const kpis = [
     { label: 'Total signalements', value: stats.total, sub: 'Tous les rapports citoyens', color: '#C1440E' },
-    { label: 'Urgents (niv. 4-5)', value: stats.urgentCount, sub: 'Intervention rapide requise', color: '#ef4444' },
-    { label: 'Zones créées', value: stats.zonesCount, sub: 'Zones officielles dessinées', color: '#52BE80' },
+    { label: 'Urgents (niv. 4-5)', value: stats.urgentCount, sub: 'Intervention rapide requise', color: '#C1440E' },
+    { label: 'Zones créées', value: stats.zonesCount, sub: 'Zones officielles dessinées', color: 'rgba(242,237,230,0.2)' },
     { label: 'Couverture', value: `${stats.coveragePct}%`, sub: `${stats.assignedCount}/${stats.total} dans une zone`, color: '#E8B87A' },
   ];
 
@@ -334,7 +336,15 @@ export default function AdminStatistiquesTab({ isActive = true }) {
             <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.28)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '7px' }}>
               {card.label}
             </div>
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '26px', color: '#E8B87A', fontWeight: 500, lineHeight: 1, marginBottom: '4px' }}>
+            <div style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '28px',
+              fontWeight: 600,
+              letterSpacing: '-0.03em',
+              color: '#F2EDE6',
+              lineHeight: 1,
+              marginBottom: '4px',
+            }}>
               {card.value}
             </div>
             <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)' }}>{card.sub}</div>
@@ -377,7 +387,7 @@ export default function AdminStatistiquesTab({ isActive = true }) {
                     <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
                       <div style={{ height: '100%', borderRadius: '3px', width: `${widthPct}%`, background: cat.color, transition: 'width 0.3s ease' }} />
                     </div>
-                    <span style={{ fontSize: '11px', fontFamily: 'DM Mono, monospace', color: 'rgba(242,237,230,0.5)', width: '24px', textAlign: 'right', flexShrink: 0 }}>
+                    <span style={{ fontSize: '11px', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '-0.01em', color: 'rgba(242,237,230,0.5)', width: '24px', textAlign: 'right', flexShrink: 0 }}>
                       {cat.value}
                     </span>
                   </div>
@@ -441,7 +451,7 @@ export default function AdminStatistiquesTab({ isActive = true }) {
               <Tooltip contentStyle={chartTooltipStyle} />
               <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(242,237,230,0.5)' }} />
               <Line type="monotone" dataKey="remarks" name="Signalements" stroke="#C1440E" strokeWidth={2.5} dot={{ r: 4, fill: '#C1440E' }} />
-              <Line type="monotone" dataKey="zones" name="Zones créées" stroke="#52BE80" strokeWidth={2.5} dot={{ r: 4, fill: '#52BE80' }} />
+              <Line type="monotone" dataKey="zones" name="Zones créées" stroke="rgba(242,237,230,0.3)" strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3, fill: 'rgba(242,237,230,0.3)' }} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -462,8 +472,13 @@ export default function AdminStatistiquesTab({ isActive = true }) {
                 <Tooltip contentStyle={chartTooltipStyle} cursor={false} />
                 <Bar dataKey="count" name="Signalements" radius={[0, 4, 4, 0]} activeBar={false} isAnimationActive={false}>
                   {stats.zoneBarData.map((entry, i) => {
-                    const zoneColors = ['#52BE80', '#5DADE2', '#E8B87A', '#A29BFE', '#FD79A8', '#74B9FF']
-                    const fill = entry.zone === 'Non assignés' ? '#C1440E' : zoneColors[i % zoneColors.length]
+                    const zoneColors = [
+                      'rgba(242,237,230,0.55)',
+                      'rgba(242,237,230,0.4)',
+                      'rgba(242,237,230,0.28)',
+                      'rgba(242,237,230,0.18)',
+                    ]
+                    const fill = entry.zone === 'Non assignés' ? 'rgba(193,68,14,0.6)' : zoneColors[i % zoneColors.length]
                     return <Cell key={entry.zone} fill={fill} />
                   })}
                 </Bar>
@@ -506,7 +521,7 @@ export default function AdminStatistiquesTab({ isActive = true }) {
                     <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'rgba(242,237,230,0.5)' }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
                       <span style={{ flex: 1 }}>{d.name}</span>
-                      <span style={{ fontFamily: 'DM Mono, monospace' }}>{d.value} ({pct}%)</span>
+                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>{d.value} ({pct}%)</span>
                     </div>
                   );
                 })}

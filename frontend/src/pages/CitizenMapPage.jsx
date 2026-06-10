@@ -127,9 +127,9 @@ const styles = {
     height: '100vh', width: '100%',
     zIndex: 1, paddingTop: '52px',
   },
-  panel: {
-    position: 'absolute', top: 0, right: 0, bottom: 0,
-    width: '360px',
+    panel: {
+      position: 'absolute', top: 0, right: 0, bottom: 0,
+      width: '360px',
     background: 'rgba(8,6,3,0.88)',
     borderLeft: '0.5px solid rgba(242,237,230,0.08)',
     zIndex: 1500, display: 'flex', flexDirection: 'column',
@@ -522,7 +522,10 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
 
   const canNext = () => {
     if (step === 1) return form.problem_type !== '' && form.urgency > 0 && form.duration !== '';
-    if (step === 2) return true;
+    if (step === 2) {
+      if (form.problem_type === 'other' && !form.opinion.trim()) return false;
+      return true;
+    }
     return true;
   }
 
@@ -541,6 +544,10 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
     }
     if (step === 2 && form.opinion.length > 300) {
       setError('Description trop longue (300 caractères max)');
+      return;
+    }
+    if (step === 2 && form.problem_type === 'other' && !form.opinion.trim()) {
+      setError('Veuillez décrire le problème puisque vous avez sélectionné "Autre"');
       return;
     }
     setError('');
@@ -688,10 +695,10 @@ function FeedbackForm({ parcel, onSubmit, onClose }) {
           </p>
 
           <label htmlFor="opinion-details" style={formStyles.question}>
-            Décrivez le problème en quelques mots <span style={formStyles.hint}>(optionnel)</span>
+            Décrivez le problème en quelques mots <span style={formStyles.hint}>{form.problem_type === 'other' ? '(obligatoire)' : '(optionnel)'}</span>
           </label>
           <textarea id="opinion-details" style={formStyles.textarea}
-            placeholder="ex. Le réverbère est en panne depuis l'hiver dernier et la rue est sombre la nuit"
+            placeholder={form.problem_type === 'other' ? "Décrivez précisément votre problème (obligatoire)" : "ex. Le réverbère est en panne depuis l'hiver dernier et la rue est sombre la nuit"}
             value={form.opinion}
             onChange={handleOpinionChange}
             rows={4}
@@ -1114,7 +1121,7 @@ export default function MapPage() {
           },
         },
         {
-          element: '#urbanmap-wrapper',
+          element: '#legend-box',
           popover: {
             title: 'Catégories',
             description: 'Chaque couleur représente une catégorie : marron = route, jaune = éclairage, vert = déchets, bleu = eau, violet = écoles…',
@@ -1152,6 +1159,53 @@ export default function MapPage() {
 
   return (
     <div id="urbanmap-wrapper" style={styles.wrapper} className={`${selectedParcel ? 'has-panel-open' : ''} ${drawMode === 'polygon' ? 'draw-mode' : ''}`}>
+      <style>{`
+        .navbar-search input:focus,
+        input[placeholder*="quartier"]:focus,
+        input[placeholder*="adresse"]:focus {
+          outline: none !important;
+          border-color: rgba(193,68,14,0.5) !important;
+          box-shadow: none !important;
+        }
+
+        .driver-popover {
+          background: rgba(8,6,3,0.96) !important;
+          border: 0.5px solid rgba(193,68,14,0.3) !important;
+          border-radius: 10px !important;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.7) !important;
+          color: #F2EDE6 !important;
+          font-family: 'DM Sans', sans-serif !important;
+        }
+        .driver-popover-title {
+          font-family: 'Amiri', serif !important;
+          color: #F2EDE6 !important;
+          font-size: 17px !important;
+        }
+        .driver-popover-description {
+          color: rgba(242,237,230,0.6) !important;
+          font-size: 12px !important;
+          line-height: 1.6 !important;
+        }
+        .driver-popover-footer button {
+          background: transparent !important;
+          border: 0.5px solid rgba(242,237,230,0.15) !important;
+          color: rgba(242,237,230,0.6) !important;
+          border-radius: 6px !important;
+          font-family: 'DM Sans', sans-serif !important;
+          font-size: 12px !important;
+        }
+        .driver-popover-footer .driver-btn-next {
+          background: #C1440E !important;
+          border-color: #C1440E !important;
+          color: #fff !important;
+        }
+        .driver-popover-close-btn {
+          color: rgba(242,237,230,0.4) !important;
+        }
+        .driver-overlay {
+          background: rgba(6,4,3,0.75) !important;
+        }
+      `}</style>
       {user?.role === 'citoyen' && (
         <button
           id="add-report-btn"
@@ -1599,7 +1653,7 @@ export default function MapPage() {
       {selectedParcel && (
         <div style={{
           position: 'absolute', top: 0, right: 0, bottom: 0,
-          width: '360px',
+          width: isMobile ? '100%' : '360px',
           background: 'rgba(8,6,3,0.88)',
           borderLeft: '0.5px solid rgba(242,237,230,0.08)',
           zIndex: 1500, display: 'flex', flexDirection: 'column',
@@ -1855,10 +1909,9 @@ export default function MapPage() {
 }
 
 function Legend({ role }) {
-  if (role === 'citoyen') return null
 
   return (
-    <div style={{
+    <div id="legend-box" style={{
       position: 'absolute', bottom: '80px', left: '60px',
       zIndex: 100,
       background: 'rgba(8,6,3,0.88)',

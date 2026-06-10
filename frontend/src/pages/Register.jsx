@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { User, Compass, Shield, Search } from 'lucide-react'
+import { User, Compass, Shield, Search, Building2 } from 'lucide-react'
 import api from '../services/api'
 
 const QUARTIERS = {
@@ -649,16 +649,19 @@ export default function Register() {
                 onClick={() => form.city && setStep(3)}
                 style={{
                   flex:1, padding:'13px',
-                  background: form.city ? '#C1440E' : 'rgba(193,68,14,0.2)',
-                  color: form.city ? '#fff' : 'rgba(242,237,230,0.3)',
-                  border:'none', borderRadius:'6px',
+                  background: 'transparent',
+                  color: form.city ? '#C1440E' : 'rgba(193,68,14,0.3)',
+                  border: form.city
+                    ? '0.5px solid #C1440E'
+                    : '0.5px solid rgba(193,68,14,0.2)',
+                  borderRadius:'6px',
                   fontSize:'14px', fontWeight:500,
                   fontFamily:'DM Sans, sans-serif',
                   cursor: form.city ? 'pointer' : 'not-allowed',
                   transition:'all 0.2s',
                 }}
-                onMouseEnter={e => { if (form.city) e.currentTarget.style.background='#A8380C' }}
-                onMouseLeave={e => { if (form.city) e.currentTarget.style.background='#C1440E' }}
+                onMouseEnter={e => { if (form.city) e.currentTarget.style.background = '#C1440E'; if (form.city) e.currentTarget.style.color = '#fff'; }}
+                onMouseLeave={e => { if (form.city) e.currentTarget.style.background = 'transparent'; if (form.city) e.currentTarget.style.color = '#C1440E'; }}
               >
                 {form.city
                   ? `Continuer avec ${selectedCityData?.l} →`
@@ -865,6 +868,7 @@ export default function Register() {
                               fontSize: '13px', color: 'rgba(242,237,230,0.8)',
                               borderBottom: '0.5px solid rgba(242,237,230,0.05)',
                               transition: 'background 0.15s',
+                              display: 'flex', alignItems: 'center', gap: '8px',
                             }}
                             onMouseEnter={e =>
                               e.currentTarget.style.background = 'rgba(193,68,14,0.1)'
@@ -873,7 +877,7 @@ export default function Register() {
                               e.currentTarget.style.background = 'transparent'
                             }
                           >
-                            🏢 {d}
+                            <Building2 size={13} style={{ flexShrink: 0, color: 'rgba(242,237,230,0.4)' }} /> {d}
                           </div>
                         ))}
                       </div>
@@ -934,13 +938,19 @@ export default function Register() {
                   type="submit" disabled={loading}
                   style={{
                     width: '100%', padding: '13px',
-                    background: loading ? 'rgba(193,68,14,0.5)' : '#C1440E',
-                    color: '#fff', border: 'none', borderRadius: '6px',
+                    background: 'transparent',
+                    color: loading ? 'rgba(193,68,14,0.5)' : '#C1440E',
+                    border: loading
+                      ? '0.5px solid rgba(193,68,14,0.4)'
+                      : '0.5px solid #C1440E',
+                    borderRadius: '6px',
                     fontSize: '14px', fontWeight: 500,
                     fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
                     letterSpacing: '0.02em', marginBottom: '8px',
                     transition: 'all 0.2s',
                   }}
+                  onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = '#C1440E'; e.currentTarget.style.color = '#fff'; }}}
+                  onMouseLeave={e => { if (!loading) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#C1440E'; }}}
                 >
                   {loading ? 'Inscription en cours...' : 'Créer mon compte →'}
                 </button>

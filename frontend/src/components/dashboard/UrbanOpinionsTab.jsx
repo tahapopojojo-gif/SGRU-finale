@@ -7,7 +7,7 @@ import EmptyState from '../EmptyState.jsx';
 import { useAuth } from '../../context/AuthContext';
 import { unwrap } from '../../utils/unwrap';
 import { AiCard, StatusBadge } from './UDComponents';
-import { Truck, Lightbulb, Trash2, Droplets, Trees, Bus, Hospital, School, MapPin, AlertCircle, Clock, Search } from 'lucide-react';
+import { Truck, Lightbulb, Trash2, Droplets, Trees, Bus, Hospital, School, MapPin, AlertCircle, Clock, Search, MessageSquare } from 'lucide-react';
 
 const getCatIcon = (cat, size = 13) => {
   const c = String(cat || '').toLowerCase();
@@ -32,9 +32,9 @@ const PROFILE_LABEL = {
 
 function UrgencyBadge({ value }) {
   let color;
-  if (value >= 4) color = '#EF4444'; // Red for Urgent (4-5)
-  else if (value >= 3) color = '#F59E0B'; // Amber for Medium (3)
-  else color = '#22C55E'; // Green for Low (1-2)
+  if (value >= 4) color = '#C1440E';
+  else if (value >= 3) color = '#E8B87A';
+  else color = 'rgba(242,237,230,0.4)';
 
   return (
     <span style={{
@@ -66,7 +66,7 @@ function DurationTag({ duration }) {
       color = '#F59E0B'; // Amber for months
     } else if (lowerDuration.includes("semaine")) {
       label = "Quelques semaines";
-      color = '#00BFFF'; // DeepSkyBlue for weeks
+      color = 'rgba(242,237,230,0.5)';
     }
   }
 
@@ -92,9 +92,9 @@ function ReporterProfileTag({ profile }) {
     <span style={{
       fontSize: '11px',
       fontWeight: 500,
-      color: '#A78BFA', // Light purple
-      background: 'rgba(167, 139, 250, 0.08)',
-      border: '0.5px solid rgba(167, 139, 250, 0.3)',
+      color: 'rgba(242,237,230,0.6)',
+      background: 'rgba(255,255,255,0.04)',
+      border: '0.5px solid rgba(242,237,230,0.15)',
       borderRadius: '100px',
       padding: '4px 10px',
       letterSpacing: '0.01em',
@@ -177,7 +177,12 @@ export default function UrbanOpinionsTab({ aiSummary }) {
     return acc;
   }, {});
 
-  const sortedCategories = Object.keys(groupedOpinions).sort();
+  const sortedCategories = Object.keys(groupedOpinions).sort((a, b) => {
+    if (searchQuery) {
+      return groupedOpinions[b].length - groupedOpinions[a].length;
+    }
+    return a.localeCompare(b);
+  });
 
   if (loading) {
     return <div style={{padding: '24px'}}><SkeletonTable rows={5} columns={3} /></div>;
@@ -264,7 +269,7 @@ export default function UrbanOpinionsTab({ aiSummary }) {
           background: 'rgba(255,255,255,0.02)', borderRadius: '12px',
           border: '0.5px dashed rgba(242,237,230,0.1)', marginTop: '20px'
         }}>
-          <div style={{ fontSize: '32px', marginBottom: '16px' }}>💬</div>
+          <MessageSquare size={32} style={{ color: 'rgba(242,237,230,0.15)', marginBottom: '16px' }} />
           <h4 style={{ color: '#F2EDE6', margin: '0 0 8px 0', fontFamily: 'Amiri, serif' }}>
             Aucune opinion textuelle disponible
           </h4>
@@ -275,7 +280,7 @@ export default function UrbanOpinionsTab({ aiSummary }) {
         </div>
       ) : filteredOpinions.length === 0 ? (
         <EmptyState 
-          icon="🔍"
+          icon={<Search size={28} style={{ color: 'rgba(242,237,230,0.2)' }} />}
           title="Aucun résultat"
           subtitle="Ajustez vos filtres ou votre recherche pour trouver des opinions."
         />

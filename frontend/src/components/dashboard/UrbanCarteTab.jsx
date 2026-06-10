@@ -11,7 +11,7 @@ import { getCityMapConfig } from '../../utils/cityBounds';
 import { unwrap } from '../../utils/unwrap';
 import SkeletonTable from '../SkeletonTable.jsx';
 import useResponsive from '../../hooks/useResponsive';
-import { Thermometer, BarChart2 } from 'lucide-react';
+import { Thermometer, BarChart2, X } from 'lucide-react';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,16 +45,16 @@ const CAT_LABEL = {
 };
 
 const getDensityColor = (count) =>
-  count >= 6 ? '#ef4444' : count >= 3 ? '#f59e0b' : '#22c55e';
+    count >= 6 ? '#C1440E' : count >= 3 ? '#E8B87A' : 'rgba(242,237,230,0.35)';
 
 const getDensityLabel = (count) =>
-  count >= 6 ? 'Critique' : count >= 3 ? 'Modéré' : 'Calme';
+    count >= 6 ? 'Critique' : count >= 3 ? 'Modéré' : 'Calme';
 
 const getUrgencyColor = (avg) =>
-  avg >= 4 ? '#ef4444' : avg >= 2.5 ? '#f59e0b' : '#22c55e';
+    avg >= 4 ? '#C1440E' : avg >= 2.5 ? '#E8B87A' : 'rgba(242,237,230,0.35)';
 
 const getUrgencyLabel = (avg) =>
-  avg >= 4 ? 'Critique' : avg >= 2.5 ? 'Modéré' : 'Calme';
+    avg >= 4 ? 'Critique' : avg >= 2.5 ? 'Modéré' : 'Calme';
 
 const getMonthlyTrend = (zoneId, remarks) => {
   const now = new Date();
@@ -406,12 +406,15 @@ export default function UrbanCarteTab({ onSwitchTab }) {
   gridTemplateColumns: '1fr 300px',
   flexDirection: 'column',
   gap: 14,
-  height: isMobile ? 'auto' : 'calc(100vh - 246px)',
+  height: isMobile ? 'auto' : 'calc(100vh - 175px)',
+  maxHeight: isMobile ? 'none' : 'calc(100vh - 175px)',
+  minHeight: isMobile ? 'none' : '500px',
 }}>
 
         {/* ═══════════ MAP PANEL ═══════════ */}
         <div style={{
           minWidth: 0,
+          minHeight: 0,
           background: 'rgba(255,255,255,0.02)',
           border: '0.5px solid rgba(242,237,230,0.07)',
           borderRadius: 10,
@@ -458,11 +461,12 @@ export default function UrbanCarteTab({ onSwitchTab }) {
             </div>
 
             {/* Layer legend pills */}
+            {!isMobile && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {[
-                { color: '#ef4444', label: 'Critique' },
-                { color: '#f59e0b', label: 'Modéré' },
-                { color: '#22c55e', label: 'Calme' },
+                { color: '#C1440E', label: 'Critique' },
+                { color: '#E8B87A', label: 'Modéré' },
+                { color: 'rgba(242,237,230,0.35)', label: 'Calme' },
               ].map(l => (
                 <span key={l.label} style={{
                   display: 'flex', alignItems: 'center', gap: 4,
@@ -476,10 +480,11 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                 </span>
               ))}
             </div>
+            )}
           </div>
 
           {/* Map container */}
-          <div style={{ flex: 1, position: 'relative', minHeight: isMobile ? 320 : 200 }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: isMobile ? 380 : 100, height: isMobile ? 380 : '100%' }}>
             <MapContainer
               center={initialCenter}
               zoom={initialZoom}
@@ -530,9 +535,9 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                     pathOptions={{
                       color: '#ffffff',
                       fillColor: getCatColor(cat),
-                      weight: 0.5,
-                      opacity: 0.6,
-                      fillOpacity: 0.85,
+                      weight: isFiltered ? 0 : 0.5,
+                      opacity: isFiltered ? 0 : 0.6,
+                      fillOpacity: isFiltered ? 0 : 0.85,
                     }}
                   >
                     <Tooltip direction="top" sticky>
@@ -589,12 +594,12 @@ export default function UrbanCarteTab({ onSwitchTab }) {
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
             <span style={{ fontSize: 9, color: 'rgba(242,237,230,0.25)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Densité</span>
-            <span style={{ fontSize: 9, color: 'rgba(242,237,230,0.25)', fontFamily: 'DM Mono, monospace' }}>Faible</span>
+            <span style={{ fontSize: 9, color: 'rgba(242,237,230,0.25)', fontFamily: 'DM Sans, sans-serif' }}>Faible</span>
             <div style={{
               flex: 1, height: 4, borderRadius: 3,
               background: 'linear-gradient(90deg, rgba(34,197,94,0.7) 0%, rgba(245,158,11,0.8) 50%, rgba(239,68,68,1) 100%)',
             }} />
-            <span style={{ fontSize: 9, color: 'rgba(242,237,230,0.25)', fontFamily: 'DM Mono, monospace' }}>Élevée</span>
+            <span style={{ fontSize: 9, color: 'rgba(242,237,230,0.25)', fontFamily: 'DM Sans, sans-serif' }}>Élevée</span>
           </div>
         </div>
 
@@ -604,6 +609,10 @@ export default function UrbanCarteTab({ onSwitchTab }) {
           flexShrink: 0,
           display: 'flex', flexDirection: 'column', gap: 10,
           boxSizing: 'border-box',
+          overflowY: isMobile ? 'visible' : 'auto',
+          maxHeight: isMobile ? 'none' : '100%',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(242,237,230,0.08) transparent',
         }}>
 
           {selectedZone ? (
@@ -622,8 +631,8 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                   </div>
                   <button
                     onClick={handleClearZone}
-                    style={{ background: 'transparent', border: 'none', color: 'rgba(242,237,230,0.3)', fontSize: '16px', cursor: 'pointer' }}
-                  >✕</button>
+                    style={{ background: 'transparent', border: 'none', color: 'rgba(242,237,230,0.3)', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  ><X size={14} /></button>
                 </div>
 
                 {/* Severity badge */}
@@ -811,12 +820,18 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                   <button
                     onClick={() => setActiveCatFilter(null)}
                     style={{
-                      background: 'none', border: 'none',
-                      color: 'rgba(242,237,230,0.4)', cursor: 'pointer',
-                      fontSize: 12, padding: '0 2px',
-                      fontFamily: 'DM Sans, sans-serif',
+                      background: 'none',
+                      border: 'none',
+                      color: 'rgba(242,237,230,0.4)',
+                      cursor: 'pointer',
+                      padding: '0 2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      transition: 'color 0.2s',
                     }}
-                  >✕</button>
+                    onMouseEnter={e => e.currentTarget.style.color = '#F2EDE6'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(242,237,230,0.4)'}
+                  ><X size={12} /></button>
                 </div>
               )}
 
@@ -849,8 +864,12 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                           onClick={() => toggleCatFilter(cat)}
                           style={{
                             display: 'flex', alignItems: 'center', gap: '8px',
-                            background: isActive ? 'rgba(193,68,14,0.1)' : 'transparent',
-                            border: isActive ? '0.5px solid rgba(193,68,14,0.3)' : '0.5px solid transparent',
+                            background: isActive
+                              ? 'rgba(255,255,255,0.06)'
+                              : 'transparent',
+                            border: isActive
+                              ? `0.5px solid ${color}`
+                              : '0.5px solid transparent',
                             borderRadius: 4, padding: '4px 6px',
                             cursor: 'pointer', transition: 'all 0.15s',
                             width: '100%', textAlign: 'left',
@@ -866,12 +885,16 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                           <span style={{
                             width: 8, height: 8, borderRadius: '50%',
                             background: color, flexShrink: 0,
-                            opacity: isDimmed ? 0.3 : 1,
+                            opacity: isDimmed ? 0.2 : 1,
                             transition: 'opacity 0.2s',
                           }} />
                           <span style={{
                             fontSize: '11px',
-                            color: isDimmed ? 'rgba(242,237,230,0.2)' : 'rgba(242,237,230,0.55)',
+                            color: isDimmed
+                              ? 'rgba(242,237,230,0.15)'
+                              : isActive
+                              ? '#F2EDE6'
+                              : 'rgba(242,237,230,0.55)',
                             textTransform: 'capitalize',
                             transition: 'color 0.2s',
                           }}>
@@ -983,7 +1006,8 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                   <div key={i} style={{ textAlign: 'center' }}>
                     <div style={{
                       fontSize: 16, fontWeight: 600, color: '#E8B87A',
-                      fontFamily: 'DM Mono, monospace', lineHeight: 1,
+                      fontFamily: 'DM Sans, sans-serif',
+                      letterSpacing: '-0.02em', lineHeight: 1,
                     }}>
                       {item.value}
                     </div>

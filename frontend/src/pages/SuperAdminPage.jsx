@@ -4,33 +4,153 @@ import { getPendingUsers, getAllUsers, updateUser, getDashboardStats } from '../
 import { unwrap } from '../utils/unwrap';
 import { Users, Clock, MapPin, Map } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import useResponsive from '../hooks/useResponsive';
 
 const styles = {
-  wrapper: { background: '#060403', backgroundImage: 'none', minHeight: '100vh' },
-  container: { padding: '100px 40px 20px', maxWidth: '1200px', margin: '0 auto', background: '#060403' },
-  headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
-  title: { fontSize: '28px', fontWeight: '700', color: '#F2EDE6', margin: 0 },
-  tabs: { display: 'flex', gap: '15px' },
-  tabBtn: { padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' },
-  activeTab: { background: '#C1440E', color: 'white', border: 'none' },
-  inactiveTab: { background: 'transparent', color: '#94a3b8', border: '1px solid #334155' },
-  card: { background: '#1e293b', borderRadius: '12px', padding: '24px', border: '1px solid #334155' },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #334155' },
-  td: { padding: '12px 20px', fontSize: '14px', color: '#cbd5e1', borderBottom: '1px solid #334155' },
-  approveBtn: { padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', marginRight: '10px' },
-  rejectBtn: { padding: '8px 16px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
-  saveBtn: { padding: '6px 14px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', marginLeft: '8px' },
-  cancelBtn: { padding: '6px 14px', background: 'transparent', color: '#94a3b8', border: '1px solid #475569', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', marginLeft: '6px' },
-  saveBtnDisabled: { padding: '6px 14px', background: '#475569', color: '#94a3b8', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '12px', marginLeft: '8px', cursor: 'not-allowed' },
-  select: { padding: '6px 10px', borderRadius: '8px', border: '1px solid #475569', outline: 'none', fontSize: '13px', background: '#1e293b', color: '#F2EDE6' },
-  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' },
-  kpiCard: { background: '#1e293b', borderRadius: '12px', padding: '20px 24px', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '8px' },
-  kpiTopRow: { display: 'flex', alignItems: 'center', gap: '6px' },
-  kpiIcon: { width: '18px', height: '18px' },
-  kpiSubtitle: { fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  kpiValue: { fontSize: '32px', fontWeight: 700, color: '#F2EDE6' },
-  skeleton: { background: '#1e293b', borderRadius: '12px', height: '120px', width: '100%', marginBottom: '24px' },
+  wrapper: {
+    background: '#060403',
+    minHeight: '100vh',
+    fontFamily: 'DM Sans, sans-serif',
+    color: '#F2EDE6',
+  },
+  container: {
+    padding: '100px 40px 20px',
+    maxWidth: '1200px',
+    margin: '0 auto',
+  },
+  headerRow: {
+    display: 'flex', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: '30px',
+  },
+  title: {
+    fontFamily: 'Amiri, serif',
+    fontSize: '26px', fontWeight: 700,
+    color: '#F2EDE6', margin: 0,
+  },
+  tabs: { display: 'flex', gap: '8px' },
+  tabBtn: {
+    padding: '8px 18px', borderRadius: '6px',
+    cursor: 'pointer', fontWeight: 500,
+    fontSize: '12px', fontFamily: 'DM Sans, sans-serif',
+    transition: 'all 0.2s',
+  },
+  activeTab: {
+    background: 'transparent',
+    color: '#C1440E',
+    border: '0.5px solid #C1440E',
+  },
+  inactiveTab: {
+    background: 'transparent',
+    color: 'rgba(242,237,230,0.4)',
+    border: '0.5px solid rgba(242,237,230,0.12)',
+  },
+  card: {
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '10px',
+    padding: '20px',
+    border: '0.5px solid rgba(242,237,230,0.08)',
+  },
+  table: { width: '100%', borderCollapse: 'collapse', minWidth: '700px' },
+  th: {
+    padding: '10px 16px', textAlign: 'left',
+    fontSize: '10px', fontWeight: 500,
+    color: 'rgba(242,237,230,0.35)',
+    textTransform: 'uppercase', letterSpacing: '0.07em',
+    borderBottom: '0.5px solid rgba(242,237,230,0.07)',
+  },
+  td: {
+    padding: '12px 16px', fontSize: '13px',
+    color: 'rgba(242,237,230,0.75)',
+    borderBottom: '0.5px solid rgba(242,237,230,0.05)',
+  },
+  approveBtn: {
+    padding: '6px 14px',
+    background: 'transparent',
+    color: 'rgba(242,237,230,0.6)',
+    border: '0.5px solid rgba(242,237,230,0.2)',
+    borderRadius: '5px', cursor: 'pointer',
+    fontWeight: 500, fontSize: '12px',
+    marginRight: '8px', transition: 'all 0.2s',
+    fontFamily: 'DM Sans, sans-serif',
+  },
+  rejectBtn: {
+    padding: '6px 14px',
+    background: 'transparent',
+    color: 'rgba(239,68,68,0.6)',
+    border: '0.5px solid rgba(239,68,68,0.3)',
+    borderRadius: '5px', cursor: 'pointer',
+    fontWeight: 500, fontSize: '12px',
+    transition: 'all 0.2s',
+    fontFamily: 'DM Sans, sans-serif',
+  },
+  saveBtn: {
+    padding: '5px 12px',
+    background: 'transparent',
+    color: '#C1440E',
+    border: '0.5px solid #C1440E',
+    borderRadius: '5px', cursor: 'pointer',
+    fontWeight: 500, fontSize: '11px',
+    marginLeft: '8px', transition: 'all 0.2s',
+    fontFamily: 'DM Sans, sans-serif',
+  },
+  cancelBtn: {
+    padding: '5px 12px',
+    background: 'transparent',
+    color: 'rgba(242,237,230,0.35)',
+    border: '0.5px solid rgba(242,237,230,0.12)',
+    borderRadius: '5px', cursor: 'pointer',
+    fontWeight: 500, fontSize: '11px',
+    marginLeft: '6px', transition: 'all 0.2s',
+    fontFamily: 'DM Sans, sans-serif',
+  },
+  saveBtnDisabled: {
+    padding: '5px 12px',
+    background: 'transparent',
+    color: 'rgba(242,237,230,0.2)',
+    border: '0.5px solid rgba(242,237,230,0.08)',
+    borderRadius: '5px',
+    fontWeight: 500, fontSize: '11px',
+    marginLeft: '8px', cursor: 'not-allowed',
+    fontFamily: 'DM Sans, sans-serif',
+  },
+  select: {
+    padding: '6px 10px', borderRadius: '5px',
+    border: '0.5px solid rgba(242,237,230,0.12)',
+    outline: 'none', fontSize: '12px',
+    background: 'rgba(255,255,255,0.04)',
+    color: '#F2EDE6', fontFamily: 'DM Sans, sans-serif',
+  },
+  kpiGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '12px', marginBottom: '20px',
+  },
+  kpiCard: {
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '10px', padding: '16px 20px',
+    border: '0.5px solid rgba(242,237,230,0.07)',
+    position: 'relative', overflow: 'hidden',
+  },
+  kpiTopRow: {
+    display: 'flex', alignItems: 'center',
+    gap: '6px', marginBottom: '8px',
+  },
+  kpiIcon: { width: '14px', height: '14px' },
+  kpiSubtitle: {
+    fontSize: '9px', fontWeight: 500,
+    textTransform: 'uppercase', letterSpacing: '0.07em',
+    color: 'rgba(242,237,230,0.3)',
+  },
+  kpiValue: {
+    fontSize: '28px', fontWeight: 600,
+    color: '#F2EDE6', letterSpacing: '-0.03em',
+    lineHeight: 1, fontFamily: 'DM Sans, sans-serif',
+  },
+  skeleton: {
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '10px', height: '120px',
+    width: '100%', marginBottom: '20px',
+  },
 }
 
 const STATUT_LABELS = { active: 'Actif', pending: 'En attente', rejected: 'Désactivé' }
@@ -42,6 +162,27 @@ export default function SuperAdminPage() {
   const [allUsers, setAllUsers] = useState([])
   const [pendingChanges, setPendingChanges] = useState({})
   const [savingId, setSavingId] = useState(null)
+  const USERS_PER_PAGE = 8
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const { isMobile } = useResponsive();
+
+  const container = {
+    ...styles.container,
+    padding: isMobile ? '80px 16px 20px' : '100px 40px 20px',
+  };
+
+  const kpiGrid = {
+    ...styles.kpiGrid,
+    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+  };
+
+  const headerRow = {
+    ...styles.headerRow,
+    flexDirection: isMobile ? 'column' : 'row',
+    alignItems: isMobile ? 'flex-start' : 'center',
+    gap: isMobile ? '12px' : '0',
+  };
 
   const fetchData = async () => {
     if (activeTab === 'pending') {
@@ -81,10 +222,9 @@ export default function SuperAdminPage() {
   }
 
   const barData = [
-    { role: 'Citoyens', count: roleBreakdown.citoyen, fill: '#3b82f6' },
+    { role: 'Citoyens', count: roleBreakdown.citoyen, fill: 'rgba(242,237,230,0.5)' },
     { role: 'Admins', count: roleBreakdown.admin, fill: '#C1440E' },
-    { role: 'Urbanistes', count: roleBreakdown.urbaniste, fill: '#10b981' },
-    { role: 'Super Admins', count: roleBreakdown.super_admin, fill: '#f97316' },
+    { role: 'Urbanistes', count: roleBreakdown.urbaniste, fill: '#E8B87A' },
   ]
 
   const handleStatusUpdate = async (id, newStatus) => {
@@ -111,12 +251,12 @@ export default function SuperAdminPage() {
 
   const kpiCards = [
     {
-      icon: Users, color: '#3b82f6',
+      icon: Users, color: '#C1440E',
       value: platformStats?.total_users,
       subtitle: 'inscrits sur la plateforme',
     },
     {
-      icon: Clock, color: '#f97316',
+      icon: Clock, color: '#E8B87A',
       value: platformStats?.pending_users,
       subtitle: 'comptes à valider',
       pulse: (platformStats?.pending_users ?? 0) > 0,
@@ -127,7 +267,7 @@ export default function SuperAdminPage() {
       subtitle: 'signalements citoyens',
     },
     {
-      icon: Map, color: '#10b981',
+      icon: Map, color: 'rgba(242,237,230,0.3)',
       value: platformStats?.total_zones,
       subtitle: 'zones définies',
     },
@@ -138,28 +278,52 @@ export default function SuperAdminPage() {
         <Navbar />
         <style>{`
           .tab-btn-inactive:hover {
-            background: #1e293b !important;
-            color: #F2EDE6 !important;
+            border-color: rgba(242,237,230,0.3) !important;
+            color: rgba(242,237,230,0.8) !important;
           }
           .super-admin-btn:focus-visible {
             outline: none !important;
           }
+          .dark-select {
+            background: #0f0c09 !important;
+            color: #F2EDE6 !important;
+            border: 0.5px solid rgba(242,237,230,0.12) !important;
+            color-scheme: dark;
+          }
+          .dark-select option {
+            background: #0f0c09 !important;
+            color: #F2EDE6 !important;
+          }
+          .dark-select:focus {
+            outline: none !important;
+            border-color: rgba(193,68,14,0.5) !important;
+          }
         `}</style>
 
-      <div style={styles.container}>
-        <div style={styles.headerRow}>
+      <div style={container}>
+        <div style={headerRow}>
           <h2 style={styles.title}>Super Administration</h2>
           <div style={styles.tabs}>
             <button
-                onClick={() => { setActiveTab('pending'); setPendingChanges({}) }}
-                style={{ ...styles.tabBtn, ...(activeTab === 'pending' ? styles.activeTab : styles.inactiveTab) }}
+                onClick={() => { setActiveTab('pending'); setPendingChanges({}); setCurrentPage(1) }}
+                style={{
+                  ...styles.tabBtn,
+                  ...(activeTab === 'pending' ? styles.activeTab : styles.inactiveTab),
+                  fontSize: isMobile ? '11px' : '12px',
+                  padding: isMobile ? '8px 12px' : '8px 18px',
+                }}
                 className={(activeTab !== 'pending' ? 'tab-btn-inactive ' : '') + 'super-admin-btn'}
             >
               En attente ({activeTab === 'pending' ? users.length : '?'})
             </button>
             <button
-                onClick={() => { setActiveTab('all'); setPendingChanges({}) }}
-                style={{ ...styles.tabBtn, ...(activeTab === 'all' ? styles.activeTab : styles.inactiveTab) }}
+                onClick={() => { setActiveTab('all'); setPendingChanges({}); setCurrentPage(1) }}
+                style={{
+                  ...styles.tabBtn,
+                  ...(activeTab === 'all' ? styles.activeTab : styles.inactiveTab),
+                  fontSize: isMobile ? '11px' : '12px',
+                  padding: isMobile ? '8px 12px' : '8px 18px',
+                }}
                 className={(activeTab !== 'all' ? 'tab-btn-inactive ' : '') + 'super-admin-btn'}
             >
               Tous les utilisateurs
@@ -171,19 +335,23 @@ export default function SuperAdminPage() {
           <div style={styles.skeleton} />
         ) : (
           <>
-            <div style={styles.kpiGrid}>
+            <div style={kpiGrid}>
               {kpiCards.map((card, i) => (
                 <div key={i} style={styles.kpiCard}>
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0,
+                    height: '1.5px', background: card.color,
+                  }} />
                   <div style={styles.kpiTopRow}>
                     <card.icon style={{ ...styles.kpiIcon, color: card.color }} />
-                    <span style={{ ...styles.kpiSubtitle, color: '#94a3b8' }}>{card.subtitle}</span>
+                    <span style={styles.kpiSubtitle}>{card.subtitle}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={styles.kpiValue}>{card.value ?? '-'}</span>
                     {card.pulse && (
                       <span style={{
                         width: '10px', height: '10px', borderRadius: '50%',
-                        background: '#f97316', display: 'inline-block',
+                        background: '#C1440E', display: 'inline-block',
                         animation: 'pulse 1.5s ease-in-out infinite',
                       }} />
                     )}
@@ -193,17 +361,25 @@ export default function SuperAdminPage() {
             </div>
 
             <div style={{ ...styles.card, marginBottom: '24px' }}>
-              <h3 style={{ margin: '0 0 16px 0', color: '#94a3b8', fontSize: '12px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <h3 style={{ margin: '0 0 16px 0', color: 'rgba(242,237,230,0.3)', fontSize: '12px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 Répartition des rôles
               </h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={barData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="role" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,237,230,0.06)" />
+                  <XAxis dataKey="role" tick={{ fill: 'rgba(242,237,230,0.35)', fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis hide={true} />
                   <Tooltip
-                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#F2EDE6' }}
+                    contentStyle={{
+                      background: 'rgba(8,6,3,0.96)',
+                      border: '0.5px solid rgba(242,237,230,0.1)',
+                      borderRadius: '6px',
+                      color: '#F2EDE6',
+                      fontSize: '12px',
+                    }}
                     labelStyle={{ color: '#94a3b8' }}
+                    itemStyle={{ color: '#F2EDE6' }}
+                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                   />
                   <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                     {barData.map((entry, index) => (
@@ -216,7 +392,7 @@ export default function SuperAdminPage() {
           </>
         )}
 
-        <div style={{ ...styles.card, padding: '0', overflow: 'hidden' }}>
+        <div style={{ ...styles.card, padding: '0', overflowX: 'auto' }}>
           <table style={styles.table}>
             <thead>
               <tr>
@@ -229,7 +405,10 @@ export default function SuperAdminPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map(u => {
+              {users
+                .slice((currentPage - 1) * USERS_PER_PAGE,
+                        currentPage * USERS_PER_PAGE)
+                .map(u => {
                 const pendingStatut = pendingChanges[u.id]
                 const hasChange = pendingStatut !== undefined && pendingStatut !== u.statut
                 return (
@@ -241,15 +420,37 @@ export default function SuperAdminPage() {
                     {u.city ? u.city.charAt(0).toUpperCase() + u.city.slice(1) : '-'}
                   </td>
                   <td style={styles.td}>
-                      <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '700', background: '#1e293b', color: '#60a5fa' }}>
+                      <span style={{
+                        padding: '3px 8px', borderRadius: '4px',
+                        fontSize: '10px', fontWeight: 500,
+                        letterSpacing: '0.05em',
+                        background: 'transparent',
+                        border: '0.5px solid rgba(242,237,230,0.15)',
+                        color: 'rgba(242,237,230,0.5)',
+                      }}>
                           {u.role?.toUpperCase() || 'CITOYEN'}
                       </span>
                   </td>
                   <td style={styles.td}>
                       <span style={{
-                          padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '700',
-                          background: u.statut === 'active' ? '#064e3b' : u.statut === 'rejected' ? '#7f1d1d' : '#713f12',
-                          color: u.statut === 'active' ? '#34d399' : u.statut === 'rejected' ? '#f87171' : '#fbbf24'
+                        padding: '3px 8px', borderRadius: '4px',
+                        fontSize: '10px', fontWeight: 500,
+                        letterSpacing: '0.05em',
+                        background: u.statut === 'active'
+                          ? 'rgba(242,237,230,0.06)'
+                          : u.statut === 'rejected'
+                          ? 'rgba(239,68,68,0.08)'
+                          : 'rgba(245,158,11,0.08)',
+                        border: u.statut === 'active'
+                          ? '0.5px solid rgba(242,237,230,0.15)'
+                          : u.statut === 'rejected'
+                          ? '0.5px solid rgba(239,68,68,0.3)'
+                          : '0.5px solid rgba(245,158,11,0.3)',
+                        color: u.statut === 'active'
+                          ? 'rgba(242,237,230,0.55)'
+                          : u.statut === 'rejected'
+                          ? 'rgba(239,68,68,0.7)'
+                          : 'rgba(245,158,11,0.7)',
                       }}>
                           {u.statut?.toUpperCase() || 'ACTIVE'}
                       </span>
@@ -263,6 +464,7 @@ export default function SuperAdminPage() {
                     ) : (
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <select
+                                className="dark-select"
                                 style={styles.select}
                                 value={pendingChanges[u.id] ?? u.statut}
                                 onChange={(e) => setPendingChanges({ ...pendingChanges, [u.id]: e.target.value })}
@@ -302,6 +504,61 @@ export default function SuperAdminPage() {
               )}
             </tbody>
           </table>
+
+          {Math.ceil(users.length / USERS_PER_PAGE) > 1 && (
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              borderTop: '0.5px solid rgba(242,237,230,0.06)',
+            }}>
+              <span style={{
+                fontSize: '11px',
+                color: 'rgba(242,237,230,0.25)',
+              }}>
+                {(currentPage - 1) * USERS_PER_PAGE + 1}–
+                {Math.min(currentPage * USERS_PER_PAGE, users.length)}
+                {' '}sur {users.length}
+              </span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  style={{
+                    width: '28px', height: '28px',
+                    borderRadius: '4px', fontSize: '14px',
+                    border: '0.5px solid rgba(242,237,230,0.1)',
+                    background: 'transparent',
+                    color: 'rgba(242,237,230,0.4)',
+                    cursor: currentPage === 1
+                      ? 'not-allowed' : 'pointer',
+                  }}
+                >‹</button>
+                <span style={{
+                  fontSize: '11px',
+                  color: 'rgba(242,237,230,0.4)',
+                  padding: '0 8px', lineHeight: '28px',
+                }}>
+                  {currentPage}/{Math.ceil(users.length / USERS_PER_PAGE)}
+                </span>
+                <button
+                  disabled={currentPage ===
+                    Math.ceil(users.length / USERS_PER_PAGE)}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  style={{
+                    width: '28px', height: '28px',
+                    borderRadius: '4px', fontSize: '14px',
+                    border: '0.5px solid rgba(242,237,230,0.1)',
+                    background: 'transparent',
+                    color: 'rgba(242,237,230,0.4)',
+                    cursor: currentPage ===
+                      Math.ceil(users.length / USERS_PER_PAGE)
+                      ? 'not-allowed' : 'pointer',
+                  }}
+                >›</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

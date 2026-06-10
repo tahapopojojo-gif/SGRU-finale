@@ -238,6 +238,44 @@ const Login = () => {
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23F2EDE6' stroke-width='0.5'%3E%3Cpolygon points='30,2 58,16 58,44 30,58 2,44 2,16'/%3E%3Cpolygon points='30,10 50,20 50,40 30,50 10,40 10,20'/%3E%3C/g%3E%3C/svg%3E")`,
                 }} />
 
+                {/* Back button */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  style={{
+                    position: 'absolute',
+                    top: '24px',
+                    left: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'transparent',
+                    border: '0.5px solid rgba(242,237,230,0.1)',
+                    borderRadius: '6px',
+                    color: 'rgba(242,237,230,0.35)',
+                    fontSize: '11px',
+                    fontFamily: 'DM Sans, sans-serif',
+                    cursor: 'pointer',
+                    padding: '6px 12px',
+                    transition: 'all 0.2s',
+                    zIndex: 2,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(242,237,230,0.3)'
+                    e.currentTarget.style.color = '#F2EDE6'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'rgba(242,237,230,0.1)'
+                    e.currentTarget.style.color = 'rgba(242,237,230,0.35)'
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  </svg>
+                  Accueil
+                </button>
+
                 {/* FORM CONTENT */}
                 <div style={{ position: 'relative', zIndex: 1 }}>
                     {/* Tag */}

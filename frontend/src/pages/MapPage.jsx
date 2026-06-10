@@ -1199,6 +1199,27 @@ export default function MapPage() {
         .leaflet-control-layers {
           display: none !important;
         }
+        @media (max-width: 768px) {
+          .map-floating-control.map-locate-control {
+            top: 68px !important;
+            left: 8px !important;
+          }
+          .map-floating-control.map-layers-control {
+            top: 68px !important;
+            right: 8px !important;
+          }
+          #live-counter {
+            left: 8px !important;
+            bottom: 100px !important;
+            gap: 4px !important;
+          }
+          #live-counter > div {
+            padding: 6px 8px !important;
+          }
+          #legend-box {
+            display: none !important;
+          }
+        }
       `}</style>
       {/* Left floating action */}
       <div style={{
@@ -1213,6 +1234,9 @@ export default function MapPage() {
           title="Signaler un point"
           onClick={() => setDrawMode('marker')}
           style={{
+            position: 'absolute',
+            left: '12px',
+            bottom: isMobile ? '165px' : '90px',
             width: '42px',
             height: '42px',
             borderRadius: '10px',
@@ -1524,20 +1548,42 @@ export default function MapPage() {
         )}
       </MapContainer>
 
-      <Legend role={user?.role} />
+      <Legend role={user?.role} isMobile={isMobile} />
 
       {selectedParcel && (
         <div style={{
-          position: 'absolute', top: 0, right: 0, bottom: 0,
-          width: '360px',
-          background: 'rgba(8,6,3,0.88)',
-          borderLeft: '0.5px solid rgba(242,237,230,0.08)',
+          position: 'absolute',
+          top: isMobile ? 'auto' : 0,
+          bottom: 0,
+          right: 0,
+          left: isMobile ? 0 : 'auto',
+          width: isMobile ? '100%' : '360px',
+          height: isMobile ? '75vh' : 'auto',
+          background: 'rgba(8,6,3,0.96)',
+          borderLeft: isMobile ? 'none' : '0.5px solid rgba(242,237,230,0.08)',
+          borderTop: isMobile ? '0.5px solid rgba(242,237,230,0.08)' : 'none',
+          borderRadius: isMobile ? '16px 16px 0 0' : 0,
           zIndex: 1500, display: 'flex', flexDirection: 'column',
-          transform: selectedParcel ? 'translateX(0)' : 'translateX(100%)',
+          transform: selectedParcel ? 'translateX(0)' : isMobile ? 'translateY(100%)' : 'translateX(100%)',
           transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
           backdropFilter: 'blur(18px)',
-          boxShadow: '-4px 0 32px rgba(0,0,0,0.5), -0.5px 0 0 rgba(193,68,14,0.12)',
+          boxShadow: isMobile
+            ? '0 -4px 32px rgba(0,0,0,0.5)'
+            : '-4px 0 32px rgba(0,0,0,0.5), -0.5px 0 0 rgba(193,68,14,0.12)',
         }}>
+          {isMobile && (
+            <div style={{
+              display: 'flex', justifyContent: 'center',
+              padding: '8px 0 4px',
+              flexShrink: 0,
+            }}>
+              <div style={{
+                width: '36px', height: '4px',
+                borderRadius: '2px',
+                background: 'rgba(242,237,230,0.15)',
+              }} />
+            </div>
+          )}
           {/* Panel header */}
           <div style={{
             padding: '16px 18px 12px',
@@ -1788,7 +1834,8 @@ export default function MapPage() {
   )
 }
 
-function Legend({ role }) {
+function Legend({ role, isMobile }) {
+  if (isMobile) return null
   if (role === 'citoyen') return null
 
   return (

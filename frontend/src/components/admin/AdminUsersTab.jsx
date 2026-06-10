@@ -225,11 +225,12 @@ export default function AdminUsersTab() {
       background: 'rgba(255,255,255,0.02)',
       border: '0.5px solid rgba(242,237,230,0.07)',
       borderRadius: '10px',
-      overflow: 'hidden'
+      overflowX: 'auto'
     },
     table: {
       width: '100%',
-      borderCollapse: 'collapse'
+      borderCollapse: 'collapse',
+      minWidth: '600px'
     },
     th: {
       padding: '12px 14px',
@@ -370,6 +371,15 @@ export default function AdminUsersTab() {
     border-color: rgba(193,68,14,0.5) !important;
     box-shadow: none !important;
   }
+  @media (max-width: 640px) {
+    .users-col-date { display: none !important; }
+    .users-col-email {
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
 `}</style>
 
       {/* SECTION 1 — Filters & Toolbar */}
@@ -437,17 +447,17 @@ export default function AdminUsersTab() {
               <thead>
                 <tr>
                   <th style={s.th}>Nom</th>
-                  <th style={s.th}>Email</th>
+                  <th style={s.th} className="users-col-email">Email</th>
                   <th style={s.th}>Rôle</th>
                   <th style={s.th}>Statut</th>
-                  <th style={s.th}>Date d'inscription</th>
+                  <th style={s.th} className="users-col-date">Date d'inscription</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedUsers.map((user) => (
                   <tr key={user.id} style={{ transition: 'background 0.15s' }}>
                     <td style={{ ...s.td, fontWeight: '600' }}>{user.nom}</td>
-                    <td style={s.td}>{user.email}</td>
+                    <td style={s.td} className="users-col-email">{user.email}</td>
                     <td style={s.td}>
                       <span style={getRoleBadgeStyle(user.role)}>
                         {{ citoyen: 'Citoyen', admin: 'Admin', urbaniste: 'Urbaniste', super_admin: 'Super Admin' }[user.role] || user.role}
@@ -458,7 +468,7 @@ export default function AdminUsersTab() {
                         {user.statut}
                       </span>
                     </td>
-                    <td style={{ ...s.td, color: 'rgba(242,237,230,0.4)', fontFamily: 'DM Mono, monospace' }}>
+                    <td style={{ ...s.td, color: 'rgba(242,237,230,0.4)', fontFamily: 'DM Mono, monospace' }} className="users-col-date">
                       {user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : '-'}
                     </td>
                   </tr>

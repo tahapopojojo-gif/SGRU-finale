@@ -51,11 +51,11 @@ export default function AdminDashboard() {
   };
 
   const tabs = [
-    { id: 'remarques', label: 'Remarques', icon: '📋' },
-    { id: 'zones', label: 'Zones', icon: '🗺️' },
-    { id: 'statistiques', label: 'Statistiques', icon: '📊' },
-    { id: 'export', label: 'Export CSV', icon: '📥' },
-    { id: 'utilisateurs', label: 'Utilisateurs', icon: '👥' },
+    { id: 'remarques', label: 'Remarques' },
+    { id: 'zones', label: 'Zones' },
+    { id: 'statistiques', label: 'Statistiques' },
+    { id: 'export', label: 'Export CSV' },
+    { id: 'utilisateurs', label: 'Utilisateurs' },
   ];
 
   const handleTabKeyDown = useCallback((e) => {
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
       <div style={{
         background: 'rgba(8,6,3,0.97)',
         borderBottom: '0.5px solid rgba(242,237,230,0.07)',
-        padding: '18px 28px 0',
+        padding: isMobile ? '12px 16px 0' : '18px 28px 0',
         position: 'sticky', top: '52px', zIndex: 100,
         backdropFilter: 'blur(16px)',
         /* Red gradient bottom line */
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
               Console d'administration · Accès restreint
             </div>
             <h1 style={{
-              fontFamily: 'Amiri, serif', fontSize: '22px',
+              fontFamily: 'Amiri, serif', fontSize: isMobile ? '18px' : '22px',
               fontWeight: 700, color: '#F2EDE6', margin: 0,
               display: 'flex', alignItems: 'center', gap: '10px',
             }}>
@@ -152,6 +152,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Right: actions */}
+          {!isMobile && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* Export CSV ghost */}
             <button
@@ -176,22 +177,33 @@ export default function AdminDashboard() {
               <Download size={13} style={{ marginRight: '6px' }} /> Export CSV
             </button>
 
-            {/* New zone primary */}
+            {/* New zone ghost */}
             <button
               onClick={() => { setActiveTab('zones'); setStartDrawZone(true); }}
               style={{
-                padding: '7px 14px', borderRadius: '6px',
-                background: '#C1440E', border: 'none',
-                color: '#fff', fontSize: '12px',
-                fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+                padding: '7px 14px',
+                borderRadius: '6px',
+                background: 'transparent',
+                border: '0.5px solid #C1440E',
+                color: '#C1440E',
+                fontSize: '12px',
+                fontFamily: 'DM Sans, sans-serif',
+                cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = '#A8380C'}
-              onMouseLeave={e => e.currentTarget.style.background = '#C1440E'}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#C1440E'
+                e.currentTarget.style.color = '#fff'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = '#C1440E'
+              }}
             >
               + Nouvelle zone
             </button>
           </div>
+          )}
         </div>
 
         {/* Tab bar */}
@@ -237,7 +249,7 @@ export default function AdminDashboard() {
               }}
             >
               <span style={{ opacity: activeTab === tab.id ? 1 : 0.5, display: 'flex' }}>{tab.icon}</span>
-              {tab.label}
+              {!isMobile && tab.label}
             </button>
           ))}
         </nav>
@@ -245,7 +257,7 @@ export default function AdminDashboard() {
 
       {/* Body */}
       <div style={{
-        padding: '20px 28px',
+        padding: isMobile ? '12px 16px' : '20px 28px',
         position: 'relative', zIndex: 1,
       }}>
         <div style={{ display: activeTab === 'remarques' ? 'block' : 'none' }}>

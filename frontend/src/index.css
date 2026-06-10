@@ -380,6 +380,10 @@ select {
   pointer-events: none;
 }
 
+nav::-webkit-scrollbar {
+  display: none;
+}
+
 
 /* 🟢 Live Indicator Pulse animation */
 @keyframes livePulse {
@@ -681,4 +685,35 @@ select {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+/* Driver.js tour dark theme */
+.driver-popover {
+  background: rgba(8,6,3,0.96) !important;
+  border: 0.5px solid rgba(193,68,14,0.3) !important;
+  border-radius: 10px !important;
+  color: #F2EDE6 !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+.driver-popover-title {
+  font-family: 'Amiri', serif !important;
+  color: #F2EDE6 !important;
+  font-size: 17px !important;
+}
+.driver-popover-description {
+  color: rgba(242,237,230,0.6) !important;
+  font-size: 12px !important;
+}
+.driver-popover-footer button {
+  background: transparent !important;
+  border: 0.5px solid rgba(242,237,230,0.15) !important;
+  color: rgba(242,237,230,0.6) !important;
+  border-radius: 6px !important;
+  min-height: unset !important;
+  min-width: unset !important;
+}
+.driver-popover-footer .driver-btn-next {
+  background: #C1440E !important;
+  border-color: #C1440E !important;
+  color: #fff !important;
 }

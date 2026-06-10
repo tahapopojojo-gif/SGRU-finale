@@ -138,9 +138,9 @@ export default function UrbanAnnotationsTab() {
 
   const getPriorityInfo = (p) => {
     switch (p) {
-      case 'urgente':   return { label: 'Intervention urgente', color: '#EF4444', icon: <AlertCircle size={11} /> };
-      case 'surveiller': return { label: 'À surveiller',        color: '#F59E0B', icon: <Eye size={11} /> };
-      default:           return { label: 'Informatif',          color: '#10B981', icon: <Info size={11} /> };
+      case 'urgente':   return { label: 'Intervention urgente', color: '#C1440E', icon: <AlertCircle size={11} /> };
+      case 'surveiller': return { label: 'À surveiller',        color: '#E8B87A', icon: <Eye size={11} /> };
+      default:           return { label: 'Informatif',          color: 'rgba(242,237,230,0.5)', icon: <Info size={11} /> };
     }
   };
 
@@ -203,9 +203,9 @@ export default function UrbanAnnotationsTab() {
           </label>
           <div style={{ display: 'flex', gap: '8px' }}>
             {[
-              { id: 'urgente', label: 'Intervention urgente', color: '#EF4444' },
-              { id: 'surveiller', label: 'À surveiller', color: '#F59E0B' },
-              { id: 'informatif', label: 'Informatif', color: '#10B981' }
+              { id: 'urgente', label: 'Intervention urgente', color: '#C1440E' },
+              { id: 'surveiller', label: 'À surveiller', color: '#E8B87A' },
+              { id: 'informatif', label: 'Informatif', color: 'rgba(242,237,230,0.6)' }
             ].map(p => {
               const isActive = priority === p.id;
               return (
@@ -216,9 +216,9 @@ export default function UrbanAnnotationsTab() {
                     flex: 1, padding: '10px 8px', borderRadius: '8px',
                     fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                     transition: 'all 0.2s',
-                    background: isActive ? p.color : 'rgba(255,255,255,0.03)',
+                    background: isActive ? 'rgba(193,68,14,0.12)' : 'rgba(255,255,255,0.03)',
                     border: `0.5px solid ${isActive ? p.color : 'rgba(242,237,230,0.1)'}`,
-                    color: isActive ? '#fff' : 'rgba(242,237,230,0.4)',
+                    color: isActive ? p.color : 'rgba(242,237,230,0.35)',
                   }}
                 >
                   {p.label}
@@ -248,12 +248,27 @@ export default function UrbanAnnotationsTab() {
             onClick={handleSave}
             disabled={isSaving || !draftText.trim()}
             style={{
-              padding: '10px 24px', background: '#C1440E',
-              border: 'none', borderRadius: '8px',
-              color: '#fff', fontSize: '13px', fontWeight: 600,
+              padding: '10px 24px',
+              background: 'transparent',
+              border: '0.5px solid #C1440E',
+              borderRadius: '8px',
+              color: '#C1440E',
+              fontSize: '13px',
+              fontWeight: 600,
               cursor: draftText.trim() ? 'pointer' : 'not-allowed',
-              opacity: draftText.trim() ? 1 : 0.5,
-              transition: 'all 0.2s'
+              opacity: draftText.trim() ? 1 : 0.4,
+              transition: 'all 0.2s',
+              fontFamily: 'DM Sans, sans-serif',
+            }}
+            onMouseEnter={e => {
+              if (draftText.trim()) {
+                e.currentTarget.style.background = '#C1440E'
+                e.currentTarget.style.color = '#fff'
+              }
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = '#C1440E'
             }}
           >
             {isSaving ? 'Enregistrement...' : currentAnnotation ? 'Mettre à jour la note' : 'Sauvegarder la note'}

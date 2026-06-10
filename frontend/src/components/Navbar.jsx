@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { User, LayoutDashboard, Map, LogOut } from 'lucide-react'
 
 const Navbar = ({
   searchQuery,
@@ -230,7 +231,7 @@ const Navbar = ({
         )}
 
         {/* Carte publique */}
-        {user?.role !== 'admin' && user?.role !== 'urbaniste' && (
+        {user?.role !== 'admin' && user?.role !== 'urbaniste' && user?.role !== 'super_admin' && (
           <button
             onClick={() => navigate('/map')}
             style={{
@@ -289,7 +290,7 @@ const Navbar = ({
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                👤 Mon compte
+                <User size={13} style={{opacity:0.6, flexShrink:0}} /> Mon compte
               </button>
               {['admin', 'urbaniste', 'super_admin'].includes(user?.role) ? (
                 <button
@@ -309,7 +310,7 @@ const Navbar = ({
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  📊 Tableau de Bord
+                  <LayoutDashboard size={13} style={{opacity:0.6, flexShrink:0}} /> Tableau de Bord
                 </button>
               ) : (
                 <button
@@ -327,7 +328,7 @@ const Navbar = ({
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  🗺 La carte
+                  <Map size={13} style={{opacity:0.6, flexShrink:0}} /> La carte
                 </button>
               )}
               <div style={{ height: '0.5px', background: 'rgba(242,237,230,0.08)', margin: '4px 0' }} />
@@ -346,7 +347,7 @@ const Navbar = ({
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                🚪 Se déconnecter
+                <LogOut size={13} style={{opacity:0.6, flexShrink:0}} /> Se déconnecter
               </button>
             </div>
           )}

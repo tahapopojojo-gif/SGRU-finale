@@ -9,6 +9,15 @@ use App\Http\Controllers\Api\ZoneController;
 use App\Http\Controllers\Api\ZoneSummaryController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/public-stats', function () {
+    return response()->json([
+        'citoyens'      => \App\Models\User::where('role', 'citoyen')->count(),
+        'signalements'  => \App\Models\Remarque::count(),
+        'zones'         => \App\Models\Zone::count(),
+        'villes'        => \App\Models\Zone::distinct('ville')->count('ville'),
+    ]);
+});
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/zones', [ZoneController::class, 'index']);

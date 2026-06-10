@@ -5,6 +5,7 @@ import 'leaflet-draw';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet.heat';
 import { MapContainer, TileLayer, Polygon, Tooltip, useMap, useMapEvents, CircleMarker, Popup } from 'react-leaflet';
+import { Thermometer, AlertTriangle, MapPin } from 'lucide-react';
 import { getZones, updateZone, deleteZone, getRemarks, createZone } from '../../services/adminApi';
 import useResponsive from '../../hooks/useResponsive';
 import { useAuth } from '../../context/AuthContext';
@@ -556,7 +557,7 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
 
   const checkDuplicateName = (name) => {
     const exists = zones.some(z => z.nom.toLowerCase().trim() === name.toLowerCase().trim());
-    setNameWarning(exists ? '⚠ Une zone avec ce nom existe déjà' : '');
+    setNameWarning(exists ? 'Une zone avec ce nom existe déjà' : '');
     return exists;
   };
 
@@ -628,37 +629,94 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
       <style>{`
   .leaflet-container:focus { outline: none !important; }
   .admin-zones-map *:focus { outline: none !important; }
-  
-  .zone-draw-toolbar,
-  .zone-draw-toolbar * {
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
-  
-  .zone-draw-toolbar__btn {
-    background: transparent !important;
-    background-color: transparent !important;
-    background-image: none !important;
-    color: rgba(242, 237, 230, 0.6) !important;
-    border: 0.5px solid rgba(242, 237, 230, 0.12) !important;
-  }
-  
-  .zone-draw-toolbar__btn:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    background-color: rgba(255, 255, 255, 0.06) !important;
-    color: rgba(242, 237, 230, 0.9) !important;
-  }
-  
-  .zone-draw-toolbar__btn--cancel {
-    color: rgba(239, 68, 68, 0.8) !important;
-    border-color: rgba(239, 68, 68, 0.3) !important;
-  }
 
-  .leaflet-draw-toolbar a,
-  .leaflet-draw-toolbar a:hover {
-    background-color: transparent !important;
-    background-image: none !important;
-  }
+.zone-draw-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(6,4,3,0.92);
+  border: 0.5px solid rgba(242,237,230,0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  backdrop-filter: blur(12px);
+  box-shadow: none !important;
+  flex-wrap: wrap;
+  max-width: calc(100vw - 32px);
+  justify-content: center;
+}
+
+.zone-draw-toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zone-draw-toolbar__active {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #C1440E;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(193,68,14,0.1);
+  border: 0.5px solid rgba(193,68,14,0.3);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.zone-draw-toolbar__divider {
+  width: 0.5px;
+  height: 18px;
+  background: rgba(242,237,230,0.1);
+  margin: 0 2px;
+}
+
+.zone-draw-toolbar__btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 10px !important;
+  padding: 4px 8px !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 500 !important;
+  padding: 5px 10px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.15s !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0.5px solid rgba(242,237,230,0.12) !important;
+  color: rgba(242,237,230,0.5) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  white-space: nowrap !important;
+}
+
+.zone-draw-toolbar__btn:hover {
+  background: rgba(255,255,255,0.06) !important;
+  background-color: rgba(255,255,255,0.06) !important;
+  border-color: rgba(242,237,230,0.25) !important;
+  color: rgba(242,237,230,0.85) !important;
+}
+
+.zone-draw-toolbar__btn--cancel {
+  border-color: rgba(239,68,68,0.3) !important;
+  color: rgba(239,68,68,0.6) !important;
+}
+
+.zone-draw-toolbar__btn--cancel:hover {
+  background: rgba(239,68,68,0.08) !important;
+  background-color: rgba(239,68,68,0.08) !important;
+  border-color: rgba(239,68,68,0.5) !important;
+  color: #ef4444 !important;
+}
 `}</style>
       {error && (
         <div style={{ padding: '12px 16px', background: 'rgba(220,38,38,0.1)', border: '1px solid #DC2626', borderRadius: '8px', color: '#DC2626', fontSize: '13px', marginBottom: '12px' }}>{error}</div>
@@ -666,7 +724,7 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
 
       {zoneFocus && (
         <div style={{ padding: '10px 16px', marginBottom: '12px', background: 'rgba(193,68,14,0.1)', border: '0.5px solid rgba(193,68,14,0.3)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '12px', color: '#E8B87A' }}>📍 Signalement ciblé — {zoneFocus.label}</span>
+          <span style={{ fontSize: '12px', color: '#E8B87A', display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={11} style={{flexShrink:0}} /> Signalement ciblé — {zoneFocus.label}</span>
           <button type="button" onClick={onZoneFocusClear} style={{ padding: '4px 10px', borderRadius: '4px', border: '0.5px solid rgba(242,237,230,0.15)', background: 'transparent', color: 'rgba(242,237,230,0.5)', fontSize: '11px', cursor: 'pointer' }}>Fermer</button>
         </div>
       )}
@@ -680,20 +738,60 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
             border: showThermals ? '0.5px solid rgba(193,68,14,0.5)' : '0.5px solid rgba(242,237,230,0.12)',
             color: showThermals ? '#E8B87A' : 'rgba(242,237,230,0.5)', fontSize: '12px',
           }}>
-            <span style={{fontSize:'14px'}}>🌡</span> Thermique
+            <Thermometer size={13} style={{flexShrink:0}} />
+            {!isMobile && ' Thermique'}
           </button>
           <button type="button" onClick={() => handleStartDraw()} disabled={isDrawing} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 16px', borderRadius: '6px', fontSize: '12px',
-            fontWeight: 600, letterSpacing: '0.02em', cursor: isDrawing ? 'wait' : 'pointer',
-            background: isDrawing ? 'rgba(193,68,14,0.25)' : '#C1440E',
-            border: isDrawing ? '0.5px solid rgba(193,68,14,0.5)' : 'none', color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 16px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            cursor: isDrawing ? 'not-allowed' : 'pointer',
+            background: isDrawing
+              ? 'rgba(193,68,14,0.08)'
+              : 'transparent',
+            border: '0.5px solid rgba(193,68,14,0.5)',
+            color: isDrawing
+              ? 'rgba(193,68,14,0.45)'
+              : '#C1440E',
+            transition: 'all 0.2s',
+            fontFamily: 'DM Sans, sans-serif',
+            whiteSpace: 'nowrap',
+            minWidth: isMobile ? 'auto' : '130px',
+          }}
+          onMouseEnter={e => {
+            if (!isDrawing) {
+              e.currentTarget.style.background = '#C1440E'
+              e.currentTarget.style.color = '#fff'
+              e.currentTarget.style.borderColor = '#C1440E'
+            }
+          }}
+          onMouseLeave={e => {
+            if (!isDrawing) {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = '#C1440E'
+              e.currentTarget.style.borderColor = 'rgba(193,68,14,0.5)'
+            }
           }}>
-            {isDrawing ? '✏ Dessin en cours…' : '＋ Nouvelle zone'}
+            {isDrawing ? (
+              <>
+                <span style={{fontSize:'11px', opacity:0.7}}>✏</span>
+                {!isMobile && ' Dessin en cours…'}
+              </>
+            ) : (
+              <>＋{!isMobile && ' Nouvelle zone'}</>
+            )}
           </button>
         </div>
+        {!isMobile && (
         <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.45)' }}>
           Couverture : <strong style={{ color: '#E8B87A' }}>{assignedCount}/{remarksInCity.length}</strong> ({coveragePct}%)
         </div>
+        )}
       </div>
 
       {isDrawing && (
@@ -832,8 +930,8 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
           )}
 
           <div style={{ position: 'absolute', bottom: '16px', left: '16px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ background: 'rgba(6,4,3,0.9)', border: '0.5px solid rgba(242,237,230,0.1)', borderRadius: '8px', padding: '8px 12px', fontSize: '11px', color: 'rgba(242,237,230,0.6)' }}>
-              📍 {userCity ? userCity.charAt(0).toUpperCase() + userCity.slice(1) : 'Ville'} · {coveragePct}% couverture
+            <div style={{ background: 'rgba(6,4,3,0.9)', border: '0.5px solid rgba(242,237,230,0.1)', borderRadius: '8px', padding: '8px 12px', fontSize: '11px', color: 'rgba(242,237,230,0.6)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MapPin size={10} style={{flexShrink:0, opacity:0.6}} /> {userCity ? userCity.charAt(0).toUpperCase() + userCity.slice(1) : 'Ville'} · {coveragePct}% couverture
             </div>
           </div>
           <div style={{ position: 'absolute', bottom: '16px', right: '16px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -874,7 +972,14 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
               {!geocodeLoading && createForm.nom && (
                 <p style={{ fontSize: '10px', color: 'rgba(242,237,230,0.35)', margin: '6px 0 0' }}>Suggestion basée sur le lieu sur la carte</p>
               )}
-              {nameWarning && <p style={{ fontSize: '11px', color: '#f59e0b', margin: '6px 0 0' }}>{nameWarning}</p>}
+              {nameWarning && <p style={{
+                fontSize: '11px', color: '#f59e0b',
+                margin: '6px 0 0',
+                display: 'flex', alignItems: 'center', gap: '4px',
+              }}>
+                <AlertTriangle size={10} style={{flexShrink:0}} />
+                {nameWarning}
+              </p>}
             </div>
             <div>
               <label style={{ fontSize: '10px', color: 'rgba(242,237,230,0.4)', textTransform: 'uppercase' }}>Priorité (auto-suggérée)</label>
@@ -930,14 +1035,22 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
               {[
                 { label: 'Signalements', value: remarksInCity.length, color: '#E8B87A' },
-                { label: 'Zones critiques', value: criticalZonesCount, color: '#ef4444' },
-                { label: 'Zones total', value: zones.length, color: '#52BE80' },
+                { label: 'Zones critiques', value: criticalZonesCount, color: '#E8B87A' },
+                { label: 'Zones total', value: zones.length, color: 'rgba(242,237,230,0.7)' },
                 { label: 'Non assignés', value: unassignedCount, color: '#C1440E' },
               ].map(card => (
                 <div key={card.label} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(242,237,230,0.07)', borderRadius: '6px', padding: '10px', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1.5px', background: card.color }} />
                   <div style={{ fontSize: '9px', color: 'rgba(242,237,230,0.4)', textTransform: 'uppercase', marginBottom: '4px' }}>{card.label}</div>
-                  <div style={{ fontSize: '18px', fontFamily: 'DM Mono, monospace', color: card.color }}>{card.value}</div>
+                  <div style={{
+                    fontSize: '20px',
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontWeight: '600',
+                    letterSpacing: '-0.02em',
+                    color: card.color,
+                    lineHeight: 1,
+                    marginTop: '2px',
+                  }}>{card.value}</div>
                 </div>
               ))}
             </div>
@@ -995,14 +1108,19 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
             {/* Dynamic alert */}
             {dynamicAlert && (
               <div style={{ background: 'rgba(193,68,14,0.06)', border: '0.5px solid rgba(193,68,14,0.25)', borderRadius: '6px', padding: '10px', marginBottom: '14px' }}>
-                <div style={{ fontSize: '9px', color: '#C1440E', textTransform: 'uppercase', marginBottom: '4px' }}>⚠ Alerte</div>
+                <div style={{
+                  fontSize: '9px', color: '#C1440E',
+                  textTransform: 'uppercase', marginBottom: '4px',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                }}>
+                  <AlertTriangle size={10} style={{flexShrink:0}} /> Alerte</div>
                 <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.65)', lineHeight: 1.4 }}>{dynamicAlert}</div>
               </div>
             )}
 
             {duplicateZoneNames.size > 0 && (
-              <div style={{ fontSize: '10px', color: '#f59e0b', marginBottom: '12px', padding: '8px', background: 'rgba(245,158,11,0.08)', borderRadius: '6px' }}>
-                ⚠ {duplicateZoneNames.size} nom(s) de zone en double détecté(s)
+              <div style={{ fontSize: '10px', color: '#f59e0b', marginBottom: '12px', padding: '8px', background: 'rgba(245,158,11,0.08)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <AlertTriangle size={10} style={{marginRight:'4px', flexShrink:0}} /> {duplicateZoneNames.size} nom(s) de zone en double détecté(s)
               </div>
             )}
 
@@ -1041,8 +1159,68 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
                       </span>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedZoneForEdit(z); setZoneName(z.nom); setZoneColor(z.couleur); setShowEditModal(true); }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '4px', border: '0.5px solid rgba(242,237,230,0.1)', background: 'transparent', color: 'rgba(242,237,230,0.45)', cursor: 'pointer' }}>Modifier</button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setZoneToDelete(z); setShowDeleteModal(true); }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '4px', border: '0.5px solid rgba(239,68,68,0.3)', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>Supprimer</button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedZoneForEdit(z);
+                          setZoneName(z.nom);
+                          setZoneColor(z.couleur);
+                          setShowEditModal(true);
+                        }}
+                        style={{
+                          fontSize: '11px',
+                          padding: '5px 12px',
+                          borderRadius: '4px',
+                          border: '0.5px solid rgba(242,237,230,0.15)',
+                          background: 'transparent',
+                          color: 'rgba(242,237,230,0.5)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontFamily: 'DM Sans, sans-serif',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = 'rgba(242,237,230,0.35)'
+                          e.currentTarget.style.color = '#F2EDE6'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = 'rgba(242,237,230,0.15)'
+                          e.currentTarget.style.color = 'rgba(242,237,230,0.5)'
+                        }}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoneToDelete(z);
+                          setShowDeleteModal(true);
+                        }}
+                        style={{
+                          fontSize: '11px',
+                          padding: '5px 12px',
+                          borderRadius: '4px',
+                          border: '0.5px solid rgba(239,68,68,0.35)',
+                          background: 'transparent',
+                          color: 'rgba(239,68,68,0.65)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontFamily: 'DM Sans, sans-serif',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.background = 'rgba(239,68,68,0.08)'
+                          e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)'
+                          e.currentTarget.style.color = '#ef4444'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
+                          e.currentTarget.style.color = 'rgba(239,68,68,0.65)'
+                        }}
+                      >
+                        Supprimer
+                      </button>
                     </div>
                   </div>
                 );

@@ -4,37 +4,40 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Navbar from '../components/Navbar.jsx'
 import api from '../services/api.js'
 import { useToast } from '../hooks/useToast.js'
+import { User, MapPin, Building2, Shield, FileText, BookOpen, Sparkles, ClipboardList, Clock, CalendarDays, Trees, School, Home, ShoppingBag, Cross, Dumbbell, Landmark, Wrench, Truck, Lightbulb, Trash2, Droplets, Bus } from 'lucide-react'
 
-const BUILDING_TYPES = [
-  { value: 'park', label: '🌳 Parc' },
-  { value: 'school', label: '🏫 École' },
-  { value: 'residential', label: '🏘️ Résidentiel' },
-  { value: 'commercial', label: '🏪 Commercial' },
-  { value: 'hospital', label: '🏥 Hôpital' },
-  { value: 'sports', label: '⚽ Sports' },
-  { value: 'mosque', label: '🕌 Mosquée' },
-  { value: 'other', label: '🔧 Autre' },
-]
+const CATEGORY_ICON_MAP = {
+  park:        { icon: Trees,       label: 'Parc' },
+  school:      { icon: School,      label: 'École' },
+  residential: { icon: Home,        label: 'Résidentiel' },
+  commercial:  { icon: ShoppingBag, label: 'Commercial' },
+  hospital:    { icon: Cross,       label: 'Hôpital' },
+  sports:      { icon: Dumbbell,    label: 'Sports' },
+  mosque:      { icon: Landmark,    label: 'Mosquée' },
+  other:       { icon: Wrench,      label: 'Autre' },
+  route:       { icon: Truck,       label: 'Route' },
+  eclairage:   { icon: Lightbulb,   label: 'Éclairage' },
+  dechets:     { icon: Trash2,      label: 'Déchets' },
+  eau:         { icon: Droplets,    label: 'Eau' },
+  parc:        { icon: Trees,       label: 'Parc' },
+  transport:   { icon: Bus,         label: 'Transport' },
+  autre:       { icon: Wrench,      label: 'Autre' },
+}
+
+const getCategoryDetails = (value) => {
+  const key = (value || 'autre').toLowerCase()
+  return CATEGORY_ICON_MAP[key] || CATEGORY_ICON_MAP['autre']
+}
 
 const STATUT_CONFIG = {
-  en_attente: { label: 'En attente',  color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)',  border: 'rgba(245, 158, 11, 0.25)', icon: '⏳' },
-  en_cours:   { label: 'En cours',    color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.08)',  border: 'rgba(59, 130, 246, 0.25)', icon: '🔄' },
-  resolu:     { label: 'Résolu',      color: '#52BE80', bg: 'rgba(82, 190, 128, 0.08)', border: 'rgba(82, 190, 128, 0.25)', icon: '✓' },
-  rejete:     { label: 'Rejetée',     color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)',  border: 'rgba(239, 68, 68, 0.25)',  icon: '✗' },
+  en_attente: { label: 'En attente',  color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)',  border: 'rgba(245, 158, 11, 0.25)', icon: null },
+  en_cours:   { label: 'En cours',    color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.08)',  border: 'rgba(59, 130, 246, 0.25)', icon: null },
+  resolu:     { label: 'Résolu',      color: '#52BE80', bg: 'rgba(82, 190, 128, 0.08)', border: 'rgba(82, 190, 128, 0.25)', icon: null },
+  validee:    { label: 'Validée',     color: '#52BE80', bg: 'rgba(82, 190, 128, 0.08)', border: 'rgba(82, 190, 128, 0.25)', icon: null },
+  rejete:     { label: 'Rejetée',     color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)',  border: 'rgba(239, 68, 68, 0.25)',  icon: null },
 }
 
 const getStatutBadge = (statut) => STATUT_CONFIG[statut] || { label: statut || 'Inconnu', color: 'rgba(242,237,230,0.5)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(242,237,230,0.1)', icon: '?' }
-
-const getCategoryDetails = (value) => {
-  const matched = BUILDING_TYPES.find(b => b.value === value)
-  if (!matched) return { icon: '🔧', label: 'Autre' }
-  // Match emoji at beginning and labels
-  const match = matched.label.match(/^(\p{Emoji_Presentation}|\p{Emoji})\s*(.*)$/u)
-  if (match) {
-    return { icon: match[1], label: match[2] }
-  }
-  return { icon: '🔧', label: matched.label }
-}
 
 export default function AccountPage() {
   const { user, setUser, token } = useAuth()
@@ -50,6 +53,8 @@ export default function AccountPage() {
   // Reports states
   const [reports, setReports] = useState([])
   const [loadingReports, setLoadingReports] = useState(true)
+  const REPORTS_PER_PAGE = 5;
+  const [reportsPage, setReportsPage] = useState(1);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -157,7 +162,7 @@ export default function AccountPage() {
       return { label: 'Admin', color: '#fff', bg: '#C1440E', border: '#C1440E' };
     }
     if (role === 'urbaniste') {
-      return { label: 'Urbaniste', color: '#fff', bg: '#52BE80', border: '#52BE80' };
+      return { label: 'Urbaniste', color: '#E8B87A', bg: 'rgba(232,184,122,0.1)', border: 'rgba(232,184,122,0.3)' };
     }
     return { label: 'Citoyen', color: 'rgba(242,237,230,0.6)', bg: 'rgba(255,255,255,0.06)', border: 'rgba(242,237,230,0.15)' };
   })();
@@ -188,6 +193,11 @@ export default function AccountPage() {
             grid-template-columns: 1fr !important;
           }
         }
+        @media (max-width: 480px) {
+          .account-grid {
+            padding: 0 !important;
+          }
+        }
       `}</style>
       {/* Zellige bg */}
       <div style={{
@@ -209,7 +219,7 @@ export default function AccountPage() {
         <div style={{ marginBottom: '30px' }}>
           <h1 style={{
             fontFamily: 'Amiri, serif',
-            fontSize: '32px',
+            fontSize: 'clamp(22px, 5vw, 32px)',
             fontWeight: 700,
             margin: 0,
             color: '#F2EDE6',
@@ -234,14 +244,8 @@ export default function AccountPage() {
         {/* Content Layout */}
         <div className="account-grid" style={{
           display: 'grid',
-          gridTemplateColumns: user?.role === 'admin' || user?.role === 'urbaniste'
-            ? 'minmax(300px, 1fr) 2fr'
-            : '1fr',
+          gridTemplateColumns: 'minmax(0, 1fr) 2fr',
           gap: '30px',
-          ...(user?.role !== 'admin' && user?.role !== 'urbaniste' && {
-            maxWidth: '500px',
-            margin: '0 auto',
-          }),
         }}>
           {/* Section 1 — Profile Card */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -255,14 +259,16 @@ export default function AccountPage() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)', paddingBottom: '10px' }}>
                 <h2 style={{
-                  fontFamily: 'Amiri, serif',
-                  fontSize: '22px',
-                  fontWeight: 600,
-                  color: '#E8B87A',
-                  margin: 0,
-                }}>
-                  👤 Profil
-                </h2>
+                    fontFamily: 'Amiri, serif',
+                    fontSize: '22px',
+                    fontWeight: 600,
+                    color: '#E8B87A',
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}>
+                    <User size={16} style={{marginRight:'8px', opacity:0.7}} /> Profil
+                  </h2>
                 <span style={{
                   fontSize: '11px',
                   fontWeight: 600,
@@ -286,16 +292,16 @@ export default function AccountPage() {
                   <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '5px',
                     border: '0.5px solid rgba(193, 68, 14, 0.3)',
-                    borderRadius: '4px',
+                    borderRadius: '6px',
                     padding: '3px 8px',
                     fontSize: '11px',
                     color: '#E8B87A',
                     background: 'rgba(193, 68, 14, 0.06)',
                     marginTop: '5px'
                   }}>
-                    📍 {user.city ? user.city.charAt(0).toUpperCase() + user.city.slice(1) : 'Non définie'}
+                    <MapPin size={11} style={{flexShrink:0}} /> {user.city ? user.city.charAt(0).toUpperCase() + user.city.slice(1) : 'Non définie'}
                   </div>
                 </div>
               </div>
@@ -375,19 +381,26 @@ export default function AccountPage() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    background: '#C1440E',
-                    border: 'none',
+                    background: 'transparent',
+                    border: '0.5px solid #C1440E',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: '#C1440E',
                     fontSize: '13px',
                     fontWeight: 600,
                     fontFamily: 'DM Sans, sans-serif',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     marginTop: '5px',
+                    letterSpacing: '0.02em',
                   }}
-                  onMouseEnter={e => e.target.style.background = '#A8380C'}
-                  onMouseLeave={e => e.target.style.background = '#C1440E'}
+                  onMouseEnter={e => {
+                    e.target.style.background = '#C1440E'
+                    e.target.style.color = '#fff'
+                  }}
+                  onMouseLeave={e => {
+                    e.target.style.background = 'transparent'
+                    e.target.style.color = '#C1440E'
+                  }}
                 >
                   {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
                 </button>
@@ -421,8 +434,10 @@ export default function AccountPage() {
                     marginBottom: '20px',
                     borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)',
                     paddingBottom: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
                   }}>
-                    🏛️ Mon activité urbaniste
+                    <Building2 size={16} style={{marginRight:'8px', opacity:0.7}} /> Mon activité urbaniste
                   </h2>
                   <div style={{
                     display: 'flex',
@@ -432,14 +447,14 @@ export default function AccountPage() {
                   }}>
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
                       gap: '12px'
                     }}>
                       {[
-                        { label: 'Zones analysées', val: activity.zones, accent: '#E8B87A' },
-                        { label: 'Rapports PDF générés', val: activity.reports, accent: '#52BE80' },
-                        { label: 'Annotations rédigées', val: activity.annotations, accent: '#5DADE2' },
-                        { label: 'Synthèses IA lancées', val: activity.syntheses, accent: '#C1440E' }
+                        { label: 'Zones analysées', val: activity.zones },
+                        { label: 'Rapports PDF générés', val: activity.reports },
+                        { label: 'Annotations rédigées', val: activity.annotations },
+                        { label: 'Synthèses IA lancées', val: activity.syntheses }
                       ].map((m, i) => (
                         <div key={i} style={{
                           background: 'rgba(255, 255, 255, 0.02)',
@@ -449,7 +464,7 @@ export default function AccountPage() {
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '9px', color: 'rgba(242, 237, 230, 0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</div>
-                          <div style={{ fontSize: '24px', color: m.accent, fontWeight: 'bold', fontFamily: 'DM Mono, monospace', marginTop: '4px' }}>{m.val}</div>
+                          <div style={{ fontSize: '26px', color: '#F2EDE6', fontWeight: '600', fontFamily: 'DM Sans, sans-serif', marginTop: '6px', letterSpacing: '-0.03em', lineHeight: 1 }}>{m.val}</div>
                         </div>
                       ))}
                     </div>
@@ -465,13 +480,13 @@ export default function AccountPage() {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '13px', color: 'rgba(242, 237, 230, 0.5)' }}>Dernière connexion</span>
-                        <span style={{ fontSize: '13px', color: '#F2EDE6', fontWeight: 500, fontFamily: 'DM Mono, monospace' }}>
+                        <span style={{ fontSize: '13px', color: '#F2EDE6', fontWeight: 500, fontFamily: 'DM Sans, sans-serif' }}>
                           {formatActivityDate(new Date())}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '13px', color: 'rgba(242, 237, 230, 0.5)' }}>Compte créé le</span>
-                        <span style={{ fontSize: '13px', color: '#F2EDE6', fontWeight: 500, fontFamily: 'DM Mono, monospace' }}>
+                        <span style={{ fontSize: '13px', color: '#F2EDE6', fontWeight: 500, fontFamily: 'DM Sans, sans-serif' }}>
                           {formatActivityDate(user?.created_at || new Date('2026-06-01T10:00:00Z'))}
                         </span>
                       </div>
@@ -490,8 +505,10 @@ export default function AccountPage() {
                     marginBottom: '20px',
                     borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)',
                     paddingBottom: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
                   }}>
-                    🛡️ Mon activité admin
+                    <Shield size={16} style={{marginRight:'8px', opacity:0.7}} /> Mon activité admin
                   </h2>
                   <div style={{
                     display: 'flex',
@@ -501,7 +518,7 @@ export default function AccountPage() {
                   }}>
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
                       gap: '15px'
                     }}>
                       <div style={{
@@ -512,7 +529,7 @@ export default function AccountPage() {
                         textAlign: 'center'
                       }}>
                         <div style={{ fontSize: '11px', color: 'rgba(242, 237, 230, 0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Zones créées</div>
-                        <div style={{ fontSize: '28px', color: '#E8B87A', fontWeight: 'bold', fontFamily: 'DM Mono, monospace', marginTop: '5px' }}>4</div>
+                        <div style={{ fontSize: '26px', color: '#F2EDE6', fontWeight: '600', fontFamily: 'DM Sans, sans-serif', marginTop: '5px', letterSpacing: '-0.03em', lineHeight: 1 }}>4</div>
                       </div>
                       <div style={{
                         background: 'rgba(255, 255, 255, 0.02)',
@@ -522,7 +539,7 @@ export default function AccountPage() {
                         textAlign: 'center'
                       }}>
                         <div style={{ fontSize: '11px', color: 'rgba(242, 237, 230, 0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Signalements traités</div>
-                        <div style={{ fontSize: '28px', color: '#52BE80', fontWeight: 'bold', fontFamily: 'DM Mono, monospace', marginTop: '5px' }}>6</div>
+                        <div style={{ fontSize: '26px', color: '#F2EDE6', fontWeight: '600', fontFamily: 'DM Sans, sans-serif', marginTop: '5px', letterSpacing: '-0.03em', lineHeight: 1 }}>6</div>
                       </div>
                     </div>
 
@@ -537,13 +554,13 @@ export default function AccountPage() {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '13px', color: 'rgba(242, 237, 230, 0.5)' }}>Dernière connexion</span>
-                        <span style={{ fontSize: '13px', color: '#F2EDE6', fontWeight: 500, fontFamily: 'DM Mono, monospace' }}>
+                        <span style={{ fontSize: '13px', color: '#F2EDE6', fontWeight: 500, fontFamily: 'DM Sans, sans-serif' }}>
                           {formatActivityDate(new Date())}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '13px', color: 'rgba(242, 237, 230, 0.5)' }}>Compte créé le</span>
-                        <span style={{ fontSize: '13px', color: '#F2EDE6', fontWeight: 500, fontFamily: 'DM Mono, monospace' }}>
+                        <span style={{ fontSize: '13px', color: '#F2EDE6', fontWeight: 500, fontFamily: 'DM Sans, sans-serif' }}>
                           {formatActivityDate(user?.created_at || new Date('2026-01-15T10:00:00Z'))}
                         </span>
                       </div>
@@ -562,8 +579,10 @@ export default function AccountPage() {
                     marginBottom: '20px',
                     borderBottom: '0.5px solid rgba(242, 237, 230, 0.08)',
                     paddingBottom: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
                   }}>
-                    📋 Mes Signalements
+                    <ClipboardList size={16} style={{marginRight:'8px', opacity:0.7}} /> Mes Signalements
                   </h2>
 
                   {loadingReports ? (
@@ -581,7 +600,7 @@ export default function AccountPage() {
                       textAlign: 'center',
                       padding: '40px 20px',
                     }}>
-                      <span style={{ fontSize: '48px', marginBottom: '15px' }}>🗺️</span>
+                      <MapPin size={40} style={{color:'rgba(193,68,14,0.4)', marginBottom:'15px'}} />
                       <p style={{ fontSize: '15px', color: '#F2EDE6', margin: '0 0 10px 0', fontWeight: 500 }}>
                         Vous n'avez pas encore soumis de signalement.
                       </p>
@@ -617,7 +636,15 @@ export default function AccountPage() {
                   ) : (
                     /* Reports List */
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                      {reports.map((report) => {
+                      {(() => {
+                        const totalReportPages = Math.max(1, Math.ceil(reports.length / REPORTS_PER_PAGE));
+                        const paginatedReports = reports.slice(
+                          (reportsPage - 1) * REPORTS_PER_PAGE,
+                          reportsPage * REPORTS_PER_PAGE
+                        );
+                        return (
+                          <>
+                            {paginatedReports.map((report) => {
                         const cat = getCategoryDetails(report.building_type || report.categorie)
                         const dateObj = new Date(report.created_at)
                         const formattedDate = isNaN(dateObj.getTime())
@@ -628,14 +655,15 @@ export default function AccountPage() {
                           <div
                             key={report.id}
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '16px',
-                              background: 'rgba(255, 255, 255, 0.02)',
-                              border: '0.5px solid rgba(242, 237, 230, 0.06)',
-                              borderRadius: '8px',
-                              padding: '16px',
-                              transition: 'border-color 0.2s, background 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              flexWrap: 'wrap',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '0.5px solid rgba(242, 237, 230, 0.06)',
+              borderRadius: '8px',
+              padding: '16px',
+              transition: 'border-color 0.2s, background 0.2s',
                             }}
                             onMouseEnter={e => {
                               e.currentTarget.style.borderColor = 'rgba(193, 68, 14, 0.25)'
@@ -669,13 +697,12 @@ export default function AccountPage() {
                                     objectFit: 'cover',
                                   }}
                                   onError={(e) => {
-                                    // Fallback to category icon on load error
                                     e.target.style.display = 'none'
-                                    e.target.parentNode.innerHTML = `<span style="font-size: 24px">${cat.icon}</span>`
+                                    e.target.parentNode.innerHTML = `<span style="color:rgba(193,68,14,0.7);display:flex;align-items:center;justify-content:center;width:100%;height:100%"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>`
                                   }}
                                 />
                               ) : (
-                                <span style={{ fontSize: '24px' }}>{cat.icon}</span>
+                                <cat.icon size={24} style={{ color: 'rgba(193,68,14,0.7)' }} />
                               )}
                             </div>
 
@@ -689,16 +716,16 @@ export default function AccountPage() {
                                   const s = getStatutBadge(report.statut)
                                   return (
                                     <span style={{
-                                      background: s.bg,
-                                      border: `0.5px solid ${s.border}`,
-                                      color: s.color,
-                                      borderRadius: '100px',
-                                      padding: '2px 8px',
-                                      fontSize: '10px',
-                                      fontWeight: 600,
-                                      whiteSpace: 'nowrap',
-                                    }}>
-                                      {s.icon} {s.label}
+                                        background: s.bg,
+                                        border: `0.5px solid ${s.border}`,
+                                        color: s.color,
+                                        borderRadius: '100px',
+                                        padding: '2px 8px',
+                                        fontSize: '10px',
+                                        fontWeight: 600,
+                                        whiteSpace: 'nowrap',
+                                      }}>
+                                        {s.label}
                                     </span>
                                   )
                                 })()}
@@ -713,9 +740,9 @@ export default function AccountPage() {
                                 color: 'rgba(242, 237, 230, 0.4)',
                                 flexWrap: 'wrap',
                               }}>
-                                <span>📍 Zone: {report.zone?.nom || 'Non spécifiée'}</span>
-                                <span>•</span>
-                                <span>📅 {formattedDate}</span>
+                                                <span style={{display:'flex', alignItems:'center', gap:'3px'}}><MapPin size={11} style={{opacity:0.5, flexShrink:0}} /> Zone: {report.zone?.nom || 'Non spécifiée'}</span>
+                                                <span>•</span>
+                                                <span style={{display:'flex', alignItems:'center', gap:'3px'}}><CalendarDays size={11} style={{opacity:0.5, flexShrink:0}} /> {formattedDate}</span>
                               </div>
 
                               {/* Urgency indicators */}
@@ -742,6 +769,45 @@ export default function AccountPage() {
                           </div>
                         )
                       })}
+                          {totalReportPages > 1 && (
+                            <div style={{
+                              display: 'flex', alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '12px 0', marginTop: '8px',
+                              borderTop: '0.5px solid rgba(242,237,230,0.06)',
+                            }}>
+                              <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.25)' }}>
+                                {(reportsPage - 1) * REPORTS_PER_PAGE + 1}–{Math.min(reportsPage * REPORTS_PER_PAGE, reports.length)} sur {reports.length}
+                              </span>
+                              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                <button
+                                  disabled={reportsPage === 1}
+                                  onClick={() => setReportsPage(p => p - 1)}
+                                  style={{
+                                    width: '28px', height: '28px', borderRadius: '4px',
+                                    border: '0.5px solid rgba(242,237,230,0.1)',
+                                    background: 'transparent', color: 'rgba(242,237,230,0.4)',
+                                    cursor: reportsPage === 1 ? 'not-allowed' : 'pointer', fontSize: '14px',
+                                  }}
+                                >‹</button>
+                                <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.4)', padding: '0 8px' }}>
+                                  {reportsPage}/{totalReportPages}
+                                </span>
+                                <button
+                                  disabled={reportsPage === totalReportPages}
+                                  onClick={() => setReportsPage(p => p + 1)}
+                                  style={{
+                                    width: '28px', height: '28px', borderRadius: '4px',
+                                    border: '0.5px solid rgba(242,237,230,0.1)',
+                                    background: 'transparent', color: 'rgba(242,237,230,0.4)',
+                                    cursor: reportsPage === totalReportPages ? 'not-allowed' : 'pointer', fontSize: '14px',
+                                  }}
+                                >›</button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )})()}
                     </div>
                   )}
                 </>
