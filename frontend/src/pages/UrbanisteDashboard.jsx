@@ -10,6 +10,7 @@ import UrbanRapportTab from '../components/dashboard/UrbanRapportTab';
 import api from '../services/api';
 import * as urbanApi from '../services/urbanApi';
 import useResponsive from '../hooks/useResponsive';
+import { Map, BarChart2, MessageSquare, BookMarked, FileText, Download, Sparkles } from 'lucide-react';
 
 function CityBadge() {
   const { user } = useAuth()
@@ -254,11 +255,12 @@ function DashboardInner() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh', background: '#060403',
-      fontFamily: 'DM Sans, sans-serif', color: '#F2EDE6',
-      paddingTop: '52px',
-    }}>
+<div style={{
+  minHeight: activeTab === 'rapport' ? 'auto' : '100vh',
+  background: '#060403',
+  fontFamily: 'DM Sans, sans-serif', color: '#F2EDE6',
+  paddingTop: '52px',
+}}>
 
       {/* Zellige bg */}
       <div style={{
@@ -322,7 +324,7 @@ function DashboardInner() {
                 e.currentTarget.style.color = 'rgba(242,237,230,0.5)'
               }}
             >
-              ⬇ Export PDF
+              <Download size={13} style={{ marginRight: '4px' }} /> Export PDF
             </button>
             <button
               onClick={() => setShowAiModal(true)}
@@ -332,11 +334,12 @@ function DashboardInner() {
                 color: '#fff', fontSize: '12px',
                 fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
                 transition: 'all 0.2s',
+                display: 'flex', alignItems: 'center', gap: '4px',
               }}
               onMouseEnter={e => e.currentTarget.style.background = '#A8380C'}
               onMouseLeave={e => e.currentTarget.style.background = '#C1440E'}
             >
-              ✦ Synthèse IA
+              <Sparkles size={13} /> Synthèse IA
             </button>
           </div>
         </div>
@@ -347,11 +350,11 @@ function DashboardInner() {
           scrollbarWidth: 'none',
         }}>
           {[
-            { id: 'carte',        icon: '🗺',  label: 'Carte Analytique' },
-            { id: 'statistiques', icon: '📊', label: 'Statistiques Pro' },
-            { id: 'opinions',     icon: '💬', label: 'Opinions Citoyennes' },
-            { id: 'annotations',  icon: '📝', label: 'Annotations Privées' },
-            { id: 'rapport',      icon: '📄', label: 'Rapport PDF' },
+            { id: 'carte',        icon: <Map size={14} />,        label: 'Carte Analytique' },
+            { id: 'statistiques', icon: <BarChart2 size={14} />,  label: 'Statistiques Pro' },
+            { id: 'opinions',     icon: <MessageSquare size={14} />, label: 'Opinions Citoyennes' },
+            { id: 'annotations',  icon: <BookMarked size={14} />, label: 'Annotations Privées' },
+            { id: 'rapport',      icon: <FileText size={14} />,   label: 'Rapport PDF' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -382,7 +385,7 @@ function DashboardInner() {
                   e.currentTarget.style.color = 'rgba(242,237,230,0.38)'
               }}
             >
-              <span style={{ fontSize: '13px', opacity: 0.7 }}>{tab.icon}</span>
+              <span style={{ opacity: activeTab === tab.id ? 1 : 0.5, display: 'flex' }}>{tab.icon}</span>
               {tab.label}
             </button>
           ))}
@@ -392,6 +395,7 @@ function DashboardInner() {
       {/* Body */}
       <div style={{
         padding: '24px 28px',
+        paddingBottom: ['carte', 'rapport'].includes(activeTab) ? '16px' : '24px',
         position: 'relative', zIndex: 1,
       }}>
 

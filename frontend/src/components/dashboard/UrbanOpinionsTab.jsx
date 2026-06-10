@@ -7,10 +7,19 @@ import EmptyState from '../EmptyState.jsx';
 import { useAuth } from '../../context/AuthContext';
 import { unwrap } from '../../utils/unwrap';
 import { AiCard, StatusBadge } from './UDComponents';
+import { Truck, Lightbulb, Trash2, Droplets, Trees, Bus, Hospital, School, MapPin, AlertCircle, Clock, Search } from 'lucide-react';
 
-const CAT_EMOJI = {
-  route: '🛣️', eclairage: '💡', parc: '🌳',
-  dechets: '🗑️', eau: '💧', transport: '🚌', autre: '❓',
+const getCatIcon = (cat, size = 13) => {
+  const c = String(cat || '').toLowerCase();
+  if (c.includes('rout'))                            return <Truck size={size} />;
+  if (c.includes('eclair') || c.includes('éclair')) return <Lightbulb size={size} />;
+  if (c.includes('dech') || c.includes('déche'))    return <Trash2 size={size} />;
+  if (c.includes('eau'))                             return <Droplets size={size} />;
+  if (c.includes('parc') || c.includes('vert'))     return <Trees size={size} />;
+  if (c.includes('trans'))                           return <Bus size={size} />;
+  if (c.includes('hopit') || c.includes('hôpit'))   return <Hospital size={size} />;
+  if (c.includes('ecol') || c.includes('écol'))     return <School size={size} />;
+  return <MapPin size={size} />;
 };
 const CAT_LABEL = {
   route: 'Route', eclairage: 'Éclairage', parc: 'Parc',
@@ -105,6 +114,8 @@ export default function UrbanOpinionsTab({ aiSummary }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'urgent', 'chronic'
   const [expandedCard, setExpandedCard] = useState(null);
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchOpinions = useCallback(async () => {
     setLoading(true);
@@ -121,6 +132,8 @@ export default function UrbanOpinionsTab({ aiSummary }) {
   useEffect(() => {
     fetchOpinions();
   }, [fetchOpinions]);
+
+  useEffect(() => { setCurrentPage(1); }, [filterCategory, activeFilter, searchQuery]);
 
   const filteredOpinions = opinions.filter(op => {
     // 1. Filter out empty descriptions
@@ -150,8 +163,14 @@ export default function UrbanOpinionsTab({ aiSummary }) {
     return true;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredOpinions.length / ITEMS_PER_PAGE));
+  const paginatedOpinions = filteredOpinions.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   // Grouping logic
-  const groupedOpinions = filteredOpinions.reduce((acc, op) => {
+  const groupedOpinions = paginatedOpinions.reduce((acc, op) => {
     const cat = op.categorie || 'autre';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(op);
@@ -176,8 +195,8 @@ export default function UrbanOpinionsTab({ aiSummary }) {
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {[
             { id: 'all', label: 'Toutes' },
-            { id: 'urgent', label: '🔴 Urgentes' },
-            { id: 'chronic', label: '⏳ Chroniques' }
+            { id: 'urgent', label: <><AlertCircle size={11} style={{marginRight:4}}/> Urgentes</> },
+            { id: 'chronic', label: <><Clock size={11} style={{marginRight:4}}/> Chroniques</> }
           ].map(f => (
             <button
               key={f.id}
@@ -217,7 +236,7 @@ export default function UrbanOpinionsTab({ aiSummary }) {
           </select>
           <input
             type="text"
-            placeholder="🔍 Chercher..."
+            placeholder="Chercher..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{
@@ -269,7 +288,7 @@ export default function UrbanOpinionsTab({ aiSummary }) {
                 marginBottom: '12px', paddingBottom: '8px',
                 borderBottom: '0.5px solid rgba(242,237,230,0.06)'
               }}>
-                <span style={{ fontSize: '16px' }}>{CAT_EMOJI[cat] || '📌'}</span>
+                <span style={{ display: 'flex', color: '#E8B87A' }}>{getCatIcon(cat, 15)}</span>
                 <span style={{ fontWeight: 700, fontSize: '13px', color: '#E8B87A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {CAT_LABEL[cat] || cat}
                 </span>
@@ -310,8 +329,8 @@ export default function UrbanOpinionsTab({ aiSummary }) {
                         alignItems: 'flex-start', marginBottom: '8px'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#F2EDE6' }}>
-                            {CAT_EMOJI[cat]} {CAT_LABEL[cat]}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 600, color: '#F2EDE6' }}>
+                            {getCatIcon(cat, 12)} {CAT_LABEL[cat]}
                           </span>
                           <span style={{ color: 'rgba(242,237,230,0.2)', fontSize: '12px' }}>·</span>
                           <span style={{
@@ -361,6 +380,44 @@ export default function UrbanOpinionsTab({ aiSummary }) {
               </div>
             </div>
           ))}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 0', marginTop: '8px',
+              borderTop: '0.5px solid rgba(242,237,230,0.06)',
+            }}>
+              <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.25)' }}>
+                {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredOpinions.length)} sur {filteredOpinions.length}
+              </span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  style={{
+                    width: '28px', height: '28px', borderRadius: '4px',
+                    border: '0.5px solid rgba(242,237,230,0.1)',
+                    background: 'transparent', color: 'rgba(242,237,230,0.4)',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '14px',
+                  }}
+                >‹</button>
+                <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.4)', padding: '0 8px', lineHeight: '28px' }}>
+                  {currentPage}/{totalPages}
+                </span>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  style={{
+                    width: '28px', height: '28px', borderRadius: '4px',
+                    border: '0.5px solid rgba(242,237,230,0.1)',
+                    background: 'transparent', color: 'rgba(242,237,230,0.4)',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '14px',
+                  }}
+                >›</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

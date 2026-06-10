@@ -81,7 +81,7 @@ class UserController extends Controller
         $queued = 0;
         foreach ($users as $user) {
             try {
-                Mail::to($user->email)->queue(new GroupEmailMailable($data['subject'], $data['message'], $user->nom));
+                Mail::to($user->email)->send(new GroupEmailMailable($data['subject'], $data['message'], $user->nom));
                 $queued++;
             } catch (\Exception $e) {
                 Log::error("Failed to queue group email to {$user->email}: " . $e->getMessage());

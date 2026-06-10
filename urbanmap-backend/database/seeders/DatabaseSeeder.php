@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'urbaniste@urbanmap.ma',
         ], [
             'nom' => 'Urbaniste User',
-            'password' => Hash::make('urban123'),
+            'password' => Hash::make('admin123'),
             'role' => 'urbaniste',
             'statut' => 'active',
             'company_name' => 'UrbanMap',

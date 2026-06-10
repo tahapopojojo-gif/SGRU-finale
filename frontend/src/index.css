@@ -413,10 +413,11 @@ select {
 }
 
 /* Admin zones map — keep overlays above Leaflet panes */
-.admin-zones-map {
-  position: relative;
-  min-width: 0;
-}
+.admin-zones-map { outline: none !important; position: relative; min-width: 0; }
+.admin-zones-map:focus { outline: none !important; }
+.admin-zones-map *:focus { outline: none !important; }
+
+.leaflet-container:focus { outline: none !important; }
 
 .admin-zones-map .leaflet-container {
   position: relative;
@@ -440,6 +441,27 @@ select {
 .admin-zones-map .leaflet-draw-actions,
 .admin-zones-map .leaflet-draw-toolbar {
   display: none !important;
+}
+
+/* Leaflet draw vertex markers — dark theme */
+.leaflet-draw-guide-dash {
+  background: #C1440E !important;
+}
+
+.leaflet-marker-icon.leaflet-div-icon {
+  background: rgba(193, 68, 14, 0.85) !important;
+  border: 1.5px solid rgba(242, 237, 230, 0.6) !important;
+  border-radius: 3px !important;
+  width: 10px !important;
+  height: 10px !important;
+  margin-left: -5px !important;
+  margin-top: -5px !important;
+}
+
+.leaflet-editing-icon {
+  background: rgba(193, 68, 14, 0.85) !important;
+  border: 1.5px solid rgba(242, 237, 230, 0.6) !important;
+  border-radius: 3px !important;
 }
 
 .admin-zones-create-panel {
@@ -564,9 +586,10 @@ select {
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.97);
-  border: 0.5px solid rgba(0, 0, 0, 0.12);
-  border-radius: 10px;
+  background: rgba(8, 6, 3, 0.92);
+  border: 0.5px solid rgba(242, 237, 230, 0.12);
+  border-radius: 8px;
+  color: rgba(242, 237, 230, 0.8);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   font-family: 'DM Sans', sans-serif;
   font-size: 11px;
@@ -586,6 +609,7 @@ select {
   background: rgba(193, 68, 14, 0.12);
   color: #C1440E;
   font-weight: 600;
+  border: 0.5px solid rgba(193, 68, 14, 0.3);
 }
 
 .zone-draw-toolbar__divider {
@@ -598,9 +622,9 @@ select {
 .zone-draw-toolbar__btn {
   padding: 5px 10px;
   border-radius: 6px;
-  border: 0.5px solid rgba(0, 0, 0, 0.1);
-  background: #fff;
-  color: #334155;
+  border: 0.5px solid rgba(242, 237, 230, 0.12);
+  background: transparent;
+  color: rgba(242, 237, 230, 0.6);
   cursor: pointer;
   font-size: 11px;
   white-space: nowrap;
@@ -612,7 +636,7 @@ select {
 
 .zone-draw-toolbar__btn--cancel {
   color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 @keyframes dotpulse {
@@ -622,4 +646,39 @@ select {
 
 @keyframes adpulse {
   0%,100%{opacity:1} 50%{opacity:0.3}
+}
+
+.recharts-active-bar {
+  fill: transparent !important;
+  fill-opacity: 0 !important;
+}
+
+.recharts-rectangle.recharts-cursor {
+  fill: transparent !important;
+  fill-opacity: 0 !important;
+}
+
+.recharts-cartesian-grid-bg {
+  fill: transparent !important;
+}
+
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
+  outline: none !important;
+  border: none !important;
+}
+
+.recharts-wrapper svg {
+  outline: none !important;
+}
+
+.leaflet-container {
+  background: #1a1a2e !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }

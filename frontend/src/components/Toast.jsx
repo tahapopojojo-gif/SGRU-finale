@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react'
+import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react'
 
 const icons = {
-  success: '✅',
-  error: '❌',
-  info: 'ℹ️',
-  warning: '⚠️'
+  success: <CheckCircle size={16} strokeWidth={1.8} />,
+  error: <XCircle size={16} strokeWidth={1.8} />,
+  info: <Info size={16} strokeWidth={1.8} />,
+  warning: <AlertTriangle size={16} strokeWidth={1.8} />,
 }
 
 const colors = {
-  success: { bg: '#DCFCE7', text: '#166534' },
-  error: { bg: '#FEE2E2', text: '#991B1B' },
-  info: { bg: '#DBEAFE', text: '#1E40AF' },
-  warning: { bg: '#FEF9C3', text: '#854D0E' }
+  success: { bg: 'rgba(8,6,3,0.96)', text: '#52BE80', border: 'rgba(82,190,128,0.25)', icon: '#52BE80' },
+  error:   { bg: 'rgba(8,6,3,0.96)', text: '#ef4444', border: 'rgba(239,68,68,0.25)',  icon: '#ef4444' },
+  info:    { bg: 'rgba(8,6,3,0.96)', text: '#E8B87A', border: 'rgba(232,184,122,0.25)', icon: '#E8B87A' },
+  warning: { bg: 'rgba(8,6,3,0.96)', text: '#f59e0b', border: 'rgba(245,158,11,0.25)', icon: '#f59e0b' },
 }
 
 export default function Toast({ id, message, type, onClose, duration }) {
@@ -38,18 +39,23 @@ export default function Toast({ id, message, type, onClose, duration }) {
     position: 'relative',
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '12px',
-    padding: '16px',
+    gap: '10px',
+    padding: '12px 14px',
     background: style.bg,
-    color: style.text,
+    color: '#F2EDE6',
+    border: `0.5px solid ${style.border}`,
+    borderLeft: `2px solid ${style.icon}`,
     borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    width: '320px',
-    marginBottom: '12px',
-    fontFamily: "'Inter', sans-serif",
-    fontSize: '14px',
-    fontWeight: '500',
-    animation: isClosing ? 'toast-slide-out 0.3s ease forwards' : 'toast-slide-in 0.3s ease forwards'
+    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+    width: '300px',
+    marginBottom: '10px',
+    fontFamily: 'DM Sans, sans-serif',
+    fontSize: '13px',
+    fontWeight: 400,
+    lineHeight: 1.5,
+    animation: isClosing
+      ? 'toast-slide-out 0.3s ease forwards'
+      : 'toast-slide-in 0.3s ease forwards',
   }
 
   return (
@@ -67,16 +73,24 @@ export default function Toast({ id, message, type, onClose, duration }) {
         `}
       </style>
       <div style={toastStyle}>
-        <span style={{ fontSize: '18px' }}>{icons[type]}</span>
+        <span style={{ color: style.icon, flexShrink: 0, marginTop: '1px' }}>
+          {icons[type]}
+        </span>
         <div style={{ flex: 1, paddingTop: '2px', lineHeight: '1.4' }}>{message}</div>
-        <button 
-          onClick={handleClose} 
-          style={{ 
-            background: 'none', border: 'none', fontSize: '16px', 
-            color: style.text, opacity: 0.5, cursor: 'pointer', padding: 0 
+        <button
+          onClick={handleClose}
+          style={{
+            background: 'none', border: 'none',
+            color: 'rgba(242,237,230,0.3)',
+            cursor: 'pointer', padding: 0,
+            flexShrink: 0, marginTop: '1px',
+            transition: 'color 0.15s',
+            display: 'flex', alignItems: 'center',
           }}
+          onMouseEnter={e => e.currentTarget.style.color = 'rgba(242,237,230,0.8)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(242,237,230,0.3)'}
         >
-          ✕
+          <X size={14} strokeWidth={1.8} />
         </button>
       </div>
     </>

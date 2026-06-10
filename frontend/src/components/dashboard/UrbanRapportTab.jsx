@@ -7,6 +7,7 @@ import html2canvas from 'html2canvas';
 import SkeletonChart from '../SkeletonChart.jsx';
 import { unwrap } from '../../utils/unwrap';
 import { AiCard, SectionLabel } from './UDComponents';
+import { BarChart2, Building2, TrendingUp, Sparkles, Download, Eye, Loader } from 'lucide-react';
 
 // ─── REPORT SUB-COMPONENTS ──────────────────────────────────────────────────
 
@@ -306,10 +307,10 @@ export default function UrbanRapportTab() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
         {[
-          { icon: '📊', name: 'Rapport de zone',     key: 'zone',     desc: 'Détails complets d\'un secteur spécifique.' },
-          { icon: '🏙️', name: 'Rapport de ville',   key: 'ville',    desc: 'Comparatif municipal agrégé des 3 zones.' },
-          { icon: '📈', name: 'Rapport temporel',    key: 'temporel', desc: 'Tendances et évolution hebdomadaire.' },
-          { icon: '🤖', name: 'Synthèse IA pure',    key: 'synthese', desc: 'Analyse stratégique 100% narrative.' },
+          { icon: <BarChart2 size={28} />, name: 'Rapport de zone',   key: 'zone',     desc: 'Détails complets d\'un secteur spécifique.' },
+          { icon: <Building2 size={28} />, name: 'Rapport de ville',  key: 'ville',    desc: 'Comparatif municipal agrégé des 3 zones.' },
+          { icon: <TrendingUp size={28} />, name: 'Rapport temporel', key: 'temporel', desc: 'Tendances et évolution hebdomadaire.' },
+          { icon: <Sparkles size={28} />,  name: 'Synthèse IA pure',  key: 'synthese', desc: 'Analyse stratégique 100% narrative.' },
         ].map(r => (
           <div key={r.key} 
             onClick={() => {
@@ -322,7 +323,9 @@ export default function UrbanRapportTab() {
               borderRadius: '10px', padding: '18px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' 
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '10px' }}>{r.icon}</div>
+            <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'center', color: reportType === r.key ? '#C1440E' : 'rgba(242,237,230,0.4)' }}>
+              {r.icon}
+            </div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#F2EDE6', marginBottom: '4px' }}>{r.name}</div>
             <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.35)', lineHeight: 1.4 }}>{r.desc}</div>
           </div>
@@ -352,17 +355,20 @@ export default function UrbanRapportTab() {
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-        <button onClick={handleGeneratePDF} disabled={isGenerating} style={{ flex: 1, padding: '12px', background: '#C1440E', borderRadius: '8px', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', border: 'none' }}>
-          {isGenerating ? '⏳ Génération...' : '✦ Générer PDF'}
+        <button onClick={handleGeneratePDF} disabled={isGenerating} style={{ flex: 1, padding: '12px', background: '#C1440E', borderRadius: '8px', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isGenerating
+            ? <><Loader size={13} style={{ marginRight: '6px', animation: 'spin 1s linear infinite' }} /> Génération...</>
+            : <><Download size={13} style={{ marginRight: '6px' }} /> Générer PDF</>
+          }
         </button>
-        <button onClick={handlePreview} style={{ padding: '12px 24px', background: 'transparent', border: '0.5px solid rgba(242,237,230,0.2)', borderRadius: '8px', color: '#F2EDE6', fontSize: '13px', cursor: 'pointer' }}>
-          👁 Aperçu
+        <button onClick={handlePreview} style={{ padding: '12px 24px', background: 'transparent', border: '0.5px solid rgba(242,237,230,0.2)', borderRadius: '8px', color: '#F2EDE6', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <Eye size={13} style={{ marginRight: '6px' }} /> Aperçu
         </button>
       </div>
 
-      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-        {reportData && <ReportTemplate data={reportData} isHidden={true} />}
-      </div>
+<div style={{ position: 'fixed', left: '-9999px', top: 0, visibility: 'hidden', pointerEvents: 'none' }}>
+  {reportData && <ReportTemplate data={reportData} isHidden={true} />}
+</div>
 
       {showPreview && reportData && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>

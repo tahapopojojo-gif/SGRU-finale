@@ -11,6 +11,7 @@ import { getCityMapConfig } from '../../utils/cityBounds';
 import { unwrap } from '../../utils/unwrap';
 import SkeletonTable from '../SkeletonTable.jsx';
 import useResponsive from '../../hooks/useResponsive';
+import { Thermometer, BarChart2 } from 'lucide-react';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,10 @@ function UrbanHeatmapLayer({ zones, remarks }) {
       if (!report.latitude || !report.longitude) return false;
       return validZones.some(zone => {
         const point = turf.point([report.longitude, report.latitude]);
-        const ring = zone.coordonnees_geojson.map(c => [c[1], c[0]]);
+        let ring = zone.coordonnees_geojson.map(c => [c[1], c[0]]);
+        if (ring.length < 3) return false;
+        const first = ring[0], last = ring[ring.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) ring = [...ring, first];
         const polygon = turf.polygon([ring]);
         return turf.booleanPointInPolygon(point, polygon);
       });
@@ -397,20 +401,24 @@ export default function UrbanCarteTab({ onSwitchTab }) {
     <div style={{ fontFamily: "'DM Sans', sans-serif", color: '#F2EDE6' }}>
 
       {/* ── Main layout: map + sidebar ────────────────────────────────────── */}
-      <div style={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: 14,
-      }}>
+<div style={{
+  display: isMobile ? 'flex' : 'grid',
+  gridTemplateColumns: '1fr 300px',
+  flexDirection: 'column',
+  gap: 14,
+  height: isMobile ? 'auto' : 'calc(100vh - 246px)',
+}}>
 
         {/* ═══════════ MAP PANEL ═══════════ */}
         <div style={{
-          flex: 1, minWidth: 0,
+          minWidth: 0,
           background: 'rgba(255,255,255,0.02)',
           border: '0.5px solid rgba(242,237,230,0.07)',
           borderRadius: 10,
           overflow: 'hidden',
           position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
         }}>
 
           {/* Toolbar */}
@@ -445,7 +453,7 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                   fontFamily: 'DM Sans, sans-serif',
                 }}
               >
-                🔥 Thermique
+                <Thermometer size={12} /> Thermique
               </button>
             </div>
 
@@ -471,7 +479,7 @@ export default function UrbanCarteTab({ onSwitchTab }) {
           </div>
 
           {/* Map container */}
-          <div style={{ height: isMobile ? 320 : 'calc(100vh - 160px)', position: 'relative' }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: isMobile ? 320 : 200 }}>
             <MapContainer
               center={initialCenter}
               zoom={initialZoom}
@@ -746,7 +754,7 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,68,14,0.2)'; e.currentTarget.style.color = '#F2EDE6'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(193,68,14,0.1)'; e.currentTarget.style.color = '#E8B87A'; }}
                 >
-                  📊 Voir statistiques complètes →
+                  <BarChart2 size={13} /> Voir statistiques complètes →
                 </button>
 
               </div>
@@ -885,7 +893,7 @@ export default function UrbanCarteTab({ onSwitchTab }) {
                 display: 'flex', flexDirection: 'column',
               }}>
                 <div style={{ fontSize: 10, color: 'rgba(242,237,230,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10, fontWeight: 600 }}>
-                  🔥 Zones par urgence moyenne
+                  Zones par urgence moyenne
                 </div>
 
                 <div style={{

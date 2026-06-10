@@ -625,6 +625,41 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', background: '#060403', color: '#F2EDE6', fontFamily: 'DM Sans, sans-serif' }}>
+      <style>{`
+  .leaflet-container:focus { outline: none !important; }
+  .admin-zones-map *:focus { outline: none !important; }
+  
+  .zone-draw-toolbar,
+  .zone-draw-toolbar * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  .zone-draw-toolbar__btn {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    color: rgba(242, 237, 230, 0.6) !important;
+    border: 0.5px solid rgba(242, 237, 230, 0.12) !important;
+  }
+  
+  .zone-draw-toolbar__btn:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    color: rgba(242, 237, 230, 0.9) !important;
+  }
+  
+  .zone-draw-toolbar__btn--cancel {
+    color: rgba(239, 68, 68, 0.8) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+  }
+
+  .leaflet-draw-toolbar a,
+  .leaflet-draw-toolbar a:hover {
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+`}</style>
       {error && (
         <div style={{ padding: '12px 16px', background: 'rgba(220,38,38,0.1)', border: '1px solid #DC2626', borderRadius: '8px', color: '#DC2626', fontSize: '13px', marginBottom: '12px' }}>{error}</div>
       )}
@@ -640,19 +675,20 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '44px', background: 'rgba(255,255,255,0.02)', borderBottom: '0.5px solid rgba(242,237,230,0.07)', padding: '0 16px' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button type="button" onClick={() => setShowThermals(v => !v)} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '100px', cursor: 'pointer',
-            background: showThermals ? 'rgba(193,68,14,0.15)' : 'transparent',
-            border: showThermals ? '0.5px solid rgba(193,68,14,0.3)' : '0.5px solid rgba(242,237,230,0.1)',
-            color: showThermals ? '#C1440E' : 'rgba(242,237,230,0.5)', fontSize: '11px',
+            display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer',
+            background: showThermals ? 'rgba(193,68,14,0.15)' : 'rgba(255,255,255,0.04)',
+            border: showThermals ? '0.5px solid rgba(193,68,14,0.5)' : '0.5px solid rgba(242,237,230,0.12)',
+            color: showThermals ? '#E8B87A' : 'rgba(242,237,230,0.5)', fontSize: '12px',
           }}>
-            {showThermals && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C1440E' }} />}
-            Thermique
+            <span style={{fontSize:'14px'}}>🌡</span> Thermique
           </button>
           <button type="button" onClick={() => handleStartDraw()} disabled={isDrawing} style={{
-            padding: '4px 12px', borderRadius: '6px', fontSize: '11px', cursor: isDrawing ? 'wait' : 'pointer',
-            background: isDrawing ? 'rgba(193,68,14,0.2)' : '#C1440E', border: 'none', color: '#fff',
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 16px', borderRadius: '6px', fontSize: '12px',
+            fontWeight: 600, letterSpacing: '0.02em', cursor: isDrawing ? 'wait' : 'pointer',
+            background: isDrawing ? 'rgba(193,68,14,0.25)' : '#C1440E',
+            border: isDrawing ? '0.5px solid rgba(193,68,14,0.5)' : 'none', color: '#fff',
           }}>
-            {isDrawing ? '✏️ Dessin en cours…' : '+ Nouvelle zone'}
+            {isDrawing ? '✏ Dessin en cours…' : '＋ Nouvelle zone'}
           </button>
         </div>
         <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.45)' }}>
@@ -676,7 +712,7 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
             minZoom={cityConfig.minZoom || 11}
             maxBounds={cityConfig.bounds}
             maxBoundsViscosity={1.0}
-            style={{ width: '100%', height: '100%' }}
+            style={{ width: '100%', height: '100%', outline: 'none' }}
             zoomControl={false}
           >
             <MapResizeHandler isActive={isActive} />
@@ -801,8 +837,8 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
             </div>
           </div>
           <div style={{ position: 'absolute', bottom: '16px', right: '16px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <button type="button" onClick={() => mapRef.current?.zoomIn()} style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.95)', border: '0.5px solid rgba(0,0,0,0.12)', borderRadius: '6px', color: '#334155', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>+</button>
-            <button type="button" onClick={() => mapRef.current?.zoomOut()} style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.95)', border: '0.5px solid rgba(0,0,0,0.12)', borderRadius: '6px', color: '#334155', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>−</button>
+            <button type="button" onClick={() => mapRef.current?.zoomIn()} style={{ width: '32px', height: '32px', background: 'rgba(8,6,3,0.85)', border: '0.5px solid rgba(242,237,230,0.15)', borderRadius: '6px', color: 'rgba(242,237,230,0.7)', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>+</button>
+            <button type="button" onClick={() => mapRef.current?.zoomOut()} style={{ width: '32px', height: '32px', background: 'rgba(8,6,3,0.85)', border: '0.5px solid rgba(242,237,230,0.15)', borderRadius: '6px', color: 'rgba(242,237,230,0.7)', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>−</button>
             <button type="button" onClick={() => {
               const map = mapRef.current;
               if (!map) return;
@@ -811,7 +847,7 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
               const all = [...points, ...zonePts];
               if (all.length) map.fitBounds(L.latLngBounds(all), { padding: [48, 48], maxZoom: 15, animate: true });
               else map.setView(cityConfig.center, cityConfig.zoom);
-            }} style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.95)', border: '0.5px solid rgba(0,0,0,0.12)', borderRadius: '6px', color: '#334155', cursor: 'pointer', fontSize: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }} title="Ajuster la vue">⊡</button>
+            }} style={{ width: '32px', height: '32px', background: 'rgba(8,6,3,0.85)', border: '0.5px solid rgba(242,237,230,0.15)', borderRadius: '6px', color: 'rgba(242,237,230,0.7)', cursor: 'pointer', fontSize: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }} title="Ajuster la vue">⊡</button>
           </div>
           </div>
         </div>
@@ -1005,8 +1041,8 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
                       </span>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedZoneForEdit(z); setZoneName(z.nom); setZoneColor(z.couleur); setShowEditModal(true); }} style={{ fontSize: '9px', padding: '3px 8px', borderRadius: '4px', border: '0.5px solid rgba(242,237,230,0.1)', background: 'transparent', color: 'rgba(242,237,230,0.45)', cursor: 'pointer' }}>Modifier</button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setZoneToDelete(z); setShowDeleteModal(true); }} style={{ fontSize: '9px', padding: '3px 8px', borderRadius: '4px', border: '0.5px solid rgba(239,68,68,0.3)', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>Supprimer</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedZoneForEdit(z); setZoneName(z.nom); setZoneColor(z.couleur); setShowEditModal(true); }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '4px', border: '0.5px solid rgba(242,237,230,0.1)', background: 'transparent', color: 'rgba(242,237,230,0.45)', cursor: 'pointer' }}>Modifier</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setZoneToDelete(z); setShowDeleteModal(true); }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '4px', border: '0.5px solid rgba(239,68,68,0.3)', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>Supprimer</button>
                     </div>
                   </div>
                 );

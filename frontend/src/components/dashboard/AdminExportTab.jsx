@@ -4,9 +4,7 @@ import { useToast } from '../../hooks/useToast.js';
 import { useAuth } from '../../context/AuthContext';
 import { getCityMapConfig } from '../../utils/cityBounds';
 import { unwrap } from '../../utils/unwrap';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer,
-} from 'recharts';
+import { FileSpreadsheet, Globe, BarChart2, FileText } from 'lucide-react'
 import {
   CATEGORIES,
   filterRemarksForExport,
@@ -43,10 +41,10 @@ const optionStyle = {
 };
 
 const EXPORT_FORMATS = [
-  { icon: '📊', name: 'Export CSV complet', desc: 'Une ligne par signalement — anonyme, prêt pour Excel ou QGIS.', key: 'csv' },
-  { icon: '🗺', name: 'Export GeoJSON', desc: 'Polygones de zones + points signalements pour SIG.', key: 'geojson' },
-  { icon: '📈', name: 'Excel Analytics', desc: '3 feuilles : données brutes, croisement catégorie×zone, urgence.', key: 'excel' },
-  { icon: '📄', name: 'Rapport PDF', desc: 'Rapport structuré avec indicateurs, tableaux et synthèse.', key: 'pdf' },
+  { icon: FileSpreadsheet, iconColor: '#52BE80', name: 'Export CSV complet', desc: 'Une ligne par signalement — anonyme, prêt pour Excel ou QGIS.', key: 'csv' },
+  { icon: Globe, iconColor: '#5DADE2', name: 'Export GeoJSON', desc: 'Polygones de zones + points signalements pour SIG.', key: 'geojson' },
+  { icon: BarChart2, iconColor: '#E8B87A', name: 'Excel Analytics', desc: '3 feuilles : données brutes, croisement catégorie×zone, urgence.', key: 'excel' },
+  { icon: FileText, iconColor: '#C1440E', name: 'Rapport PDF', desc: 'Rapport structuré avec indicateurs, tableaux et synthèse.', key: 'pdf' },
 ];
 
 const getPeriodLabel = (filters) => {
@@ -198,32 +196,10 @@ export default function AdminExportTab({ isActive = true }) {
     }
   }, [filteredRemarks, filteredZones, exportFormat, filters, userCity, toast]);
 
-  const byCategory = useMemo(() => {
-    const counts = {};
-    filteredRemarks.forEach(r => {
-      const cat = r.categorie || 'autre';
-      counts[cat] = (counts[cat] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [filteredRemarks]);
-
-  const byUrgency = useMemo(() => {
-    const groups = { '1-2 Faible': 0, '3 Significatif': 0, '4-5 Dangereux': 0 };
-    filteredRemarks.forEach(r => {
-      const u = r.urgency || 1;
-      if (u <= 2) groups['1-2 Faible']++;
-      else if (u === 3) groups['3 Significatif']++;
-      else groups['4-5 Dangereux']++;
-    });
-    return Object.entries(groups).map(([name, value]) => ({ name, value }));
-  }, [filteredRemarks]);
-
-  const CHART_COLORS = ['#C1440E', '#E8B87A', '#52BE80', '#5DADE2', '#1A5276', '#94A3B8'];
-
   const isExportDisabled = loading || isExporting || filteredRemarks.length === 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontFamily: 'DM Sans, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontFamily: 'DM Sans, sans-serif' }}>
       {/* Format grid */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
         {EXPORT_FORMATS.map(opt => (
@@ -231,19 +207,40 @@ export default function AdminExportTab({ isActive = true }) {
             key={opt.key}
             type="button"
             onClick={() => { setExportFormat(opt.key); setExportSuccess(null); }}
+            onFocus={e => e.currentTarget.style.outline = 'none'}
             style={{
               flex: '1 1 200px',
-              minWidth: '200px',
-              background: exportFormat === opt.key ? 'rgba(193,68,14,0.1)' : 'rgba(255,255,255,0.03)',
-              border: exportFormat === opt.key ? '0.5px solid #C1440E' : '0.5px solid rgba(242,237,230,0.08)',
+              minWidth: '180px',
+              background: exportFormat === opt.key ? 'rgba(193,68,14,0.08)' : 'rgba(255,255,255,0.02)',
+              border: exportFormat === opt.key
+                ? `0.5px solid ${opt.iconColor}`
+                : '0.5px solid rgba(242,237,230,0.07)',
               borderRadius: '10px',
-              padding: '20px',
+              padding: '20px 16px',
               cursor: 'pointer',
-              transition: 'all 0.25s',
+              transition: 'all 0.2s',
               textAlign: 'center',
+              outline: 'none',
+              boxShadow: 'none',
+              position: 'relative',
+              overflow: 'hidden',
             }}
           >
-            <div style={{ fontSize: '26px', marginBottom: '10px' }}>{opt.icon}</div>
+            {exportFormat === opt.key && (
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0,
+                height: '1.5px', background: opt.iconColor,
+              }} />
+            )}
+            <div style={{ 
+              width: '44px', height: '44px', borderRadius: '10px',
+              background: `${opt.iconColor}18`,
+              border: `0.5px solid ${opt.iconColor}40`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 12px',
+            }}>
+              <opt.icon size={22} color={opt.iconColor} strokeWidth={1.5} />
+            </div>
             <div style={{ fontSize: '13px', fontWeight: 500, color: '#F2EDE6', marginBottom: '4px' }}>{opt.name}</div>
             <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', lineHeight: 1.5 }}>{opt.desc}</div>
           </button>
@@ -370,19 +367,68 @@ export default function AdminExportTab({ isActive = true }) {
           onClick={handleExport}
           style={{
             flex: 1,
-            padding: '12px',
-            background: isExportDisabled ? 'rgba(193,68,14,0.3)' : '#C1440E',
-            color: isExportDisabled ? 'rgba(255,255,255,0.4)' : '#fff',
+            padding: '11px 20px',
+            background: 'transparent',
+            color: isExportDisabled ? 'rgba(242,237,230,0.2)' : '#E8B87A',
+            border: isExportDisabled
+              ? '0.5px solid rgba(242,237,230,0.06)'
+              : '0.5px solid rgba(193,68,14,0.45)',
             borderRadius: '6px',
             fontSize: '13px',
-            border: 'none',
             cursor: isExportDisabled ? 'not-allowed' : 'pointer',
-            fontWeight: 500,
+            fontWeight: 600,
+            fontFamily: 'DM Sans, sans-serif',
+            letterSpacing: '0.02em',
+            transition: 'all 0.2s',
+            outline: 'none',
           }}
         >
           {isExporting ? 'Génération en cours…' : `⬇ Générer et télécharger (${exportFormat.toUpperCase()})`}
         </button>
       </div>
+
+      {!loading && !error && filteredRemarks.length > 0 && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '8px',
+          marginTop: '4px',
+        }}>
+          {[
+            { label: 'Signalements', value: filteredRemarks.length, color: '#C1440E' },
+            { label: 'Zones incluses', value: filteredZones.length, color: '#52BE80' },
+            { label: 'Format', value: exportFormat.toUpperCase(), color: '#E8B87A' },
+            { label: 'Période', value: getPeriodLabel(filters), color: '#5DADE2' },
+          ].map(item => (
+            <div key={item.label} style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '0.5px solid rgba(242,237,230,0.06)',
+              borderRadius: '6px',
+              padding: '10px 12px',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0,
+                height: '1.5px', background: item.color,
+              }} />
+              <div style={{
+                fontSize: '9px', color: 'rgba(242,237,230,0.25)',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                marginBottom: '5px',
+              }}>
+                {item.label}
+              </div>
+              <div style={{
+                fontSize: '13px', color: '#F2EDE6',
+                fontFamily: 'DM Mono, monospace', fontWeight: 500,
+              }}>
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {exportSuccess !== null && (
         <div
@@ -399,55 +445,6 @@ export default function AdminExportTab({ isActive = true }) {
           }}
         >
           Export réussi — {exportSuccess} signalement{exportSuccess !== 1 ? 's' : ''} ({exportFormat.toUpperCase()})
-        </div>
-      )}
-
-      {!loading && !error && filteredRemarks.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-          <div style={{ flex: '1 1 300px', minWidth: '250px' }}>
-            <label style={labelStyle}>Signalements par catégorie</label>
-            <div style={{ width: '100%', height: '300px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={byCategory} margin={{ top: 8, right: 8, left: -8, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,237,230,0.08)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(242,237,230,0.45)' }} />
-                  <YAxis tick={{ fontSize: 10, fill: 'rgba(242,237,230,0.45)' }} />
-                  <Tooltip
-                    contentStyle={{ background: '#1a1614', border: '0.5px solid rgba(242,237,230,0.12)', borderRadius: '6px', fontSize: '12px' }}
-                    labelStyle={{ color: '#F2EDE6' }}
-                  />
-                  <Bar dataKey="value" fill="#C1440E" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div style={{ flex: '1 1 300px', minWidth: '250px' }}>
-            <label style={labelStyle}>Répartition par urgence</label>
-            <div style={{ width: '100%', height: '300px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={byUrgency}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={({ name, value }) => `${name} (${value})`}
-                    labelLine={{ stroke: 'rgba(242,237,230,0.2)' }}
-                  >
-                    {byUrgency.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ background: '#1a1614', border: '0.5px solid rgba(242,237,230,0.12)', borderRadius: '6px', fontSize: '12px' }}
-                    labelStyle={{ color: '#F2EDE6' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
         </div>
       )}
 

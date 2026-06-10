@@ -454,16 +454,18 @@ export default function AdminStatistiquesTab({ isActive = true }) {
           {stats.total === 0 && stats.zonesCount === 0 ? (
             <NoData />
           ) : (
-            <ResponsiveContainer width="100%" height={Math.max(200, stats.zoneBarData.length * 36)}>
+            <ResponsiveContainer width="100%" height={Math.max(200, stats.zoneBarData.length * 36)} style={{ outline: 'none' }}>
               <BarChart data={stats.zoneBarData} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,237,230,0.06)" horizontal={false} />
                 <XAxis type="number" allowDecimals={false} tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="zone" width={100} tick={{ fill: 'rgba(242,237,230,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={chartTooltipStyle} />
-                <Bar dataKey="count" name="Signalements" radius={[0, 4, 4, 0]}>
-                  {stats.zoneBarData.map((entry, i) => (
-                    <Cell key={entry.zone} fill={entry.zone === 'Non assignés' ? '#C1440E' : '#6366f1'} />
-                  ))}
+                <Tooltip contentStyle={chartTooltipStyle} cursor={false} />
+                <Bar dataKey="count" name="Signalements" radius={[0, 4, 4, 0]} activeBar={false} isAnimationActive={false}>
+                  {stats.zoneBarData.map((entry, i) => {
+                    const zoneColors = ['#52BE80', '#5DADE2', '#E8B87A', '#A29BFE', '#FD79A8', '#74B9FF']
+                    const fill = entry.zone === 'Non assignés' ? '#C1440E' : zoneColors[i % zoneColors.length]
+                    return <Cell key={entry.zone} fill={fill} />
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Send, Users } from 'lucide-react'
 import { getUsers, sendGroupEmail } from '../../services/adminApi';
 import { useToast } from '../../hooks/useToast';
 import SkeletonTable from '../SkeletonTable.jsx';
@@ -137,7 +138,6 @@ export default function AdminUsersTab() {
       borderRadius: '20px',
       fontSize: '11px',
       fontWeight: '700',
-      textTransform: 'capitalize',
       display: 'inline-block'
     };
     switch (role) {
@@ -327,16 +327,19 @@ export default function AdminUsersTab() {
     },
     submitBtn: {
       alignSelf: 'flex-start',
-      padding: '10px 24px',
-      background: '#C1440E',
-      color: '#fff',
-      border: 'none',
+      padding: '9px 20px',
+      background: 'transparent',
+      color: '#C1440E',
+      border: '0.5px solid rgba(193,68,14,0.45)',
       borderRadius: '6px',
       fontSize: '13px',
-      fontWeight: '700',
+      fontWeight: 600,
       cursor: 'pointer',
-      transition: 'background 0.2s',
-      fontFamily: 'DM Sans, sans-serif'
+      transition: 'all 0.2s',
+      fontFamily: 'DM Sans, sans-serif',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '7px',
     },
     recipientBadge: {
       display: 'inline-flex',
@@ -358,6 +361,17 @@ export default function AdminUsersTab() {
 
   return (
     <div style={s.wrapper}>
+      <style>{`
+  #email-subject-input:focus,
+  #email-message-textarea:focus,
+  #email-group-select:focus,
+  #email-zone-select:focus {
+    outline: none !important;
+    border-color: rgba(193,68,14,0.5) !important;
+    box-shadow: none !important;
+  }
+`}</style>
+
       {/* SECTION 1 — Filters & Toolbar */}
       <div style={s.filterBar}>
         {/* Search */}
@@ -436,7 +450,7 @@ export default function AdminUsersTab() {
                     <td style={s.td}>{user.email}</td>
                     <td style={s.td}>
                       <span style={getRoleBadgeStyle(user.role)}>
-                        {user.role}
+                        {{ citoyen: 'Citoyen', admin: 'Admin', urbaniste: 'Urbaniste', super_admin: 'Super Admin' }[user.role] || user.role}
                       </span>
                     </td>
                     <td style={s.td}>
@@ -482,11 +496,11 @@ export default function AdminUsersTab() {
 
       {/* SECTION 2 — Group Email Form */}
       <form onSubmit={handleSendEmail} style={s.formCard}>
-        <h3 style={s.formTitle}>📧 Email de groupe</h3>
+        <h3 style={s.formTitle}>Email de groupe</h3>
         
         {/* Recipients calculation badge */}
         <div style={s.recipientBadge}>
-          🎯 Destinataires ciblés (actifs) : <strong>{estimatedRecipientsCount}</strong>
+          <Users size={13} strokeWidth={1.5} /> Destinataires ciblés (actifs) : <strong>{estimatedRecipientsCount}</strong>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
@@ -554,10 +568,10 @@ export default function AdminUsersTab() {
           type="submit"
           disabled={sendingEmail}
           style={{ ...s.submitBtn, opacity: sendingEmail ? 0.7 : 1, cursor: sendingEmail ? 'not-allowed' : 'pointer' }}
-          onMouseEnter={e => { if(!sendingEmail) e.currentTarget.style.background = '#A8380C' }}
-          onMouseLeave={e => { if(!sendingEmail) e.currentTarget.style.background = '#C1440E' }}
+          onMouseEnter={e => { if(!sendingEmail) { e.currentTarget.style.background = 'rgba(193,68,14,0.1)'; e.currentTarget.style.borderColor = 'rgba(193,68,14,0.7)' }}}
+          onMouseLeave={e => { if(!sendingEmail) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(193,68,14,0.45)' }}}
         >
-          {sendingEmail ? "Envoi en cours..." : "✉️ Envoyer"}
+          {sendingEmail ? 'Envoi en cours…' : <><Send size={14} /> Envoyer</>}
         </button>
       </form>
     </div>

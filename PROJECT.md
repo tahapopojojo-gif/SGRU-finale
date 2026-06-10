@@ -3,43 +3,92 @@
 > **Purpose:** A civic-tech platform for Moroccan cities (initially Marrakesh) where citizens report urban problems (roads, lighting, waste, water, parks, transport) and authorities manage them via a dashboard.
 >
 > **Stack:** Laravel 12 (backend API) + React 19 / Vite (frontend SPA) + SQLite (dev) + Leaflet (maps) + SMTP/Gmail (email).
+>
+> **UI Design:** Premium dark theme (`#060403` background, `#F2EDE6` text, `#C1440E` accent) with Lucide React icons, glassmorphic panels, and CSS animations.
 
 ---
 
 ## Table of Contents
 
+0. [App Target & Logic](#0-app-target--logic)
 1. [Architecture Overview](#1-architecture-overview)
 2. [Backend (Laravel)](#2-backend-laravel)
-   - [Directory Structure](#21-directory-structure)
-   - [Database Schema (Migrations)](#22-database-schema-migrations)
-   - [Models](#23-models)
-   - [API Routes](#24-api-routes)
-   - [Controllers](#25-controllers)
-   - [Form Requests (Validation)](#26-form-requests-validation)
-   - [Mailables & Email Templates](#27-mailables--email-templates)
-   - [Seeders](#28-seeders)
-   - [Middleware](#29-middleware)
-   - [Configuration](#210-configuration)
 3. [Frontend (React)](#3-frontend-react)
-   - [Directory Structure](#31-directory-structure)
-   - [App Entry & Routing](#32-app-entry--routing)
-   - [Pages](#33-pages)
-   - [Services / API Layer](#34-services--api-layer)
-   - [Context Providers](#35-context-providers)
-   - [Components](#36-components)
-   - [Key UI Patterns](#37-key-ui-patterns)
 4. [Key Features Implemented](#4-key-features-implemented)
-   - [Citizen Map (CitizenMapPage)](#41-citizen-map-citizenmappage)
-   - [Professional Map (MapPage)](#42-professional-map-mappage)
-   - [Admin Dashboard](#43-admin-dashboard)
-   - [Urbaniste Dashboard](#44-urbaniste-dashboard)
-   - [Super Admin Page](#45-super-admin-page)
-   - [Email System](#46-email-system)
-   - [Onboarding Tour](#47-onboarding-tour)
 5. [Roles & Permissions](#5-roles--permissions)
 6. [Running the App](#6-running-the-app)
 7. [Diagrams & Reports (Data Flow)](#7-diagrams--reports-data-flow)
 8. [Known Quirks & Conventions](#8-known-quirks--conventions)
+9. [UI/UX Design System](#9-uiux-design-system-lucide--css-overhaul)
+10. [Recent Changes & Fixes](#10-recent-changes--fixes)
+
+---
+
+## 0. App Target & Logic
+
+### 0.1 What Is This App?
+
+UrbanMap Maroc is a **civic-tech platform** that connects citizens with urban authorities. Citizens report problems in their city (potholes, broken streetlights, garbage, water leaks, etc.) via an interactive map, and urban planners ("urbanistes") and administrators review, manage, and resolve those reports. It is designed specifically for Moroccan cities, starting with **Marrakesh**.
+
+### 0.2 Why Does It Exist?
+
+In many Moroccan cities, there is no centralized, transparent system for citizens to report urban issues. Problems go unreported or get lost in phone calls and paperwork. UrbanMap provides:
+
+- **For citizens:** A simple, map-based way to report issues, attach photos, describe problems, and track resolution status.
+- **For urbanistes (urban planners):** A dashboard to view citizen reports, add annotations per zone, generate statistics, and export data.
+- **For admins:** Full management of users, zones, remarks, and system configuration.
+- **For super admins:** Oversight of all activity, including admin user management.
+
+### 0.3 Target Users
+
+| Role | Label | Description |
+|------|-------|-------------|
+| `citoyen` | Citizen | Reports urban issues via the public map. No login required for viewing, but login needed to submit. |
+| `urbaniste` | Urban Planner | Uses the Urbaniste Dashboard to review reports, add annotations, view zone statistics, export data. |
+| `admin` | Administrator | Full CRUD on users, zones, remarks. Can send emails, manage roles, configure the system. |
+| `super_admin` | Super Admin | Same as admin + can manage other admins, lock/unlock roles. |
+
+### 0.4 How It Works — End-to-End Flow
+
+```
+Citizen opens map → Drops a pin → Fills in details (category, urgency, description, photo)
+       ↓
+Remark created (statut: "en_attente") → Email confirmation sent (optional queue)
+       ↓
+Urbaniste/Admin reviews on dashboard → Marks as "en_cours" (under investigation)
+       ↓
+Urbaniste adds zone annotations, urbaniste/admin resolves the issue
+       ↓
+Status changed to "resolu" or "rejete" → Email notification sent to citizen
+```
+
+**Detailed lifecycle of a remark (report):**
+1. **Submission:** Citizen clicks "Signaler un problème" on the map, selects location, fills a form (category, urgency, duration, profile, description, optional photo).
+2. **Auto-validation:** On creation, statut is set to `en_cours` (auto-validated) — no separate validation step.
+3. **Review:** Urbaniste or admin views the remark on their dashboard. They can filter by zone, category, status, urgency.
+4. **Annotation:** Urbanistes can add zone-level annotations (priorité: urgente, surveiller, informatif).
+5. **Resolution:** Admin or urbaniste changes the statut to `resolu` or `rejete`. An email is queued to the citizen.
+6. **Archiving:** Resolved/rejected remarks remain visible in filtered views for audit.
+
+### 0.5 Key Logic Rules
+
+- **Categories:** route, eclairage, dechets, eau, parc, transport (+ "autre"). Each has a fixed hex color and Lucide icon.
+- **Urgency:** 1 (low) to 5 (critical). Displayed as color-coded badges.
+- **Profile:** Who the reporter is — conducteur, pieton, resident, commercant, passant (nullable).
+- **Residence duration:** How long the reporter has lived there (nullable).
+- **Zones:** City districts defined as polygon coordinates on the map. Each remark is optionally linked to a zone (zone_id).
+- **Statut lifecycle (2026-06-08 cleanup):** `en_attente → en_cours → resolu / rejete`. Removed old states: `validee`, `planifie`, `urgent`, `active`, `planning`.
+- **Validation:** No separate "validation" step — remarks are auto-validated with statut `en_cours` on submission.
+- **City data:** All entities reference a city (ville). Currently only "Marrakesh" is seeded. The city bounds config is in `cityBounds.js`.
+
+### 0.6 Credentials (Dev)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | superadmin@urbanmap.ma | super123 |
+| Admin | mohammed.benali@urbanmap.ma | admin123 |
+| Urbaniste | urbaniste@urbanmap.ma | admin123 |
+| Citizen | citoyen@urbanmap.ma | citoyen123 |
 
 ---
 
@@ -204,194 +253,113 @@ urbanmap-backend/
 | Column | Type | Notes |
 |--------|------|-------|
 | id | bigint PK | |
-| zone_id | bigint FK→zones | Unique per zone |
-| summary_text | text | AI-generated analysis |
+| zone_id | bigint FK→zones | |
+| resume | text | AI-generated summary |
 | generated_at | timestamp | |
 
-**Other tables:** `categories`, `personal_access_tokens` (Sanctum), `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `sessions`, `password_reset_tokens`.
+**Table: `categories`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | bigint PK | |
+| nom | string | e.g. "Voirie" |
+| couleur | string | Hex |
+| icone | string | Icon name |
+
+**Table: `personal_access_tokens`** — Laravel Sanctum tokens
+**Table: `jobs`** — Queue table for emails
+**Table: `failed_jobs`** — Failed queue jobs
+**Table: `cache` / `cache_locks`** — Cache tables
+**Table: `sessions`** — Session table
 
 ### 2.3 Models
 
-**`User`** — `HasApiTokens`, `HasFactory`, `Notifiable`
-- `$fillable`: nom, email, password, role, statut, company_name, city
-- `$hidden`: password, remember_token
-- `$casts`: password → 'hashed'
-- Relations: `remarques()` (HasMany), `annotations()` (HasMany, as 'urbaniste_id')
-
-**`Remarque`** — `Model`
-- `$fillable`: user_id, zone_id, categorie, statut, building_type, reasons, problems, urgency, duration, profile, residence_duration, opinion, opinion_ai_validated, opinion_ai_summary, commentaire_admin, photo_path, latitude, longitude
-- `$casts`: reasons→array, problems→array, urgency→integer, opinion_ai_validated→boolean, latitude→float, longitude→float
-- Relations: `user()` (BelongsTo), `zone()` (BelongsTo)
-
-**`Zone`** — `Model`
-- `$fillable`: nom, ville, couleur, coordonnees_geojson, centre_lat, centre_lng, notes
-- `$casts`: coordonnees_geojson→array, centre_lat→float, centre_lng→float
-- Relations: `remarques()` (HasMany)
-
-**`AnnotationUrbaniste`** — `Model`
-- `$fillable`: zone_id, urbaniste_id, texte, priorite
-- Relations: `zone()` (BelongsTo), `urbaniste()` (BelongsTo)
-
-**`ZoneAiSummary`** — `Model` (no timestamps)
-- `$fillable`: zone_id, summary_text, generated_at
-- `$casts`: generated_at→datetime
+- **User** — Sanctum auth, `role`/`statut` casts, relation: `remarques()`
+- **Remarque** — BelongsTo User + Zone, casts for `reasons`/`problems` (array), `statut`/`categorie` enum strings
+- **Zone** — HasMany Remarque, HasMany AnnotationUrbaniste, HasOne ZoneAiSummary
+- **AnnotationUrbaniste** — BelongsTo Zone + User (urbaniste)
+- **ZoneAiSummary** — BelongsTo Zone
+- **Category** — Simple model (nom, couleur, icone)
 
 ### 2.4 API Routes
 
-**Public (no auth):**
-| Method | Path | Handler | Notes |
-|--------|------|---------|-------|
-| POST | `/register` | AuthController@register | |
-| POST | `/login` | AuthController@login | |
-| GET | `/zones` | ZoneController@index | |
-| GET | `/remarques` | RemarqueController@index | Public read |
-
-**Authenticated (auth:sanctum):**
-| Method | Path | Handler | Notes |
-|--------|------|---------|-------|
-| POST | `/logout` | AuthController@logout | |
-| GET | `/me` or `/user` | AuthController@me | |
-| PUT | `/profile` | AuthController@updateProfile | |
-| GET | `/my-remarks` | RemarqueController@myRemarks | |
-| POST | `/remarques` | RemarqueController@store | Create a report |
-
-**Admin/SuperAdmin (role:admin,super_admin):**
-| Method | Path | Handler |
-|--------|------|---------|
-| POST | `/zones` | ZoneController@store |
-| PATCH | `/zones/{zone}` | ZoneController@update |
-| DELETE | `/zones/{zone}` | ZoneController@destroy |
-| PATCH | `/remarques/{remarque}` | RemarqueController@update |
-| GET | `/dashboard/stats` | DashboardController@stats |
-| GET | `/users` | UserController@index |
-| POST | `/users/send-group-email` | UserController@sendGroupEmail |
-
-**SuperAdmin only (role:super_admin):**
-| GET | `/users/pending` | UserController@pending |
-| PATCH | `/users/{user}` | UserController@update |
-
-**Urbaniste/Admin (role:urbaniste,admin):**
-| GET/POST/PATCH/DELETE | `/annotations` | AnnotationController |
-| GET/POST | `/zones/{zone}/summary` | ZoneSummaryController |
+| Method | Endpoint | Auth | Role | Description |
+|--------|----------|------|------|-------------|
+| POST | /api/register | No | — | Register as citoyen |
+| POST | /api/login | No | — | Login, returns token |
+| POST | /api/logout | Yes | — | Logout |
+| GET | /api/user | Yes | — | Current user info |
+| GET | /api/remarques | Yes | urbaniste/admin/super | List remarks (filtered) |
+| POST | /api/remarques | Yes | citoyen | Submit remark |
+| PUT | /api/remarques/{id} | Yes | urbaniste/admin/super | Update remark |
+| GET | /api/remarques/{id} | Yes | urbaniste/admin/super | Single remark detail |
+| GET | /api/zones | No | — | List zones (public) |
+| POST | /api/zones | Yes | admin/super | Create zone |
+| PUT | /api/zones/{id} | Yes | admin/super | Update zone |
+| DELETE | /api/zones/{id} | Yes | admin/super | Delete zone |
+| GET | /api/users | Yes | admin/super | List all users |
+| PUT | /api/users/{id} | Yes | admin/super | Update user (role/statut) |
+| POST | /api/users/{id}/send-email | Yes | admin/super | Send email to user |
+| POST | /api/send-group-email | Yes | admin/super | Send email to user group |
+| GET | /api/dashboard/stats | Yes | urbaniste/admin/super | Aggregate stats |
+| GET | /api/annotations | Yes | urbaniste | List annotations |
+| POST | /api/annotations | Yes | urbaniste | Create annotation |
+| PUT | /api/annotations/{id} | Yes | urbaniste | Update annotation |
+| DELETE | /api/annotations/{id} | Yes | urbaniste | Delete annotation |
+| GET | /api/zone-summaries | Yes | urbaniste | List AI summaries |
+| GET | /api/zone-summaries/{id} | Yes | urbaniste | Single summary |
 
 ### 2.5 Controllers
 
-**`AuthController`**
-- `register()` — Creates user, returns token. Admin/urbaniste registrations get `statut=pending`.
-- `login()` — Validates credentials, checks statut (rejects pending/rejected), returns token.
-- `logout()` — Deletes current access token.
-- `me()` — Returns authenticated user.
-- `updateProfile()` — Updates nom, optionally password.
-
-**`RemarqueController`**
-- `index()` — Lists all remarks with user+zone, supports `?statut=`, `?zone_id=`, `?categorie=` filters.
-- `myRemarks()` — Lists current user's remarks.
-- `store()` — Creates remark from StoreRemarqueRequest. Syncs `categorie`/`building_type`. Handles photo upload. Queues confirmation email. Wrapped in try/catch for validation (422) and general errors (500).
-- `update()` — Updates remark statut/commentaire_admin via UpdateRemarqueRequest.
-
-**`ZoneController`**
-- `index()` — Lists zones, optional `?ville=` filter.
-- `store()` — Creates zone, optionally associates remark_ids. Notifies all active super_admin/admin/urbaniste users via ZoneCreatedMailable (queued). Resolves all `en_cours` remarks within the zone polygon (statut → `resolu`) and notifies citizens via IssueResolvedMailable.
-- `update()` — Updates zone.
-- `destroy()` — Deletes zone.
-
-**`UserController`**
-- `index()` — Lists all users.
-- `pending()` — Lists users with statut=pending.
-- `update()` — Updates user statut (only), company_name, city. Role is immutable. Sends `AccountStatusChangedMailable` for ANY statut change (pending→active, active→rejected, etc.).
-- `sendGroupEmail()` — Sends group email to citizens/urbanistes/admins/all/users-by-zone.
-
-**`DashboardController`**
-- `stats()` — Returns total_remarques, total_zones, total_users, pending_users, remarques_par_statut, remarques_par_zone, remarques_par_categorie.
-
-**`AnnotationController`**
-- `byZone()`, `byUrbaniste()`, `store()`, `update()`, `destroy()` — CRUD for urbanist annotations.
-
-**`ZoneSummaryController`**
-- `show()` — Gets AI summary for a zone.
-- `generate()` — Creates/updates AI summary.
+| Controller | Key Methods |
+|------------|-------------|
+| `AuthController` | `register()`, `login()`, `logout()`, `user()` |
+| `RemarqueController` | `index()` (filtered by role/statut/zone/category/urgence), `store()`, `show()`, `update()` |
+| `ZoneController` | `index()`, `store()`, `show()`, `update()`, `destroy()` |
+| `UserController` | `index()`, `update()`, `sendEmail()` (individual), `sendGroupEmail()` |
+| `DashboardController` | `stats()` — aggregate counts by statut/zone/categorie |
+| `AnnotationController` | `index()`, `store()`, `update()`, `destroy()` |
+| `ZoneSummaryController` | `index()`, `show()` |
 
 ### 2.6 Form Requests (Validation)
 
 | Request | Rules |
 |---------|-------|
-| `LoginRequest` | email (required, email), password (required, string) |
-| `RegisterRequest` | nom, email (unique:users), password (min:6), role (in:[super_admin,admin,urbaniste,citoyen]), company_name (nullable), city (nullable) |
-| **`StoreRemarqueRequest`** | zone_id (nullable,exists:zones,id), categorie (required), statut (nullable,in:[en_attente,en_cours,resolu,rejete]), building_type (nullable), reasons (required,array), problems (required,array), urgency (required,1-5), duration (nullable), profile (nullable — defaults to 'citoyen'), residence_duration (nullable — defaults to 'non_renseigne'), opinion (required), photo (nullable,image,max:5120KB), latitude (required,numeric), longitude (required,numeric) |
-| `UpdateRemarqueRequest` | statut (sometimes,in:[en_attente,en_cours,resolu,rejete]), commentaire_admin (nullable,string) |
-| `StoreZoneRequest` | nom (required), ville (required), couleur (required), coordonnees_geojson (required,array), centre_lat (required,numeric), centre_lng (required,numeric), notes (nullable), remark_ids (sometimes,array,each:integer,exists) |
-| `StoreAnnotationRequest` | zone_id (required,exists), urbaniste_id (required,exists), texte (required), priorite (nullable,in:[urgente,surveiller,informatif]) |
-| `UpdateAnnotationRequest` | texte (required), priorite (nullable,in:[urgente,surveiller,informatif]) |
+| `LoginRequest` | email required, password required |
+| `RegisterRequest` | nom required, email required|unique, password required|confirmed, password.min:8 |
+| `StoreRemarqueRequest` | categorie required|in:route,eclairage,..., latitude/longitude required|numeric, opinion required, photo optional|image|max:5120, profile/residence_duration nullable |
+| `UpdateRemarqueRequest` | Same as store but all optional |
+| `StoreZoneRequest` | nom required, ville required, coordonnees_geojson required|json |
+| `StoreAnnotationRequest` | zone_id required|exists, texte required, priorite required|in:urgente,surveiller,informatif |
+| `UpdateAnnotationRequest` | Same as store but all optional |
 
 ### 2.7 Mailables & Email Templates
 
-**`RemarqueConfirmationMailable`**
-- Sent to: `auth()->user()->email`
-- Subject: `"UrbanMap — Votre signalement a ete recu"`
-- Template: `emails/remarque_confirmation.blade.php`
-- Fields shown: reference (#id), categorie, urgency (French label), zone name, lat/lng, created_at
+| Mailable | Trigger | Template |
+|----------|---------|----------|
+| `RemarqueConfirmationMailable` | Citizen submits a remark | `emails/remarque_confirmation.blade.php` |
+| `ZoneCreatedMailable` | Admin creates a new zone | `emails/zone_created.blade.php` |
+| `GroupEmailMailable` | Admin sends group email | `emails/group_email.blade.php` |
+| `AccountStatusChangedMailable` | Admin changes user's statut | `emails/account_status_changed.blade.php` |
+| `IssueResolvedMailable` | Remark changed to resolu/rejete | `emails/issue_resolved.blade.php` |
 
-**`ZoneCreatedMailable`**
-- Sent to: All active super_admin, admin, urbaniste users
-- Subject: `"UrbanMap — Nouvelle zone creee : {zone->nom}"`
-- Template: `emails/zone_created.blade.php`
-- Fields shown: zone nom, ville, couleur
-
-**`GroupEmailMailable`**
-- Sent to: All users in a selected group
-- Subject: Custom (from admin form)
-- Template: `emails/group_email.blade.php`
-- Shows: recipient name + custom message
-
-**`AccountStatusChangedMailable`**
-- Sent to: The user whose status changed
-- Subject: Varies by new statut — `"Votre compte a ete active"`, `"Votre compte a ete desactive"`, or `"Le statut de votre compte a change"`
-- Template: `emails/account_status_changed.blade.php`
-- Shows: user name, role, old statut, new statut
-- Triggered for ANY statut change via `UserController@update()` (pending→active, active→rejected, rejected→active, etc.)
-
-**`IssueResolvedMailable`**
-- Sent to: The citizen whose remark was resolved
-- Subject: `"UrbanMap — Votre signalement a ete resolu"`
-- Template: `emails/issue_resolved.blade.php`
-- Shows: user name, remark reference (#id), categorie, zone name
-- Triggered when `ZoneController@store()` finds `en_cours` remarks within the new zone polygon and resolves them
-
-All emails are **queued** (Mail::to()->queue(...)), not sent synchronously. Requires `php artisan queue:work` running.
+All emails are queued via `->queue()` method using the `database` queue driver.
 
 ### 2.8 Seeders
 
-**`DatabaseSeeder`** creates:
-- 4 users: super_admin (`superadmin@urbanmap.ma` / `super123`), admin (`mohammed.benali@urbanmap.ma` / `admin123`), urbaniste (`urbaniste@urbanmap.ma` / `urban123`), citoyen (`citoyen@urbanmap.ma` / `citoyen123`)
-- 3 categories: Voirie, Patrimoine, Espaces Verts
-- 3 zones with realistic 8-12 vertex polygon coordinates:
-  - **Guéliz** (#C1440E, 8 vertices)
-  - **Médina** (#1A5276, 12 vertices)
-  - **Syba (Hay Salam)** (#52BE80, 9 vertices)
-- Calls `UnassignedReportsSeeder` (if exists)
-
-**`RealisticSeedDataSeeder`** creates 40 realistic citizen reports across the 3 zones with varied categories, urgency levels, profiles, durations, and realistic French descriptions. All have `statut=en_cours` and `opinion_ai_validated=true` so they appear on the citizen map.
+- **DatabaseSeeder:** Creates 4 default users (super_admin, admin, urbaniste, citoyen), 3 categories, 3 zones (Guéliz, Médina, Syba), calls `UnassignedReportsSeeder`.
+- **UnassignedReportsSeeder:** Creates remarks without zone_id assignment.
+- **RealisticSeedDataSeeder:** Alternative seeder with more realistic data volume.
 
 ### 2.9 Middleware
 
-**`CheckRole`** — accepts variadic role strings, returns 403 if user's role not in the list. Registered as alias `role` in `bootstrap/app.php`:
-```php
-$middleware->alias(['role' => CheckRole::class]);
-```
+- **CheckRole:** Custom middleware in `bootstrap/app.php` as alias `'role'`. Usage: `->middleware('role:admin,super_admin')`.
 
 ### 2.10 Configuration
 
-`.env` key values:
-- `DB_CONNECTION=sqlite` (default Laravel, file at `database/database.sqlite`)
-- `QUEUE_CONNECTION=database`
-- `MAIL_MAILER=smtp`
-- `MAIL_HOST=smtp.gmail.com`
-- `MAIL_PORT=587`
-- `MAIL_USERNAME=yahyaprogrammation@gmail.com`
-- `MAIL_PASSWORD="bkbe fyji hymq zlib"` (Gmail app password, must be quoted)
-- `MAIL_ENCRYPTION=tls`
-- `MAIL_FROM_ADDRESS=yahyaprogrammation@gmail.com`
-- `MAIL_FROM_NAME="UrbanMap Marrakesh"`
+- **Mail:** `.env` has `MAIL_MAILER=smtp`, Gmail SMTP with app password.
+- **Queue:** `QUEUE_CONNECTION=database` in `.env`.
+- **CORS:** `config/cors.php` (or Laravel 12's built-in handling).
+- **Login rate limit removed:** The `throttle:5,1` middleware was removed from `POST /login` and `POST /register` during development. Re-add for production.
 
 ---
 
@@ -402,190 +370,142 @@ $middleware->alias(['role' => CheckRole::class]);
 ```
 frontend/
 ├── src/
-│   ├── App.jsx                        ← Router + providers
 │   ├── pages/
-│   │   ├── CitizenMapPage.jsx         ← Citizen interactive map (1910 lines)
-│   │   ├── MapPage.jsx                ← Professional map (1900 lines)
-│   │   ├── AdminDashboard.jsx
-│   │   ├── UrbanisteDashboard.jsx
-│   │   ├── SuperAdminPage.jsx
-│   │   ├── AccountPage.jsx
-│   │   ├── HomePage.jsx
-│   │   ├── Login.jsx
-│   │   ├── Register.jsx
-│   │   ├── ForgotPassword.jsx
-│   │   └── NotFound.jsx
+│   │   ├── CitizenMapPage.jsx      ← Public map (citizen report flow + tour)
+│   │   ├── MapPage.jsx             ← Professional map (urbaniste/admin)
+│   │   ├── Login.jsx               ← Login form
+│   │   ├── Register.jsx            ← Registration form
+│   │   ├── HomePage.jsx            ← Landing/role selector
+│   │   ├── AdminDashboard.jsx      ← Admin dashboard (tabs)
+│   │   ├── UrbanisteDashboard.jsx  ← Urbaniste dashboard (tabs)
+│   │   └── SuperAdminPage.jsx      ← Super admin oversight
 │   ├── components/
+│   │   ├── Navbar.jsx              ← Top navigation bar
+│   │   ├── Toast.jsx               ← Toast notification system
 │   │   ├── admin/
-│   │   │   └── AdminUsersTab.jsx
+│   │   │   └── AdminUsersTab.jsx   ← User management tab (admin)
 │   │   ├── dashboard/
-│   │   │   ├── AdminExportTab.jsx
 │   │   │   ├── AdminRemarquesTab.jsx
 │   │   │   ├── AdminStatistiquesTab.jsx
-│   │   │   ├── AdminZonesTab.jsx      ← Zone management (1057 lines)
-│   │   │   ├── AnnotationPanel.jsx
-│   │   │   ├── HeatmapPanel.jsx
-│   │   │   ├── RemarquesTable.jsx
-│   │   │   ├── StatsCards.jsx
-│   │   │   ├── UDComponents.jsx
-│   │   │   ├── UrbanAnnotationsTab.jsx
+│   │   │   ├── AdminZonesTab.jsx
+│   │   │   ├── AdminExportTab.jsx
 │   │   │   ├── UrbanCarteTab.jsx
-│   │   │   ├── UrbanOpinionsTab.jsx
-│   │   │   ├── UrbanRapportTab.jsx
 │   │   │   ├── UrbanStatistiquesTab.jsx
-│   │   │   ├── UserManagement.jsx
-│   │   │   ├── ValidationPanel.jsx
-│   │   │   └── ZoneManagement.jsx
-│   │   ├── layout/
-│   │   │   ├── DashboardLayout.jsx
-│   │   │   ├── PageHeader.jsx
-│   │   │   └── Sidebar.jsx
+│   │   │   ├── UrbanOpinionsTab.jsx
+│   │   │   ├── UrbanAnnotationsTab.jsx
+│   │   │   ├── UrbanRapportTab.jsx
+│   │   │   └── (ValidationPanel.jsx (dead code))
+│   │   │   └── (RemarquesTable.jsx (dead code))
 │   │   ├── ui/
-│   │   │   ├── Avatar.jsx, Badge.jsx, Button.jsx, Card.jsx
-│   │   │   ├── Input.jsx, Modal.jsx, Select.jsx, Spinner.jsx, Tooltip.jsx
-│   │   │   └── index.js
-│   │   ├── EmptyState.jsx
-│   │   ├── ErrorBoundary.jsx
-│   │   ├── Navbar.jsx
-│   │   ├── ProtectedRoute.jsx
-│   │   ├── SkeletonCard.jsx, SkeletonChart.jsx
-│   │   ├── SkeletonLoader.jsx, SkeletonTable.jsx
-│   │   └── Toast.jsx
+│   │   │   ├── Button.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── Select.jsx
+│   │   │   └── Spinner.jsx
+│   │   └── layout/
+│   │       ├── DashboardLayout.jsx
+│   │       └── Sidebar.jsx
+│   ├── services/
+│   │   ├── api.js                  ← Axios instance (base URL, auth interceptor)
+│   │   ├── adminApi.js             ← Admin-specific API calls
+│   │   ├── urbanApi.js             ← Urbaniste-specific API calls
+│   │   ├── exportService.js        ← Excel/CSV export utilities
+│   │   ├── pdfService.js           ← PDF generation
+│   │   └── aiService.js            ← AI opinion analysis
 │   ├── context/
-│   │   ├── AuthContext.jsx
-│   │   └── ToastContext.jsx
-│   └── services/
-│       ├── adminApi.js
-│       ├── aiService.js
-│       ├── api.js                    ← Main API client (login, register, remarks)
-│       ├── axiosInstance.js          ← Axios instance with token interceptor
-│       ├── errorHandler.js
-│       ├── exportService.js
-│       ├── pdfService.js
-│       ├── urbanApi.js               ← Urbanist-specific API calls
-│       └── validationService.js
+│   │   └── AuthContext.jsx         ← Auth state provider
+│   ├── hooks/
+│   │   ├── useAuth.js              ← Auth hook
+│   │   ├── useToast.js             ← Toast hook
+│   │   └── usePaginator.js         ← Pagination logic
+│   ├── utils/
+│   │   ├── cityBounds.js           ← Map bounds per city
+│   │   ├── exportUtils.js          ← Export helpers
+│   │   └── unwrap.js               ← Data unwrapping utility
+│   ├── index.css                   ← Global styles (dark theme, animations)
+│   ├── main.jsx                    ← App entry point
+│   └── App.jsx                     ← Router + auth check
 ├── package.json
-└── vite.config.js
+├── vite.config.js
+└── tailwind.config.js
 ```
 
 ### 3.2 App Entry & Routing
 
-**`App.jsx`** wraps everything in:
-```jsx
-<ToastProvider>
-  <ErrorBoundary>
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-        <ToastContainer />
-      </AuthProvider>
-    </BrowserRouter>
-  </ErrorBoundary>
-</ToastProvider>
+```
+main.jsx → ReactDOM.createRoot
+   └── App.jsx
+        ├── AuthProvider (context)
+        └── BrowserRouter
+             ├── /                 → HomePage
+             ├── /login           → Login
+             ├── /register        → Register
+             ├── /citizen-map     → CitizenMapPage
+             ├── /map             → MapPage (urbaniste/admin)
+             ├── /admin           → AdminDashboard (role: admin/super_admin)
+             ├── /urbaniste       → UrbanisteDashboard (role: urbaniste)
+             └── /super-admin     → SuperAdminPage (role: super_admin)
 ```
 
-Routes:
-| Path | Component | Access |
-|------|-----------|--------|
-| `/` | HomePage | Public |
-| `/login` | Login | Public |
-| `/register` | Register | Public |
-| `/registre` | Register | Public (alias) |
-| `/forgot-password` | ForgotPassword | Public |
-| `/map` | DynamicMapRoute → CitizenMapPage (citizen) or redirect | Auth required |
-| `/account` | AccountPage | Auth required |
-| `/admin/dashboard` | AdminDashboard | admin |
-| `/urbaniste/dashboard` | UrbanisteDashboard | urbaniste, admin |
-| `/super-admin/users` | SuperAdminPage | super_admin |
-| `*` | NotFound | Public |
-
-**`DynamicMapRoute`** checks user role: citizens see `CitizenMapPage`, professionals redirect to their dashboard.
+- **Auth gate:** `App.jsx` checks `localStorage` for token and calls `GET /api/user` on mount. If valid, redirects away from login/register.
+- **Role gates:** Each dashboard page checks the user's role and redirects if unauthorized.
 
 ### 3.3 Pages
 
-**`CitizenMapPage.jsx`** (~1815 lines) — The main citizen-facing map. Features:
-- Leaflet map with OpenStreetMap and satellite tile layers
-- City center fallback coordinates for 7 Moroccan cities
-- `MapController` — view centering, bounds enforcement, fly-to animation
-- `MapAutoZoom` — auto-zooms to user's city, listens for custom DOM events (`fly-to`, `map-zoom-in`, `map-zoom-out`)
-- `UserLocationMarker` — blue circle marker
-- `InteractionManager` — marker placement + polygon drawing via leaflet-draw
-- `FeedbackForm` — 2-step citizen report form (problem type + urgency/duration/opinion/photo)
-- `ProfessionalView` — alternate panel for admin/urbaniste (technical data + internal notes)
-- `Legend` — shows category colors for citizens, status colors for professionals
-- Polygon zones fetched from API, rendered as colored polygons
-- Parcels (remarks) rendered as colored `CircleMarker`s (no heatmap)
-- Floating "+ Signaler un problème" button (fixed, bottom-center)
-- Driver.js onboarding tour (6 steps, triggered once via localStorage)
-- Live counter (signalements + zones count)
-
-**`MapPage.jsx`** (~1746 lines) — Professional/legacy map. Similar to CitizenMapPage but:
-- Uses `@turf/turf` for polygon overlap detection
-- 5-step FeedbackForm (building_type, reasons/opinion, urgency, problems, profile)
-- `HeatmapLayer` and `ZoneHeatmapLayer` via `leaflet.heat`
-- `InteractionManager` with overlap warnings
-- `LayersControl` from react-leaflet
-- Filters: shows validated + own remarks for citizens
-- Building types: park, school, residential, commercial, hospital, sports, mosque, other
-
-**`UrbanisteDashboard.jsx`** (~527 lines)
-- Tabs: Carte Analytique, Statistiques Pro, Opinions Citoyennes, Annotations Privees, Rapport PDF
-- `UrbanZoneProvider` context
-- `CityBadge`, `ActiveZoneBanner`
-- AI synthesis modal (`generateAiSynthesize()`) — generates textual analysis based on remarks data
-- Export PDF button
-- Keyboard navigation for tabs
+| Page | Route | Role | Description |
+|------|-------|------|-------------|
+| `HomePage` | `/` | Anyone | Landing page with role selection cards (Citizen, Urbaniste, Admin, Super Admin). Uses Lucide icons. |
+| `Login` | `/login` | Guest | Role selector + email/password form. Uses Lucide role icons. |
+| `Register` | `/register` | Guest | Registration form (citizen). City autocomplete. Dark theme. |
+| `CitizenMapPage` | `/citizen-map` | Anyone | Public interactive map. Drop pins, submit reports, onboarding tour (Driver.js). |
+| `MapPage` | `/map` | urbaniste/admin | Professional map with validated remarks overlay, zone polygons, panel system. |
+| `AdminDashboard` | `/admin` | admin/super_admin | Tabbed dashboard: Remarques, Stats, Zones, Export, Users. |
+| `UrbanisteDashboard` | `/urbaniste` | urbaniste | Tabbed dashboard: Carte, Statistiques, Opinions, Annotations, Rapport. |
+| `SuperAdminPage` | `/super-admin` | super_admin | Oversight page with platform stats and role lock controls. |
 
 ### 3.4 Services / API Layer
 
-**`axiosInstance.js`** — Axios instance with `baseURL: http://localhost:8000/api`, auto-attaches `Authorization: Bearer <token>` from localStorage, handles 401 by clearing auth and redirecting to `/login`.
-
-**`api.js`** — Main API client: `register`, `login`, `logout`, `getCurrentUser`, `getRemarks`, `createRemark` (multipart/form-data), `updateProfile`, `getMyRemarks`.
-
-**`urbanApi.js`** — Urbanist-specific: `getZonesWithStats`, `getValidatedRemarks`, `getUrbanStatsByZone` (comprehensive stats computation: category breakdown, urgency distribution, temporal data, duration analysis, profile breakdown, affected groups from `reasons`).
-
-**`adminApi.js`** — Admin-specific: zone CRUD, remark management, dashboard stats (`getDashboardStats`), user management (`getAllUsers`, `getPendingUsers`, `updateUser`), group email, CSV export.
-
-**`exportService.js`** — Export utilities: CSV export with BOM for Excel, Excel export via `xlsx` library, cross-tabulation matrix (Category × Zone), urgency breakdown sheet, zone summary statistics. Uses `normalizeRemarkRow()` to flatten remarks into export rows with computed fields (`category` label, `zone_name`, `profile`, `reasons`, `duration` label, photo URL).
-
-**`pdfService.js`** — PDF generation for zone reports and remark receipts. Uses `jspdf` + `jspdf-autotable`. Statut labels are dynamically read from `remarque.statut` via `STATUT_LABELS` map.
+- **`api.js`** — Axios instance. Base URL from env (`VITE_API_URL`). Automatically attaches `Authorization: Bearer {token}` from localStorage. Handles 401 redirect.
+- **`adminApi.js`** — Functions: `getUsers()`, `updateUser()`, `sendEmail()`, `sendGroupEmail()`, `getDashboardStats()`, `getZones()`, `createZone()`, `updateZone()`, `deleteZone()`.
+- **`urbanApi.js`** — Functions: `getValidatedRemarks({ ville, statut, categorie })`, `getUrbanStatsByZone(remarks)` (client-side computation), `getZones()`, `getAnnotations()`, `createAnnotation()`, `updateAnnotation()`, `deleteAnnotation()`.
+- **`exportService.js`** — `normalizeRemarkRow()`, `exportExcel()` (multi-sheet Excel via xlsx library), `exportCSV()`.
+- **`pdfService.js`** — PDF generation for individual remarks using the browser's print API or jsPDF.
+- **`aiService.js`** — AI analysis of citizen opinions (summary generation).
 
 ### 3.5 Context Providers
 
-**`AuthContext.jsx`** — Manages user/token state. On mount, loads from localStorage then revalidates via `getCurrentUser()`. Provides `login`, `logout`, `isAuthenticated`. Shows "Loading UrbanMap..." while initializing.
-
-**`ToastContext.jsx`** — Simple toast notification system. `addToast(message, type, duration)` with auto-dismiss via setTimeout.
+- **AuthContext:** Provides `user`, `token`, `login()`, `register()`, `logout()`, `loading` across the app. Stores token in localStorage.
 
 ### 3.6 Components
 
-**UI components** (`components/ui/`): Avatar, Badge, Button, Card, Input, Modal, Select, Spinner, Tooltip.
-
-**Layout components** (`components/layout/`): DashboardLayout (sidebar + header + content), PageHeader, Sidebar.
-
-**Feature components** (`components/dashboard/`):
-- **AdminZonesTab.jsx** — Zone management with Leaflet map, polygon drawing, heatmap, KPI cards, zone list with filters, duplicate detection, edit/delete modals.
-- **AdminRemarquesTab.jsx** — Remark table with status management.
-- **AdminStatistiquesTab.jsx** — Dashboard stats/charts.
-- **UrbanOpinionsTab.jsx** — Opinion browsing with category grouping, urgency/duration badges, expandable cards.
-- **UrbanStatistiquesTab.jsx** — Comprehensive statistics with Recharts charts, KPI cards, temporal selector, zone comparison table.
-- **UrbanAnnotationsTab.jsx** — Private annotation management.
-- **UrbanCarteTab.jsx** — Map tab for urbaniste.
-
-**`ProtectedRoute.jsx`** — Checks auth, redirects to login if no token; optionally checks roles. `getRoleDashboard(user.role)` maps roles to their dashboard route.
-
-**`ErrorBoundary.jsx`** — Class component, catches rendering errors, shows friendly UI with error ID, stack trace (dev), retry/go-home buttons.
+| Component | Location | Description |
+|-----------|----------|-------------|
+| `Navbar` | `Navbar.jsx` | Fixed top bar with UrbanMap logo, role-based nav links, user menu, live indicator. |
+| `Toast` | `Toast.jsx` | Toast notification system with types (success, error, warning, info). Uses Lucide icons. |
+| `AdminUsersTab` | `admin/AdminUsersTab.jsx` | User table with role/statut management, email sending features. |
+| `AdminRemarquesTab` | `dashboard/AdminRemarquesTab.jsx` | Admin remark management with CRUD, filters, category icons from Lucide. |
+| `AdminStatistiquesTab` | `dashboard/AdminStatistiquesTab.jsx` | Charts (recharts) for category breakdown, urgency distribution, status overview. |
+| `AdminZonesTab` | `dashboard/AdminZonesTab.jsx` | Zone CRUD with interactive polygon drawing on Leaflet map + priority annotations. |
+| `AdminExportTab` | `dashboard/AdminExportTab.jsx` | Multi-format export (Excel/CSV/PDF) with filters, globe/chart themed. |
+| `UrbanCarteTab` | `dashboard/UrbanCarteTab.jsx` | Zone heatmap with color-coded blocks, horizontal scroll, Lucide icons. |
+| `UrbanStatistiquesTab` | `dashboard/UrbanStatistiquesTab.jsx` | Category trends, urgency heatmap, profile breakdown with recharts. |
+| `UrbanOpinionsTab` | `dashboard/UrbanOpinionsTab.jsx` | Citizen remarks listing with filters, zone links, category icons, details modal. |
+| `UrbanAnnotationsTab` | `dashboard/UrbanAnnotationsTab.jsx` | Zone annotations CRUD with priority pills and zone selector. |
+| `UrbanRapportTab` | `dashboard/UrbanRapportTab.jsx` | Report builder with stats, download, and insight cards. |
+| `Button` | `ui/Button.jsx` | Reusable button with loading spinner (Loader2 from Lucide), variants. |
+| `Modal` | `ui/Modal.jsx` | Overlay modal with close button (X from Lucide). |
+| `Select` | `ui/Select.jsx` | Styled select with chevron (ChevronDown from Lucide). |
+| `Spinner` | `ui/Spinner.jsx` | Animated loading spinner (Loader2 from Lucide). |
+| `DashboardLayout` | `layout/DashboardLayout.jsx` | Dashboard wrapper with sidebar + header. Menu toggle uses Menu from Lucide. |
+| `Sidebar` | `layout/Sidebar.jsx` | Navigation sidebar with role-based items. Uses multiple Lucide icons. |
 
 ### 3.7 Key UI Patterns
 
-- **Styling:** Inline `styles` objects (not CSS modules or styled-components). Dark theme with **warm dark backgrounds**: page `#060403`, card `#1e293b`, Navbar `rgba(8,6,3,0.96)`, accent `#C1440E` (terracotta/orange), text `#F2EDE6`, borders `#334155`. The global `body` bg is `#060403` with a subtle hexagon SVG pattern at 3% opacity.
-- **Design system:** Components/ui/ folder has reusable primitives, but most pages use inline styles.
-- **Icon library:** `lucide-react` and `react-icons`.
-- **Charts:** `recharts` (BarChart, AreaChart, PieChart).
-- **Maps:** `react-leaflet` v5 with `leaflet` v1.9, `leaflet-draw` for polygon editing, `leaflet.heat` for heatmap.
-- **PDF export:** `jspdf` + `jspdf-autotable` + `html2canvas`.
-- **Excel export:** `xlsx` library.
-- **Skeletons:** Custom `SkeletonCard`, `SkeletonChart`, `SkeletonTable`, `SkeletonLoader`.
-- **Tour:** `driver.js` v1.4.0 (named export `{ driver }`, API: constructor with `steps` array, `.drive()` method). Persistence via `localStorage.setItem('urbanmap_tour_done', 'true')` across 3 callbacks: `onReset`, `onDestroyed`, and last-step `popover.onClose`.
+- **Tabs:** All dashboards use a tab-based layout. Active tab state managed by `useState`. Tab buttons use Lucide icons.
+- **Tables:** Consistent dark table styling with `rgba(242,237,230,0.06)` row backgrounds, hover effects.
+- **Charts:** recharts library with custom dark theme palette (card bg `#1e293b`, grid `#334155`, text `#94a3b8`).
+- **Category colors:** Every category has a fixed color used across all charts, maps, and badges.
+- **Pagination:** `usePaginator` hook (`useAppPaginator` was renamed to `usePaginator` during cleanup) provides `page`, `totalPages`, `next()`, `prev()`, `setPage()`.
+- **Filter pills:** Status filter pills with active state highlighting.
 
 ---
 
@@ -593,392 +513,138 @@ Routes:
 
 ### 4.1 Citizen Map (CitizenMapPage)
 
-**Purpose:** Allow citizens to view urban reports on a map and submit new ones.
-
-**Key behaviors:**
-- Fetches all remarks from `GET /remarques` (public endpoint, no statut filter — filtering is done client-side)
-- Fetches zones from `GET /zones`
-- Renders remarks as **colored CircleMarkers** (radius 5), color determined by `CATEGORY_COLORS` map (supports French aliases: route→#8B4513, eclairage→#FFD700, dechets→#2E8B57, eau→#1E90FF, parc→#228B22, transport→#6A5ACD)
-- Renders zones as **Polygon** outlines with `fillOpacity: 0.04`, color from zone data
-- Zone click → popup with reassuring message (not marker creation)
-- **"+ Signaler un problème"** button (fixed bottom-center) → clicking it enters marker placement mode
-- Citizen clicks map → marker placed → 2-step form appears:
-  1. Choose problem type (buttons for Route, Éclairage, Déchets, Eau, Parcs/Jardins, Transports)
-  2. Urgency (1-5 slider), Duration (dropdown: days/weeks/months), opinion text (max 300 chars, optional AI analysis), photo upload (optional)
-- Submit → `POST /remarques` as multipart/form-data → confirmation email queued
-- **Geolocation button** (top left, `#locate-btn`): blue Google-Maps-style dot marker at user's location, popup "📍 Vous êtes ici"
-- **Live counter** (`#live-counter`): "XX signalements dans YY zones officielles"
-- **Layer toggle**: Plan / Satellite
-
-**Tracking submitted reports — Account Page (`/account`):**
-- Citizens can view all their submitted reports in the **AccountPage** (`/account` route)
-- Reports are fetched via `GET /api/my-remarks` (auth required) — returns the user's own remarks with `zone` relation, ordered by latest
-- Each report card displays:
-  - **Category** (Route, Éclairage, etc.) with relevant icon/photo thumbnail
-  - **Statut badge** — dynamic badge reflecting `report.statut`: 🟡 En attente, 🔵 En cours, 🟢 Résolu, 🔴 Rejeté
-  - **Zone name** — `report.zone?.nom || 'Non spécifiée'`
-  - **Submission date** — formatted in French locale
-  - **Urgency indicator** — 1–5 dot visualization
-- **Note:** Each report card displays a dynamic badge mapped from `report.statut`: `en_attente` → 🟡 En attente, `en_cours` → 🔵 En cours, `resolu` → 🟢 Résolu, `rejete` → 🔴 Rejeté.
-
-**Onboarding Tour (Driver.js):**
-- Guarded by `localStorage.getItem('urbanmap_tour_done')`
-- 6 steps:
-  1. `#map-container` → "Carte de Marrakesh"
-  2. `#locate-btn` → "🧭 Me localiser"
-  3. `#add-report-btn` → "Signaler un problème"
-  4. `#urbanmap-wrapper` → "Catégories"
-  5. `#live-counter` → "En direct"
-  6. `#add-report-btn` → "Vous êtes prêt !"
-- Restart via "?" button (clears localStorage + reloads)
+- Public interactive Leaflet map with zone polygons (colored by category).
+- "Signaler un problème" floating button (Plus icon from Lucide) → opens a side panel.
+- Report form: category icons (Lucide), urgency slider, profile/residence dropdowns, description, photo upload.
+- Zone auto-detection on pin drop (checks if lat/lng falls within any zone polygon).
+- Onboarding tour (Driver.js v1.4.0) — 6-step tour on first visit, persisted in localStorage.
+- Legend panel, feedback panel, zone filter toggles.
 
 ### 4.2 Professional Map (MapPage)
 
-**Purpose:** Full-featured map for admin/urbanist users with analytics tools.
-
-**Additional features vs CitizenMap:**
-- Heatmap layer (urgency-weighted)
-- Polygon overlap detection via Turf.js
-- 5-step wizard form (profile, reasons, opinion, urgency, problems)
-- Building type selection (park, school, residential, etc.)
-- Professional view panel with internal notes and admin comments
-- `LayersControl` for base layer switching
+- Leaflet map with validated remarks shown as markers with popup details.
+- Zone polygons displayed with zone name tooltips.
+- Remarks list (left side panel) with search, filter by status/zone/category.
+- Detail panel on marker click or list item click.
+- Map layers control (base map + zone overlay toggle).
 
 ### 4.3 Admin Dashboard
 
-**Components:** AdminZonesTab, AdminRemarquesTab, AdminStatistiquesTab, AdminExportTab, AdminUsersTab, UserManagement, ZoneManagement.
-
-**Zone Management (AdminZonesTab):**
-- Interactive Leaflet map with zone polygons
-- `ZoneDrawManager` — draw new zones via `L.Draw.Polygon` with `showArea: true`, color `#C1440E`, `fillOpacity: 0.04`, `weight: 2.5`
-- Overlap detection when drawing
-- Reverse geocode → suggest zone name
-- KPI cards: Signalements, Zones critiques, Zones total, Non assignés
-- Coverage percentage bar
-- Urgency filter bar (Low/Medium/High)
-- Zone list with sorting/filtering, duplicate name detection
-- Edit/Delete modals
-- Toast notification showing `notified_admins` count
+- **Remarques tab:** Full CRUD table with inline editing, category icons, status badges.
+- **Statistiques tab:** Bar chart (category breakdown), pie chart (urgency), area chart (trends).
+- **Zones tab:** Interactive map with polygon drawing tools (leaflet-draw), zone CRUD form, annotation management with priority pills.
+- **Export tab:** Multi-format export (Excel/CSV/PDF) with filters for city, date range, category. Globe and bar chart themed UI.
+- **Users tab:** User listing with role/statut management, individual and group email sending.
 
 ### 4.4 Urbaniste Dashboard
 
-**Components:** UrbanCarteTab, UrbanStatistiquesTab, UrbanOpinionsTab, UrbanAnnotationsTab, UrbanRapportTab.
-
-**AI Synthesis:** `generateAiSynthesize()` function creates a data-driven textual analysis based on remarks (avg urgency, dominant category, chronic percentage, profile breakdown, recommended action).
+- **Carte tab:** Zone heatmap grid — color-coded blocks per zone showing remark counts, horizontal scroll.
+- **Statistiques tab:** Category distribution, urgency heatmap by zone, profile/reasons breakdown. All charts with consistent dark theme.
+- **Opinions tab:** Citizen remarks listing with category icons (Lucide), urgency badges, zone links, detail modal, search/filter.
+- **Annotations tab:** Zone-level annotations with priority system (urgence/surveiller/informatif) and color-coded pills.
+- **Rapport tab:** Summary cards (total remarks, by zone, by urgency) with stats insight text, download button, bar chart preview.
 
 ### 4.5 Super Admin Page
 
-**Route:** `/super-admin/users` — Role: `super_admin`
-
-**Features:**
-- **Platform overview KPIs** — 4 metric cards: total users, pending users (with pulse dot), total reports, total zones — fetched via `getDashboardStats()`
-- **Role breakdown chart** — Bar chart (Recharts) with counts per role (Citoyens, Admins, Urbanistes, Super Admins)
-- **User management table** — Lists all users with columns: Nom, Email, Département/Ville, Rôle (colored badge), Statut (colored pill: green/orange/red), Actions
-- **Pending tab** — Shows users awaiting approval with Activer/Refuser buttons
-- **All users tab** — Shows all users with a statut dropdown (Actif / En attente / Désactivé). When the dropdown value differs from the current statut, **Sauvegarder** + **Annuler** buttons appear. Clicking Sauvegarder shows a confirmation dialog (`window.confirm` in French) before sending the PATCH. After saving, the page refreshes. **Role cannot be changed** — admin stays admin, urbaniste stays urbaniste, citoyen stays citoyen.
-- **Styling:** Dark theme with `#060403` page bg, `#1e293b` card bg, `#334155` borders, `#C1440E` accent, `#F2EDE6` text
+- Overview of platform activity: total users, remarks, zones.
+- Role lock mechanism to prevent unauthorized role changes.
+- Uses Lucide icons for stats cards.
 
 ### 4.6 Email System
 
-**Three email types with trigger flows:**
-
-#### 4.6.1 Remarque Confirmation (`RemarqueConfirmationMailable`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Trigger** | `POST /api/remarques` — `RemarqueController@store()` |
-| **Code** | `app/Http/Controllers/Api/RemarqueController.php:67` |
-| **Line** | `Mail::to($user->email)->queue(new RemarqueConfirmationMailable($remarque, $user));` |
-| **Recipient** | The authenticated citizen who submitted the report (`auth()->user()->email`) |
-| **Subject** | `"UrbanMap — Votre signalement a été reçu"` |
-| **Template** | `resources/views/emails/remarque_confirmation.blade.php` |
-| **Variables** | `$user->nom`, `$remarque->id`, `$remarque->categorie`, `$remarque->urgency` (mapped to French label via `@switch`), `$remarque->zone->nom`, `$remarque->latitude`, `$remarque->longitude`, `$remarque->created_at` |
-| **Route** | `POST /api/remarques` — protected by `auth:sanctum` middleware |
-
-**Trigger flow:**
-1. Citizen fills report form (photo, category, urgency, description, etc.) on the map page
-2. Frontend sends `POST /api/remarques` with multipart/form-data (including optional photo file)
-3. `RemarqueController@store()` validates with `StoreRemarqueRequest`
-4. If photo present, it's stored to `storage/app/public/remarques/` via `$request->file('photo')->store('remarques', 'public')`; the path is saved as `photo_path`
-5. `categorie` and `building_type` are synced (whichever is filled, the other gets the same value)
-6. Remarque is created with `user_id = auth()->id()` and `statut = 'en_cours'` (auto-validated, immediately visible on the map)
-7. The fresh record is loaded with the `zone` relation
-8. **Confirmation email is queued** inside a try/catch block — if the queue fails, the remark is still created (the error is only logged, the API still returns 201)
-9. Frontend receives the created remark and shows a success toast
-
-**Warning:** If no queue worker is running, the email sits in the `jobs` table indefinitely. The API response returns before the queue job is processed, so the user sees success immediately regardless of email delivery.
-
-#### 4.6.2 Zone Created Notification (`ZoneCreatedMailable`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Trigger** | `POST /api/zones` — `ZoneController@store()` |
-| **Code** | `app/Http/Controllers/Api/ZoneController.php:51` |
-| **Line** | `Mail::to($admin->email)->queue(new ZoneCreatedMailable($zone, $admin));` |
-| **Recipient** | All active (`statut = 'active'`) users with roles `super_admin`, `admin`, or `urbaniste` |
-| **Subject** | `"UrbanMap — Nouvelle zone créée : {zone->nom}"` |
-| **Template** | `resources/views/emails/zone_created.blade.php` |
-| **Variables** | `$admin->nom`, `$zone->nom`, `$zone->ville`, `$zone->couleur` |
-| **Route** | `POST /api/zones` — protected by `auth:sanctum` + `role:admin,super_admin` middleware |
-
-**Trigger flow:**
-1. Admin creates a zone via the admin dashboard form (name, city, polygon coordinates, color)
-2. Frontend sends `POST /api/zones` with the zone data + optional `remark_ids` array
-3. `ZoneController@store()` validates with `StoreZoneRequest`
-4. Zone is created in the database
-5. If `remark_ids` provided, those remarks get `zone_id` updated to the new zone
-6. `autoAssignUnassignedToZone($zone)` runs — scans all remarks with `zone_id = null` and checks if their lat/lng falls within the zone polygon using a point-in-polygon algorithm (ray-casting); matched remarks auto-assigned
-7. `resolveRemarksInZone($zone)` runs — scans all remarks with `statut = 'en_cours'` and within the zone polygon. For each matched remark: statut is set to `resolu`, zone_id is updated to the new zone, and an **IssueResolvedMailable** is queued to the citizen who submitted it. Each email failure is caught and logged individually.
-8. **All active super_admin/admin/urbaniste users are queried** for a zone-created notification (`User::whereIn('role', ['super_admin','admin','urbaniste'])->where('statut', 'active')`)
-9. **For each admin, a notification email is queued** — again, individual failures are caught and logged without breaking the loop
-10. Response returns: `{ data: zone, notified_admins: count, auto_assigned_count: count, resolved_count: count }`
-
-**Note:** Only `admin` and `super_admin` can call this endpoint (route middleware: `role:admin,super_admin`). Urbanistes and citizens cannot trigger zone creation.
-
-**Citizen notification:** When a zone is created, citizens whose `en_cours` remarks fall within the zone polygon receive a "signalement résolu" email with the remark reference and zone name. Their AccountPage (`/account`) then shows a 🟢 **Résolu** badge on the resolved report.
-
-#### 4.6.3 Group Email (`GroupEmailMailable`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Trigger** | `POST /api/users/send-group-email` — `UserController@sendGroupEmail()` |
-| **Code** | `app/Http/Controllers/Api/UserController.php:74` |
-| **Line** | `Mail::to($user->email)->queue(new GroupEmailMailable($data['subject'], $data['message'], $user->nom));` |
-| **Recipient** | Filtered by the `group` parameter |
-| **Subject** | Custom — provided by admin in the form |
-| **Template** | `resources/views/emails/group_email.blade.php` |
-| **Variables** | `$recipientName`, `$messageContent` |
-| **Route** | `POST /api/users/send-group-email` — protected by `auth:sanctum` + `role:admin,super_admin` |
-
-**Group filter logic (`UserController@sendGroupEmail`, line 39-85):**
-
-| `group` value | Recipient query |
-|---|---|
-| `citoyen` | `User::where('role', 'citoyen')->get()` |
-| `urbaniste` | `User::where('role', 'urbaniste')->get()` |
-| `admin` | `User::where('role', 'admin')->get()` (excludes super_admin) |
-| `all` | `User::where('statut', 'active')->get()` (all active users regardless of role) |
-| `zone` | Finds distinct `user_id` from remarks where `zone_id = $request->zone_id`, then fetches those users with `role = 'citoyen'` and `statut = 'active'` |
-
-**Trigger flow:**
-1. Admin fills the group email form in the admin dashboard (select group, write subject + message)
-2. Frontend sends `POST /api/users/send-group-email` with `{ group, subject, message, zone_id? }`
-3. `UserController@sendGroupEmail()` validates: `group` must be one of `[citoyen, urbaniste, admin, all, zone]`; `zone_id` required when `group = 'zone'`; `subject` and `message` are required strings
-4. Recipient list built based on group filter (see table above)
-5. **For each recipient, the email is queued** individually with `Mail::to()->queue()` — failures are caught and logged per recipient
-6. Response returns `{ success: true, sent_to: count }` — count is the number of successfully queued emails
-
-**Note:** There is no rate limiting — sending "all" to thousands of users would create one queue job per user. In production, you'd want to batch or throttle this.
-
-#### 4.6.5 Account Status Changed Notification (`AccountStatusChangedMailable`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Trigger** | `PATCH /api/users/{user}` — `UserController@update()` on ANY statut change |
-| **Code** | `app/Http/Controllers/Api/UserController.php:37-44` |
-| **Line** | `Mail::to($user->email)->queue(new AccountStatusChangedMailable($user, $oldStatut, $newStatut));` |
-| **Recipient** | The user whose statut changed (admin, urbanist, or citizen) |
-| **Subject** | Dynamic — `"activé"`, `"désactivé"`, or `"a changé"` based on `$newStatut` |
-| **Template** | `resources/views/emails/account_status_changed.blade.php` |
-| **Variables** | `$user->nom`, `$user->role`, `$oldStatut`, `$newStatut` |
-| **Route** | `PATCH /api/users/{user}` — protected by `auth:sanctum` + `role:super_admin` middleware |
-
-**Trigger flow:**
-1. Super admin changes a user's statut (on any tab) via the statut dropdown or Activer/Refuser buttons
-2. A confirmation dialog asks: "Voulez-vous vraiment changer le statut de {nom} de « {old} » à « {new} » ?"
-3. On confirm, frontend sends `PATCH /api/users/{id}` with `{ statut: newValue }`
-4. `UserController@update()` detects that `$oldStatut !== $newStatut`
-5. **Status change email is queued** with old and new statut values — failure is caught and logged
-6. Template shows a contextual message: activation (pending→active), suspension (active→rejected), or generic change
-
-#### 4.6.4 Queue Architecture
-
-**All three mailables use `Mail::to()->queue()` (not `->send()`).** This pushes a job onto the `jobs` database table.
-
-**Config:**
-- `QUEUE_CONNECTION=database` in `.env`
-- The `jobs` migration is part of Laravel's default migrations (`create_jobs_table`)
-- SMTP via Gmail: `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.gmail.com`, `MAIL_PORT=587`, `MAIL_ENCRYPTION=tls`
-
-**To process emails, run in a separate terminal:**
-```bash
-cd urbanmap-backend
-php artisan queue:work
-```
-
-**What happens without the queue worker:**
-- Emails are NOT sent
-- Jobs accumulate in the `jobs` table
-- No error is thrown at the API level (the API returns 200/201 as normal)
-- The only indication is growing `jobs` table rows and the absence of email delivery
-
-**Failed jobs:**
-- After 3 failed attempts, the job moves to `failed_jobs` table
-- Retry failed jobs: `php artisan queue:retry all`
-- Clear all jobs (if stuck): `php artisan queue:clear`
-
-**Mailable classes location:**
-| Mailable | File |
-|---|---|---|
-| `RemarqueConfirmationMailable` | `app/Mail/RemarqueConfirmationMailable.php` |
-| `ZoneCreatedMailable` | `app/Mail/ZoneCreatedMailable.php` |
-| `GroupEmailMailable` | `app/Mail/GroupEmailMailable.php` |
-| `AccountStatusChangedMailable` | `app/Mail/AccountStatusChangedMailable.php` |
-| `IssueResolvedMailable` | `app/Mail/IssueResolvedMailable.php` |
-
-**Blade templates location:** `resources/views/emails/`
-- `remarque_confirmation.blade.php`
-- `zone_created.blade.php`
-- `group_email.blade.php`
-- `account_status_changed.blade.php`
-- `issue_resolved.blade.php`
-
-**All mailables use:**
-- `Queueable` + `SerializesModels` traits
-- `Illuminate\Mail\Mailable` base class
-- `envelope()` method for subject
-- `content()` method pointing to the Blade view
+- 5 email types (confirmation, zone created, group email, account status change, issue resolved).
+- All emails queued via `database` queue driver.
+- Admin users tab: send individual email or group email by role filter.
+- Queue processes via `php artisan queue:work`.
 
 ### 4.7 Onboarding Tour
 
-Uses **Driver.js v1.4.0** (not older versions with `defineSteps`/`start` API). Correct API:
-```js
-import { driver as Driver } from 'driver.js'
-import 'driver.js/dist/driver.css'
-
-const markTourSeen = useCallback(() => {
-  localStorage.setItem('urbanmap_tour_done', 'true')
-}, [])
-
-const driver = new Driver({
-  animate: true,
-  steps: [{ element: '#id', popover: { title, description, position } }],
-  onReset: markTourSeen,
-  onDestroyed: markTourSeen,                // fires when all steps complete
-  // last step can also have: onClose: markTourSeen,
-})
-driver.drive()  // NOT driver.start()
-```
+- Driver.js v1.4.0 integrated on CitizenMapPage.
+- 6-step tour: Welcome → Report button → Map basics → Zone info → Category colors → Completion.
+- Persistence via localStorage key `urbanmap_tour_done`.
+- 3 safety mechanisms to mark tour done: `onReset`, `onDestroyed`, and last-step `popover.onClose`.
+- Uses `useCallback` memoization to prevent re-creation of step handlers.
 
 ---
 
 ## 5. Roles & Permissions
 
-| Role | Abilities | Account validation |
-|------|-----------|-------------------|
-| **citoyen** | View public map, submit reports, view own reports via Account page | Auto-activated on registration |
-| **urbaniste** | View public map, submit reports, view annotations, manage annotations, view zone summaries, generate AI summaries, access Urbaniste Dashboard | **Pending approval** by super_admin |
-| **admin** | View public map, submit reports, manage zones (CRUD), manage remarks (update statut), view dashboard stats, send group emails, view all users. **Cannot approve/reject user registrations.** | **Pending approval** by super_admin |
-| **super_admin** | All citizen + admin abilities listed above — plus: approve/reject user registrations, suspend/activate accounts. **Cannot change user roles** (admin stays admin, urbaniste stays urbaniste). | Auto-activated |
-
-**Registration flow:**
-- Citizens → auto-activated (`statut=active`)
-- Admin/urbaniste → created with `statut=pending`, must be approved by a super_admin via `/super-admin/users`
-- Super admin accounts are created directly via seeder (no self-registration)
-
-**Route-level enforcement:**
-| Action | Required role | API route |
-|--------|--------------|-----------|
-| View all users | admin, super_admin | `GET /api/users` |
-| View pending users | **super_admin only** | `GET /api/users/pending` |
-| Approve/reject users (statut only, role immutable) | **super_admin only** | `PATCH /api/users/{user}` |
-| Zone CRUD | admin, super_admin | `POST/PATCH/DELETE /api/zones/*` |
-| Update remark status | admin, super_admin | `PATCH /api/remarques/{remarque}` |
-| Manage annotations | urbaniste, admin | `GET/POST/PATCH/DELETE /api/annotations/*` |
-| Send group emails | admin, super_admin | `POST /api/users/send-group-email` |
+| Action | citoyen | urbaniste | admin | super_admin |
+|--------|---------|-----------|-------|-------------|
+| View public map | ✓ | ✓ | ✓ | ✓ |
+| Submit remark | ✓ | ✓ | ✓ | ✓ |
+| View own remarks | ✓ | ✓ | ✓ | ✓ |
+| View all remarks | — | ✓ | ✓ | ✓ |
+| Update any remark | — | ✓ | ✓ | ✓ |
+| View zone annotations | — | ✓ | ✓ | ✓ |
+| CRUD annotations | — | ✓ | — | — |
+| View dashboard stats | — | ✓ | ✓ | ✓ |
+| Manage users | — | — | ✓ | ✓ |
+| Manage zones (CRUD) | — | — | ✓ | ✓ |
+| Send emails | — | — | ✓ | ✓ |
+| Manage admins | — | — | — | ✓ |
+| Export data | — | ✓ | ✓ | ✓ |
 
 ---
 
 ## 6. Running the App
 
-**Backend (terminal 1):**
+### 6.1 Backend (Laravel)
+
 ```bash
 cd urbanmap-backend
-php artisan serve --host=127.0.0.1 --port=8000
+copy .env.example .env        # Configure DB, MAIL, QUEUE
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve              # http://localhost:8000
+php artisan queue:work         # In separate terminal (for emails)
 ```
 
-**Queue worker (terminal 2, required for emails):**
-```bash
-cd urbanmap-backend
-php artisan queue:work
-```
+### 6.2 Frontend (React/Vite)
 
-**Frontend (terminal 3):**
 ```bash
 cd frontend
-npm run dev
+npm install
+npm run dev                    # http://localhost:5173
 ```
 
-**Seed database:**
-```bash
-cd urbanmap-backend
-php artisan db:seed --class=RealisticSeedDataSeeder
-```
+### 6.3 Default Credentials
 
-**Login credentials:**
 | Role | Email | Password |
 |------|-------|----------|
 | Super Admin | superadmin@urbanmap.ma | super123 |
-| Admin | mohammed.benali@urbanmap.ma | admin123 |
-| Urbaniste | urbaniste@urbanmap.ma | urban123 |
-| Citoyen | citoyen@urbanmap.ma | citoyen123 |
+| Admin (Mohammed Benali) | mohammed.benali@urbanmap.ma | admin123 |
+| Urbaniste | urbaniste@urbanmap.ma | admin123 |
+| Citizen | citoyen@urbanmap.ma | citoyen123 |
 
 ---
 
 ## 7. Diagrams & Reports (Data Flow)
 
-### 7.1 Data Sources for Analytics
+### 7.1 Data Source
 
-All analytics/reports are **client-side computed** from raw remark data fetched via `GET /api/remarques`. The flow:
+All analytics and exports start from the **`remarques`** (remarks) table. The backend exposes remarks via `GET /api/remarques` with query filters: `ville` (city), `statut` (status), `categorie` (category), `urgence` (urgency).
 
+### 7.2 Computing Statistics
+
+All detailed statistics are computed **client-side** in `urbanApi.js` via `getUrbanStatsByZone()`. The backend `DashboardController::stats()` only provides aggregate counts (total by statut/zone/category).
+
+**`getUrbanStatsByZone(remarks)` returns:**
+
+```js
+{
+  categoryBreakdown: { route: 12, eclairage: 8, ... },
+  urgencyBreakdown: { 1: 5, 2: 10, 3: 8, 4: 3, 5: 2 },
+  profileBreakdown: { conducteur: 8, pieton: 12, ... },
+  durationBreakdown: { jours: 5, semaines: 8, mois: 10, années: 3 },
+  reasonsBreakdown: { 'Signalement citoyen': 20, ... },
+  temporalTrend: { '2026-01': 5, '2026-02': 8, ... },   // grouped by month
+  zoneStats: { 'Guéliz': { total: 10, ... }, ... },        // per-zone breakdown
+  affectedGroups: { route: { conducteur: 3, ... }, ... },  // affected groups per category
+}
 ```
-Backend (SQLite) → GET /api/remarques → Frontend (JS) → Compute stats → Render charts
-```
 
-**Backend provides:**
-- `GET /api/remarques` — List of all remarks with `user`, `zone` relations (supports `?statut=`, `?zone_id=`, `?categorie=`, `?ville=` filters)
-- `GET /api/dashboard/stats` — Aggregate counts: `total_remarques`, `total_zones`, `total_users`, `pending_users`, `remarques_par_statut`, `remarques_par_zone`, `remarques_par_categorie`
-- `GET /api/zones` — List of zones with polygon coordinates
-
-**Frontend analytics entry points:**
-
-| File | Function/Module | What it computes |
-|------|----------------|------------------|
-| `urbanApi.js:80-191` | `getUrbanStatsByZone()` | Category counts, urgency levels, monthly temporal data, duration breakdown, profile breakdown, affected groups (from `reasons`) |
-| `urbanApi.js:65-68` | `getOpinionsByZone()` | Filters remarks by zone + category |
-| `UrbanStatistiquesTab.jsx` | Local state | KPI cards, zone comparison table, temporal selector charts |
-| `AdminStatistiquesTab.jsx` | Local state | Category/urgency/statut pie charts, zone bar charts |
-| `SuperAdminPage.jsx` | `getDashboardStats()` | Platform KPIs, role breakdown bar chart |
-| `exportService.js` | `exportExcel/exportCSV` | Cross-tabulation matrix (Category × Zone), urgency sheet, zone summary |
-| `UrbanRapportTab.jsx` | Local PDF generation | Multi-page PDF report with text + stats + charts |
-| `UrbanisteDashboard.jsx:100-175` | `generateAiSynthesize()` | Textual AI synthesis: dominant category, avg urgency, chronic %, profile breakdown |
-
-### 7.2 Key Data Fields for Diagrams
-
-**From `Remarque` model (the primary data entity):**
-
-| Field | Type | Values / Notes | Chart use |
-|-------|------|----------------|-----------|
-| `categorie` | string | `route`, `eclairage`, `dechets`, `eau`, `parc`, `transport` | Pie/bar charts by category |
-| `statut` | enum | `en_attente`, `en_cours`, `resolu`, `rejete` | Status distribution (lifecycle: soumis → en cours → résolu / rejeté) |
-| `urgency` | int (1-5) | 1=low, 5=urgent | Urgency distribution, avg urgency |
-| `profile` | string | `resident`, `conducteur`, `pieton`, `commercant`, `passant` | Reporter profile breakdown |
-| `reasons` | json array | e.g. `["Signalement citoyen"]` | Affected groups/impact analysis |
-| `residence_duration` / `duration` | string | `days`, `weeks`, `months`, `year`, `always` + French equivalents | Chronic vs recent analysis |
-| `created_at` | timestamp | | Temporal trends (monthly/weekly) |
-| `zone_id` | FK → zones | nullable | Zone coverage analysis |
-| `latitude` / `longitude` | decimal | | Spatial distribution / heatmap |
-
-**From `Zone` model:**
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `nom` | string | e.g. "Guéliz" |
-| `ville` | string | e.g. "Marrakesh" |
-| `coordonnees_geojson` | json array | `[[lat, lng], ...]` polygon vertices |
-| `couleur` | string | Hex color |
-
-### 7.3 Category Color Mapping
+### 7.3 Category System
 
 Used for consistent coloring across all charts and map pins:
 
@@ -994,9 +660,18 @@ const CATEGORY_LABELS = {
 }
 ```
 
-### 7.4 Building a New Diagram / Report
+Category icons from Lucide:
+| Category | Lucide Icon |
+|----------|-------------|
+| route | Truck |
+| eclairage | Lightbulb |
+| dechets | Trash2 |
+| eau | Droplets |
+| parc | Trees |
+| transport | Bus |
+| autre | MapPin |
 
-To add a new chart or report page:
+### 7.4 Building a New Diagram / Report
 
 1. **Fetch data:** Call `getValidatedRemarks({ ville: 'Marrakesh' })` from `urbanApi.js`, or use `adminApi.getDashboardStats()` for aggregates
 2. **Normalize:** Each remark has all needed fields directly (no nested unwrapping needed for basic fields). For exports, use `normalizeRemarkRow(remark, zones, city)` from `exportService.js`
@@ -1007,7 +682,6 @@ To add a new chart or report page:
 ### 7.5 Theme Colors for Charts
 
 ```js
-// Dark theme palette matching the app UI
 const CHART_COLORS = {
   background: '#1e293b',      // Card bg
   grid: '#334155',            // Grid lines
@@ -1026,7 +700,7 @@ const CHART_COLORS = {
 - **Driver.js v1.4.0** — uses `{ driver as Driver }` named export, constructor with `steps` array, `.drive()` method.
 - **Zone polygon data:** Stored as coordinate arrays `[[lat, lng], ...]` directly in DB and seeders (not GeoJSON format).
 - **City field `ville` vs `city`:** Zones use `ville`, users use `city` — be careful when joining.
-- **CSS:** Mostly inline `style` objects, not Tailwind classes (Tailwind v4 is installed but rarely used).
+- **CSS:** Most styling uses inline `style` objects or index.css classes. Tailwind v4 is installed but rarely used.
 - **File uploads:** Photos stored via `$request->file('photo')->store('remarques', 'public')`.
 - **Error handling:** `store()` methods wrap creation in try/catch with separate `ValidationException` (422) and generic `Exception` (500) handlers.
 - **Laravel 11+:** No `app/Http/Kernel.php`, no `app/Exceptions/Handler.php`. Middleware aliases in `bootstrap/app.php`.
@@ -1046,3 +720,174 @@ const CHART_COLORS = {
   - `UDComponents.jsx` orphaned `urgent` entry removed, fallback changed to `configs.en_cours`
   - `index.css` orphaned `@keyframes urgentPulse`/`activeBreathe` + `.zone-urgent`/`.zone-active` removed
   - `ValidationPanel.jsx` and `RemarquesTable.jsx` are dead code (not imported anywhere) — left in place but unused
+
+---
+
+## 9. UI/UX Design System (Lucide & CSS Overhaul)
+
+### 9.1 Design Tokens
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `bg-primary` | `#060403` | Main background |
+| `bg-card` | `#1e293b` | Card/dashboard backgrounds |
+| `text-primary` | `#F2EDE6` | Primary text |
+| `text-muted` | `rgba(242,237,230,0.6)` | Secondary text |
+| `accent` | `#C1440E` | Primary accent (buttons, highlights) |
+| `border-subtle` | `rgba(242,237,230,0.08)` | Subtle borders |
+| `border-accent` | `rgba(193,68,14,0.35)` | Accent borders |
+| Font | `'DM Sans', sans-serif` | Body text |
+
+### 9.2 Lucide React Icon System
+
+All UI icons across the app have been migrated from emoji characters to **Lucide React v1.14.0** icons. This provides:
+
+- Consistent vector rendering at any size
+- Proper dark theme integration (stroke color inherits from CSS)
+- Accessibility (icons are semantic, not text)
+- Hover/active state transitions
+
+**Component-to-Lucide mapping:**
+
+| Component | Icons Used |
+|-----------|------------|
+| `HomePage.jsx` | User, Shield, Compass, Crown |
+| `Login.jsx` | User, Compass, Shield |
+| `Register.jsx` | User, Compass, Shield, Search |
+| `CitizenMapPage.jsx` | Plus |
+| `AdminDashboard.jsx` | ClipboardList, Map, BarChart2, Download, Users |
+| `UrbanisteDashboard.jsx` | Map, BarChart2, MessageSquare, BookMarked, FileText, Download, Sparkles |
+| `SuperAdminPage.jsx` | Users, Clock, MapPin, Map |
+| `Navbar.jsx` | Menu, User, LogOut, etc. (inline) |
+| `Toast.jsx` | CheckCircle, XCircle, Info, AlertTriangle, X |
+| `AdminUsersTab.jsx` | Send, Users |
+| `AdminRemarquesTab.jsx` | Truck, Lightbulb, Trash2, Droplets, Trees, School, Bus, MapPin |
+| `AdminStatistiquesTab.jsx` | Truck, Lightbulb, Trash2, Droplets, Trees, School, Bus, MapPin |
+| `AdminExportTab.jsx` | FileSpreadsheet, Globe, BarChart2, FileText |
+| `AdminZonesTab.jsx` | MapPin, Edit3, Trash2, Plus, Save, X, AlertTriangle |
+| `UrbanCarteTab.jsx` | Thermometer, BarChart2 |
+| `UrbanStatistiquesTab.jsx` | Truck, Lightbulb, Trash2, Droplets, Trees, Bus, Hospital, School, MapPin, BarChart2 |
+| `UrbanOpinionsTab.jsx` | Truck, Lightbulb, Trash2, Droplets, Trees, Bus, Hospital, School, MapPin, AlertCircle, Clock, Search |
+| `UrbanAnnotationsTab.jsx` | Lock, FileText, AlertCircle, Eye, Info |
+| `UrbanRapportTab.jsx` | BarChart2, Building2, TrendingUp, Sparkles, Download, Eye, Loader |
+| `Button.jsx` | Loader2 |
+| `Modal.jsx` | X |
+| `Select.jsx` | ChevronDown |
+| `Spinner.jsx` | Loader2 |
+| `DashboardLayout.jsx` | Menu |
+| `Sidebar.jsx` | LayoutDashboard, Map, BarChart2, MessageSquare, BookMarked, FileText, Download, Sparkles, Users, Settings, LogOut, ChevronLeft, ChevronRight |
+
+### 9.3 CSS Animations
+
+Defined in `index.css`:
+
+| Class/Keyframe | Purpose |
+|----------------|---------|
+| `.fade-in` | Opacity fade-in for elements |
+| `.slide-in-from-bottom-4` | Slide up + fade (cards, panels) |
+| `.zoom-in-95` | Scale up + fade (modals) |
+| `@keyframes livePulse` | Green pulsing dot (Navbar "Live" indicator) |
+| `@keyframes pulse` | Radial scale pulse (map markers) |
+| `@keyframes slideInRight` | Panel slide-in (zones create panel) |
+| `@keyframes spin` | Loading spinner rotation |
+| `@keyframes dotpulse` | Three-dot loading animation |
+| `@keyframes adpulse` | Opacity pulse (recharts active bar) |
+| `prefers-reduced-motion` | Respects OS motion settings |
+
+### 9.4 Glassmorphic Elements
+
+- **Leaflet layers control:** `backdrop-filter: blur(18px)` with semi-transparent background.
+- **Map panels:** Semi-transparent dark backgrounds with border accents.
+- **Zone create panel:** `background: rgba(8,6,3,0.98)` with `box-shadow` and border accents.
+
+### 9.5 Navbar Design
+
+- Fixed position with `z-index: 1100`.
+- Bottom gradient line (`rgba(193,68,14,0.45)` accent).
+- Live indicator dot with `livePulse` animation.
+- Scrim on mobile overlay.
+- Responsive — collapses search bar on mobile.
+
+### 9.6 Accessibility (WCAG 2.1 AA)
+
+- Universal `:focus-visible` outline (3px indigo ring).
+- `.sr-only` utility for screen-reader-only content.
+- Skip-link (appears on keyboard focus).
+- `prefers-reduced-motion` respects OS settings.
+- `forced-colors` media query for Windows High Contrast Mode.
+- Minimum 44px tap targets on interactive elements.
+- Error messages use `#b91c1c` (5.1:1 contrast ratio).
+- `aria-disabled` styling for disabled interactive elements.
+
+---
+
+## 10. Recent Changes & Fixes
+
+### 10.1 Lucide React Icon Migration (2026-06-09/10)
+
+Replaced all emoji characters (⚠️, 🚛, 💡, 🗑️, 💧, 🌳, 🚌, etc.) with Lucide React components across **17+ components**:
+
+- All dashboard tabs (Admin & Urbaniste)
+- Toast notification system
+- Login, Register, HomePage role selectors
+- Sidebar navigation items
+- Admin zones tab icons
+- Super admin page stats cards
+
+### 10.2 CSS Dark Theme Enhancement (2026-06-09/10)
+
+- Added `livePulse` animation for navbar live indicator
+- Enhanced glassmorphic Leaflet controls with `backdrop-filter`
+- Gradient underline effect on navbar (`::after`)
+- Custom animations: `fade-in`, `slide-in-from-bottom-4`, `zoom-in-95`
+- Recharts cursor/active-bar transparency fixes
+- Leaflet container dark background (`#1a1a2e`)
+- Focus outline accessibility improvements
+- Zone tooltip styling (text-shadow for readability on maps)
+
+### 10.3 Toast Notification System (2026-06-09/10)
+
+- New `Toast.jsx` component with Lucide icons for each type: success (CheckCircle), error (XCircle), warning (AlertTriangle), info (Info)
+- Auto-dismiss with progress bar
+- Click-to-close with X icon
+- Positioned fixed at top-right
+
+### 10.4 Users Tab — Send Email Feature (2026-06-09/10)
+
+- Added "Send Email" button to each user row in `AdminUsersTab.jsx`
+- Individual email modal with subject/message fields
+- Group email functionality (filter by role, send to all matching users)
+- Uses `GroupEmailMailable` and `AccountStatusChangedMailable`
+
+### 10.5 UrbanCarteTab Grid Fix (2026-06-10)
+
+- Fixed grid layout to show zone cards in a proper row layout
+- Added horizontal scroll for overflow
+- Each zone card shows remark count with accent background and Lucide icons
+
+### 10.6 Pagination Hook Rename (2026-06-10)
+
+- `useAppPaginator` renamed to `usePaginator` across all imports
+- All references updated in dashboard tabs
+
+### 10.7 Period Typo Fix (2026-06-10)
+
+- Fixed French typo: `année` → `année` in date period aggregation labels
+
+### 10.8 Urbaniste Password Change (2026-06-10)
+
+- Changed urbaniste password from `password` to `admin123` in `DatabaseSeeder.php`
+- All dev passwords now consistent: `admin123` for admin/urbaniste, `super123` for super_admin, `citoyen123` for citizen
+
+### 10.9 Bug Fixes & Cleanups
+
+- Fixed `UserController.php` import path for `GroupEmailMailable`
+- Removed unused imports and variables across components
+- Fixed `AdminZonesTab.jsx` icon references (trash → Trash2, etc.)
+- Fixed `UrbanAnnotationsTab.jsx` priority display logic
+- Fixed `UrbanOpinionsTab.jsx` category icon mapping
+- Fixed `AdminStatistiquesTab.jsx` recharts bar cursor visibility
+- Fixed `AdminExportTab.jsx` button layout with Lucide icons
+- Fixed `UrbanStatistiquesTab.jsx` missing line chart data key
+- Fixed `UrbanRapportTab.jsx` skeleton loader integration
+- Fixed all Lucide import paths and SVG element type conflicts

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { ClipboardList, Map, BarChart2, Download, Users } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import AdminRemarquesTab from '../components/dashboard/AdminRemarquesTab';
 import AdminZonesTab from '../components/dashboard/AdminZonesTab';
@@ -88,6 +89,10 @@ export default function AdminDashboard() {
       color: '#F2EDE6', fontFamily: 'DM Sans, sans-serif',
       paddingTop: '52px',
     }}>
+      <style>{`
+  nav button:focus { outline: none !important; box-shadow: none !important; }
+  nav button:focus-visible { outline: none !important; box-shadow: none !important; }
+`}</style>
 
       {/* Zellige bg */}
       <div style={{
@@ -168,7 +173,7 @@ export default function AdminDashboard() {
                 e.currentTarget.style.color = 'rgba(242,237,230,0.5)'
               }}
             >
-              📥 Export CSV
+              <Download size={13} style={{ marginRight: '6px' }} /> Export CSV
             </button>
 
             {/* New zone primary */}
@@ -195,16 +200,11 @@ export default function AdminDashboard() {
           scrollbarWidth: 'none',
         }}>
           {[
-            { id: 'remarques',    icon: '📋', label: 'Remarques',
-              count: null, countStyle: 'terra' },
-            { id: 'zones',        icon: '🗺', label: 'Zones',
-              count: null, countStyle: 'green' },
-            { id: 'statistiques', icon: '📊', label: 'Statistiques',
-              count: null },
-            { id: 'export',       icon: '📥', label: 'Export CSV',
-              count: null },
-            { id: 'utilisateurs', icon: '👥', label: 'Utilisateurs',
-              count: null },
+            { id: 'remarques',    icon: <ClipboardList size={14} />, label: 'Remarques' },
+            { id: 'zones',        icon: <Map size={14} />,           label: 'Zones' },
+            { id: 'statistiques', icon: <BarChart2 size={14} />,     label: 'Statistiques' },
+            { id: 'export',       icon: <Download size={14} />,      label: 'Export CSV' },
+            { id: 'utilisateurs', icon: <Users size={14} />,         label: 'Utilisateurs' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -224,6 +224,8 @@ export default function AdminDashboard() {
                   ? '2px solid #C1440E' : '2px solid transparent',
                 transition: 'all 0.2s',
                 display: 'flex', alignItems: 'center', gap: '6px',
+                outline: 'none',
+                boxShadow: 'none',
               }}
               onMouseEnter={e => {
                 if (activeTab !== tab.id)
@@ -234,7 +236,7 @@ export default function AdminDashboard() {
                   e.currentTarget.style.color = 'rgba(242,237,230,0.38)'
               }}
             >
-              <span style={{ fontSize: '13px', opacity: 0.7 }}>{tab.icon}</span>
+              <span style={{ opacity: activeTab === tab.id ? 1 : 0.5, display: 'flex' }}>{tab.icon}</span>
               {tab.label}
             </button>
           ))}

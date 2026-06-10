@@ -6,6 +6,7 @@ import SkeletonTable from '../SkeletonTable.jsx';
 import { useToast } from '../../hooks/useToast.js';
 import EmptyState from '../EmptyState.jsx';
 import { SectionLabel } from './UDComponents';
+import { Lock, FileText, AlertCircle, Eye, Info } from 'lucide-react';
 
 export default function UrbanAnnotationsTab() {
   const { user } = useAuth();
@@ -137,9 +138,9 @@ export default function UrbanAnnotationsTab() {
 
   const getPriorityInfo = (p) => {
     switch (p) {
-      case 'urgente': return { label: 'Intervention urgente', color: '#EF4444', icon: '🔴' };
-      case 'surveiller': return { label: 'À surveiller', color: '#F59E0B', icon: '🟡' };
-      default: return { label: 'Informatif', color: '#10B981', icon: '🟢' };
+      case 'urgente':   return { label: 'Intervention urgente', color: '#EF4444', icon: <AlertCircle size={11} /> };
+      case 'surveiller': return { label: 'À surveiller',        color: '#F59E0B', icon: <Eye size={11} /> };
+      default:           return { label: 'Informatif',          color: '#10B981', icon: <Info size={11} /> };
     }
   };
 
@@ -158,7 +159,7 @@ export default function UrbanAnnotationsTab() {
         borderRadius: '10px', padding: '16px', marginBottom: '24px',
         display: 'flex', alignItems: 'center', gap: '12px'
       }}>
-        <span style={{ fontSize: '20px' }}>🔒</span>
+        <Lock size={18} style={{ color: 'rgba(242,237,230,0.5)', flexShrink: 0 }} />
         <p style={{ margin: 0, fontSize: '13px', color: 'rgba(242,237,230,0.6)', lineHeight: 1.5 }}>
           Ces notes sont visibles uniquement par les urbanistes.
           Elles ne sont pas partagées avec les citoyens ni les administrateurs.
@@ -270,7 +271,7 @@ export default function UrbanAnnotationsTab() {
             border: '0.5px dashed rgba(242,237,230,0.1)',
             borderRadius: '12px'
           }}>
-            <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>📝</span>
+            <FileText size={32} style={{ color: 'rgba(242,237,230,0.15)', marginBottom: '12px' }} />
             <p style={{ color: 'rgba(242,237,230,0.4)', fontSize: '14px', margin: 0 }}>
               Aucune annotation pour cette zone.<br/>
               Commencez par rédiger une note ci-dessus.
@@ -294,7 +295,9 @@ export default function UrbanAnnotationsTab() {
                       background: `${pInfo.color}15`, border: `0.5px solid ${pInfo.color}40`,
                       color: pInfo.color, letterSpacing: '0.03em'
                     }}>
-                      {pInfo.icon} {pInfo.label}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        {pInfo.icon} {pInfo.label}
+                      </span>
                     </span>
                     <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.2)' }}>·</span>
                     <span style={{ fontSize: '11px', color: 'rgba(242,237,230,0.4)', fontWeight: 500 }}>

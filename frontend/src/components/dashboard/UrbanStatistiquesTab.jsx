@@ -12,6 +12,7 @@ import useResponsive from '../../hooks/useResponsive';
 import EmptyState from '../EmptyState.jsx';
 import { useAuth } from '../../context/AuthContext';
 import { unwrap } from '../../utils/unwrap';
+import { Truck, Lightbulb, Trash2, Droplets, Trees, Bus, Hospital, School, MapPin, BarChart2 } from 'lucide-react';
 
 const COLOR_PALETTE = [
   '#f59e0b', '#3b82f6', '#22c55e', '#a855f7',
@@ -19,17 +20,17 @@ const COLOR_PALETTE = [
   '#ec4899', '#14b8a6',
 ];
 
-const getEmoji = (cat) => {
+const getCatIcon = (cat, size = 13) => {
   const c = String(cat || '').toLowerCase();
-  if (c.includes('rout')) return '🛣️';
-  if (c.includes('eclair') || c.includes('éclair')) return '💡';
-  if (c.includes('dech') || c.includes('déche')) return '🗑️';
-  if (c.includes('eau')) return '💧';
-  if (c.includes('parc') || c.includes('vert')) return '🌳';
-  if (c.includes('trans')) return '🚌';
-  if (c.includes('hopit') || c.includes('hôpit')) return '🏥';
-  if (c.includes('ecol') || c.includes('écol')) return '🏫';
-  return '📌';
+  if (c.includes('rout'))                        return <Truck size={size} />;
+  if (c.includes('eclair') || c.includes('éclair')) return <Lightbulb size={size} />;
+  if (c.includes('dech') || c.includes('déche')) return <Trash2 size={size} />;
+  if (c.includes('eau'))                         return <Droplets size={size} />;
+  if (c.includes('parc') || c.includes('vert'))  return <Trees size={size} />;
+  if (c.includes('trans'))                       return <Bus size={size} />;
+  if (c.includes('hopit') || c.includes('hôpit')) return <Hospital size={size} />;
+  if (c.includes('ecol') || c.includes('écol'))  return <School size={size} />;
+  return <MapPin size={size} />;
 };
 
 const UrbanBarChartMemo = React.memo(({ data }) => (
@@ -133,7 +134,7 @@ const UrbanTableMemo = React.memo(({ data, selectedZoneId, isZoneSelected, style
                 color: 'rgba(242,237,230,0.6)',
                 textTransform: 'capitalize',
               }}>
-                {getEmoji(zone.dominantCategory)}
+                {getCatIcon(zone.dominantCategory, 12)}
                 {zone.dominantCategory || '—'}
               </span>
             </td>
@@ -203,6 +204,8 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
     temporalData: []
   });
   const [allZones, setAllZones] = useState([]);
+  const [rawRemarks, setRawRemarks] = useState([]);
+  const [rawZones, setRawZones] = useState([]);
   const [period, setPeriod] = useState('3months');
   const [loading, setLoading] = useState(true);
 
@@ -210,7 +213,13 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
 
   useEffect(() => {
     fetchStats();
-  }, [selectedZone, period]);
+  }, [selectedZone]);
+
+  useEffect(() => {
+    if (rawRemarks.length === 0) return;
+    const temporalData = getTemporalData(rawRemarks, period);
+    setStats(prev => ({ ...prev, temporalData }));
+  }, [period, rawRemarks]);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -404,6 +413,8 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
         profiles,
         affectedGroups: affected
       });
+      setRawRemarks(activeRemarks);
+      setRawZones(computedZones);
     } catch (error) {
       console.error("Failed to fetch stats:", error);
     }
@@ -539,8 +550,10 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
         <h3 style={{
           fontFamily: 'Amiri, serif', fontSize: '18px',
           color: '#F2EDE6', margin: '0 0 4px 0',
+          display: 'flex', alignItems: 'center',
         }}>
-          📊 Statistiques — {selectedZoneName}
+          <BarChart2 size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+          Statistiques — {selectedZoneName}
         </h3>
         <p style={{
           fontSize: '12px',
@@ -609,8 +622,8 @@ export default function UrbanStatistiquesTab({ onSwitchTab }) {
             gap: '8px',
             marginTop: '4px',
           }}>
-            <span style={{ fontSize: '22px' }}>
-              {getEmoji(memoizedStats.dominantCategory)}
+            <span style={{ display: 'flex', color: '#E8B87A' }}>
+              {getCatIcon(memoizedStats.dominantCategory, 20)}
             </span>
             <span style={{
               fontSize: '16px',

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Truck, Lightbulb, Trash2, Droplets, Trees, School, Bus, MapPin } from 'lucide-react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -25,14 +26,14 @@ const CITY_PREFIX = {
 };
 
 const CATEGORIES = [
-  { value: 'road', label: 'Route ou trottoir', icon: '🛣️' },
-  { value: 'lighting', label: 'Éclairage public', icon: '💡' },
-  { value: 'waste', label: 'Déchets et propreté', icon: '🗑️' },
-  { value: 'water', label: 'Eau ou drainage', icon: '💧' },
-  { value: 'parks', label: 'Parcs et espaces verts', icon: '🌳' },
-  { value: 'schools', label: 'Écoles ou bâtiments publics', icon: '🏫' },
-  { value: 'transport', label: 'Transports en commun', icon: '🚌' },
-  { value: 'other', label: 'Autre', icon: '📍' },
+  { value: 'road',      label: 'Route ou trottoir',         icon: <Truck size={12} /> },
+  { value: 'lighting',  label: 'Éclairage public',          icon: <Lightbulb size={12} /> },
+  { value: 'waste',     label: 'Déchets et propreté',       icon: <Trash2 size={12} /> },
+  { value: 'water',     label: 'Eau ou drainage',           icon: <Droplets size={12} /> },
+  { value: 'parks',     label: 'Parcs et espaces verts',    icon: <Trees size={12} /> },
+  { value: 'schools',   label: 'Écoles ou bâtiments publics', icon: <School size={12} /> },
+  { value: 'transport', label: 'Transports en commun',      icon: <Bus size={12} /> },
+  { value: 'other',     label: 'Autre',                     icon: <MapPin size={12} /> },
 ];
 
 const DURATION_LABELS = {
@@ -115,6 +116,11 @@ function RemarkDetailPanel({ remark, city, onClose, onCreateZone, panelRef }) {
   const photoUrl = remark.photo_path ? `${BACKEND_URL}/storage/${remark.photo_path}` : null;
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -125,7 +131,7 @@ function RemarkDetailPanel({ remark, city, onClose, onCreateZone, panelRef }) {
       <div
         role="presentation"
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1400 }}
+        style={{ position: 'fixed', inset: 0, top: '60px', background: 'rgba(0,0,0,0.45)', zIndex: 1400 }}
       />
       <aside
         ref={panelRef}
@@ -133,7 +139,7 @@ function RemarkDetailPanel({ remark, city, onClose, onCreateZone, panelRef }) {
         aria-modal="true"
         aria-labelledby="remark-panel-title"
         style={{
-          position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(400px, 100vw)',
+          position: 'fixed', top: '60px', right: 0, bottom: 0, width: 'min(400px, 100vw)',
           background: 'rgba(8,6,3,0.98)', borderLeft: '0.5px solid rgba(242,237,230,0.1)',
           zIndex: 1500, display: 'flex', flexDirection: 'column',
           boxShadow: '-8px 0 40px rgba(0,0,0,0.5)',
