@@ -231,7 +231,7 @@ const Login = () => {
                 borderLeft: '0.5px solid rgba(242,237,230,0.07)',
                 display: 'flex', flexDirection: 'column',
                 justifyContent: 'center',
-                padding: isMobile ? '48px 24px 32px' : '56px 48px',
+                padding: isMobile ? '72px 20px 28px' : '56px 48px',
                 position: 'relative', zIndex: 1,
             }}>
                 {/* Zellige on right panel */}
@@ -341,11 +341,11 @@ const Login = () => {
                             type="button"
                             onClick={() => setActiveRole(r.key)}
                             style={{
-                              flex: 1, padding: '7px 10px', textAlign: 'center',
+                              flex: 1, padding: isMobile ? '6px 6px' : '7px 10px', textAlign: 'center',
                               border: isActive
                                 ? `0.5px solid rgba(193,68,14,0.6)`
                                 : '0.5px solid rgba(242,237,230,0.1)',
-                              borderRadius: '6px', fontSize: '11px',
+                              borderRadius: '6px', fontSize: isMobile ? '10px' : '11px',
                               color: isActive
                                 ? '#F2EDE6' : 'rgba(242,237,230,0.35)',
                               background: isActive
@@ -367,7 +367,7 @@ const Login = () => {
                             }}
                           >
                             <span style={{ 
-                              display: 'flex', 
+                              display: isMobile ? 'none' : 'flex', 
                               justifyContent: 'center', 
                               marginBottom: '5px',
                               opacity: isActive ? 1 : 0.45 
@@ -605,7 +605,9 @@ const Login = () => {
                     {/* Security note */}
                     <div style={{
                       display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', gap: '6px',
+                      justifyContent: 'center', gap: isMobile ? '4px' : '6px',
+                      flexWrap: isMobile ? 'wrap' : undefined,
+                      textAlign: isMobile ? 'center' : undefined,
                       fontSize: '11px', color: 'rgba(242,237,230,0.18)',
                       marginTop: '16px',
                     }}>

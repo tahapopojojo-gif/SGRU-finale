@@ -308,6 +308,21 @@ export default function Register() {
             </div>
           )}
 
+          {isMobile && (
+            <div style={{
+              display: 'flex', justifyContent: 'center', gap: '10px',
+              marginBottom: '24px',
+            }}>
+              {[1, 2, 3].map(n => (
+                <div key={n} style={{
+                  width: '8px', height: '8px', borderRadius: '50%',
+                  background: step === n ? '#C1440E' : 'rgba(242,237,230,0.12)',
+                  transition: 'background 0.3s',
+                }} />
+              ))}
+            </div>
+          )}
+
         {/* STEP 1 — Role */}
         {step === 1 && (
           <div>
@@ -375,7 +390,7 @@ export default function Register() {
                   onClick={() => handleRoleSelect(role)}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '48px 1fr auto',
+                    gridTemplateColumns: isMobile ? '40px 1fr' : '48px 1fr auto',
                     alignItems: 'center', gap: '16px',
                     border: featured
                       ? '0.5px solid rgba(193,68,14,0.35)'
@@ -420,17 +435,31 @@ export default function Register() {
                     }}>
                       {desc}
                     </div>
+                    {isMobile && (
+                      <span style={{
+                        fontSize: '10px', padding: '3px 9px',
+                        borderRadius: '100px',
+                        border: '0.5px solid',
+                        whiteSpace: 'nowrap', display: 'inline-block',
+                        marginTop: '8px',
+                        ...badgeStyle,
+                      }}>
+                        {badge}
+                      </span>
+                    )}
                   </div>
-                  <span style={{
-                    fontSize: '10px', padding: '3px 9px',
-                    borderRadius: '100px',
-                    border: '0.5px solid',
-                    whiteSpace: 'nowrap', flexShrink: 0,
-                    alignSelf: 'flex-start',
-                    ...badgeStyle,
-                  }}>
-                    {badge}
-                  </span>
+                  {!isMobile && (
+                    <span style={{
+                      fontSize: '10px', padding: '3px 9px',
+                      borderRadius: '100px',
+                      border: '0.5px solid',
+                      whiteSpace: 'nowrap', flexShrink: 0,
+                      alignSelf: 'flex-start',
+                      ...badgeStyle,
+                    }}>
+                      {badge}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -516,7 +545,7 @@ export default function Register() {
             </div>
 
             {/* Region tabs */}
-            <div style={{ display:'flex', gap:'6px', margin:'14px 0 10px', flexWrap:'wrap' }}>
+            <div style={{ display:'flex', gap:'6px', margin:'14px 0 10px', flexWrap: isMobile ? 'nowrap' : 'wrap', overflowX: isMobile ? 'auto' : undefined, paddingBottom: isMobile ? '4px' : undefined }}>
               {[['all','Toutes'],['nord','Nord'],['centre','Centre'],['sud','Sud'],['oriental','Oriental']].map(([key, label]) => (
                 <button key={key} onClick={() => setRegionFilter(key)}
                   style={{
@@ -685,7 +714,7 @@ export default function Register() {
                 onMouseLeave={e => { if (form.city) e.currentTarget.style.background = 'transparent'; if (form.city) e.currentTarget.style.color = '#C1440E'; }}
               >
                 {form.city
-                  ? `Continuer avec ${selectedCityData?.l} →`
+                  ? (isMobile ? "Continuer →" : `Continuer avec ${selectedCityData?.l} →`)
                   : "Continuer vers l'étape 3 →"}
               </button>
             </div>

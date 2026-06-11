@@ -18,7 +18,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:8000';
 
 const CITY_PREFIX = {
   marrakech: 'MRK', marrakesh: 'MRK', casablanca: 'CASA', rabat: 'RBT',
@@ -131,7 +131,7 @@ function RemarkDetailPanel({ remark, city, onClose, onCreateZone, panelRef }) {
       <div
         role="presentation"
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, top: '60px', background: 'rgba(0,0,0,0.45)', zIndex: 1400 }}
+        style={{ position: 'fixed', inset: 0, top: isMobile ? '0' : '60px', paddingTop: isMobile ? '52px' : 0, background: 'rgba(0,0,0,0.45)', zIndex: 1400 }}
       />
       <aside
         ref={panelRef}
@@ -139,7 +139,7 @@ function RemarkDetailPanel({ remark, city, onClose, onCreateZone, panelRef }) {
         aria-modal="true"
         aria-labelledby="remark-panel-title"
         style={{
-          position: 'fixed', top: '60px', right: 0, bottom: 0, width: 'min(400px, 100vw)',
+          position: 'fixed', top: isMobile ? '52px' : '60px', right: 0, bottom: 0, width: 'min(400px, 100vw)',
           background: 'rgba(8,6,3,0.98)', borderLeft: '0.5px solid rgba(242,237,230,0.1)',
           zIndex: 1500, display: 'flex', flexDirection: 'column',
           boxShadow: '-8px 0 40px rgba(0,0,0,0.5)',
@@ -385,7 +385,8 @@ const AdminRemarquesTab = ({ isActive = true, onCreateZoneAround }) => {
             background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(242,237,230,0.07)',
             borderRadius: '8px', padding: '14px', position: 'relative', overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1.5px', background: card.color }} />
+          <style>{`@media (max-width: 767px) { .col-duration { display: none !important; } .col-reporter { display: none !important; } }`}</style>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1.5px', background: card.color }} />
             <div style={{ fontSize: '10px', color: 'rgba(242,237,230,0.28)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '7px' }}>{card.label}</div>
             <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '26px', color: '#E8B87A', fontWeight: 500 }}>{card.value}</div>
           </div>
@@ -471,19 +472,21 @@ const AdminRemarquesTab = ({ isActive = true, onCreateZoneAround }) => {
               {zones.map(z => <option key={z.id} value={z.id}>{z.nom}</option>)}
             </select>
           </div>
-          <div>
-            <label style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', display: 'block', marginBottom: '4px' }}>Du</label>
-            <input type="date" value={filters.dateStart} onChange={e => setFilters(f => ({ ...f, dateStart: e.target.value }))} style={{
-              padding: '7px 10px', background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(242,237,230,0.12)',
-              borderRadius: '6px', color: '#F2EDE6', fontSize: '12px',
-            }} />
-          </div>
-          <div>
-            <label style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', display: 'block', marginBottom: '4px' }}>Au</label>
-            <input type="date" value={filters.dateEnd} onChange={e => setFilters(f => ({ ...f, dateEnd: e.target.value }))} style={{
-              padding: '7px 10px', background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(242,237,230,0.12)',
-              borderRadius: '6px', color: '#F2EDE6', fontSize: '12px',
-            }} />
+          <div style={isMobile ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } : { display: 'contents' }}>
+            <div>
+              <label style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', display: 'block', marginBottom: '4px' }}>Du</label>
+              <input type="date" value={filters.dateStart} onChange={e => setFilters(f => ({ ...f, dateStart: e.target.value }))} style={{
+                padding: '7px 10px', background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(242,237,230,0.12)',
+                borderRadius: '6px', color: '#F2EDE6', fontSize: '12px',
+              }} />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', color: 'rgba(242,237,230,0.3)', display: 'block', marginBottom: '4px' }}>Au</label>
+              <input type="date" value={filters.dateEnd} onChange={e => setFilters(f => ({ ...f, dateEnd: e.target.value }))} style={{
+                padding: '7px 10px', background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(242,237,230,0.12)',
+                borderRadius: '6px', color: '#F2EDE6', fontSize: '12px',
+              }} />
+            </div>
           </div>
           <button type="button" onClick={clearFilters} style={{
             padding: '7px 12px', background: 'transparent', border: '0.5px solid rgba(242,237,230,0.12)',
@@ -499,11 +502,11 @@ const AdminRemarquesTab = ({ isActive = true, onCreateZoneAround }) => {
         ) : (
           <>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? '600px' : '900px' }}>
                 <thead>
                   <tr>
                     {['Référence', 'Catégorie', 'Urgence', 'Durée', 'Signaleur', 'Zone', 'Date', ''].map(h => (
-                      <th key={h} style={{
+                      <th key={h} className={h === 'Durée' ? 'col-duration' : h === 'Signaleur' ? 'col-reporter' : ''} style={{
                         padding: '10px 14px', textAlign: 'left', fontSize: '10px', letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: 'rgba(242,237,230,0.28)',
                         borderBottom: '0.5px solid rgba(242,237,230,0.06)', fontWeight: 500, whiteSpace: 'nowrap',
@@ -541,10 +544,10 @@ const AdminRemarquesTab = ({ isActive = true, onCreateZoneAround }) => {
                         <td style={{ padding: '11px 14px' }}>
                           <UrgencyBadge urgency={parseInt(remark.urgency, 10) || 1} />
                         </td>
-                        <td style={{ padding: '11px 14px', fontSize: '11px', color: 'rgba(242,237,230,0.5)', maxWidth: '140px' }}>
+                        <td className="col-duration" style={{ padding: '11px 14px', fontSize: '11px', color: 'rgba(242,237,230,0.5)', maxWidth: '140px' }}>
                           {DURATION_LABELS[durationKey] || '—'}
                         </td>
-                        <td style={{ padding: '11px 14px', fontSize: '12px', color: '#F2EDE6' }}>
+                        <td className="col-reporter" style={{ padding: '11px 14px', fontSize: '12px', color: '#F2EDE6' }}>
                           {remark.user?.nom || remark.profile || 'Citoyen'}
                         </td>
                         <td style={{ padding: '11px 14px', fontSize: '12px', color: isUnassigned ? '#E8B87A' : 'rgba(242,237,230,0.65)' }}>

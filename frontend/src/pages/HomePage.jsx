@@ -44,6 +44,21 @@ function Navbar() {
         </span>
       </div>
 
+      {/* Mobile CTA */}
+      <Link to="/login" style={{
+        display: isMobile ? 'block' : 'none', marginLeft: 'auto',
+        border:'0.5px solid rgba(242,237,230,0.3)',
+        background:'transparent',
+        color:T,
+        padding:'6px 14px',
+        borderRadius:6,
+        fontSize:12,
+        ...dm,
+        textDecoration:'none',
+      }}>
+        Connexion
+      </Link>
+
       {/* Links */}
       <div style={{ display: isMobile ? 'none' : 'flex', gap:36 }}>
         <Link to="/map" style={navLinkStyle}
@@ -164,7 +179,7 @@ function Hero() {
             Participez à l'aménagement urbain du Maroc. Signalez, analysez, et planifiez — ensemble, avec l'intelligence artificielle.
           </p>
 
-          <div style={{ display:'flex', gap:16 }}>
+          <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 16 }}>
             <Link to="/register" style={{
               background:'transparent',
               color:'#C1440E',
@@ -176,7 +191,9 @@ function Hero() {
               textDecoration:'none',
               fontFamily:"'DM Sans',sans-serif",
               transition:'all .18s',
-              display:'inline-block',
+              display: isMobile ? 'flex' : 'inline-block',
+              justifyContent: isMobile ? 'center' : undefined,
+              width: isMobile ? '100%' : undefined,
             }}
               onMouseEnter={e=>{
                 e.currentTarget.style.background='#C1440E'
@@ -192,7 +209,8 @@ function Hero() {
             </Link>
             <Link to="/map" style={{ border:'0.5px solid rgba(242,237,230,0.35)', background:'transparent',
               color:T, padding:'14px 32px', borderRadius:7, fontSize:13, textDecoration:'none',
-              ...dm, display:'inline-flex', alignItems:'center', gap:8, transition:'all .18s' }}
+              ...dm, display: isMobile ? 'flex' : 'inline-flex', alignItems:'center', gap:8, transition:'all .18s',
+              width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}
               onMouseEnter={e=>{ e.currentTarget.style.borderColor='rgba(242,237,230,0.7)'; e.currentTarget.style.transform='translateY(-2px)' }}
               onMouseLeave={e=>{ e.currentTarget.style.borderColor='rgba(242,237,230,0.35)'; e.currentTarget.style.transform='translateY(0)' }}>
               <span style={{color:R}}>●</span> Explorer la carte
@@ -267,7 +285,7 @@ function StatsBar() {
         padding: isMobile ? '24px 20px' : '32px 48px' }}>
         {stats.map(({n,l},i)=>(
           <div key={l} style={{
-            flex: isMobile ? '0 0 50%' : 1,
+            flex: isMobile ? (i === 4 ? '0 0 100%' : '0 0 50%') : 1,
             padding: isMobile ? '12px 8px' : '0 24px',
             borderRight: isMobile ? 'none' : (i < stats.length - 1 ? '1px solid rgba(242,237,230,0.1)' : 'none'),
             borderBottom: isMobile && i < 4 ? '1px solid rgba(242,237,230,0.06)' : 'none',
@@ -310,7 +328,7 @@ function HowItWorks() {
           {steps.map(({n,t,d})=>(
             <div key={n}
               style={{ background:'rgba(255,255,255,0.03)', border:'0.5px solid rgba(242,237,230,0.09)',
-                borderRadius:10, padding:28, cursor:'default', transition:'all .18s' }}
+                borderRadius:10, padding: isMobile ? '18px 16px' : 28, cursor:'default', transition:'all .18s' }}
               onMouseEnter={e=>{ e.currentTarget.style.borderColor='rgba(193,68,14,0.45)'; e.currentTarget.style.background='rgba(193,68,14,0.06)'; e.currentTarget.style.transform='translateY(-3px)' }}
               onMouseLeave={e=>{ e.currentTarget.style.borderColor='rgba(242,237,230,0.09)'; e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.transform='translateY(0)' }}>
               <div style={{ ...amiri, fontSize:40, color:'rgba(193,68,14,0.28)', marginBottom:16 }}>{n}</div>
@@ -426,7 +444,7 @@ function Cities() {
         <h2 style={{ ...amiri, fontSize: isMobile ? 28 : 42, color:T }}>Disponible à travers le Maroc</h2>
         <div style={{
           display: isMobile ? 'grid' : 'flex',
-          gridTemplateColumns: isMobile ? '1fr 1fr' : undefined,
+          gridTemplateColumns: isMobile ? '1fr' : undefined,
           gap: 12,
           marginTop:40
         }}>
@@ -470,7 +488,7 @@ function Footer() {
         textAlign: isMobile ? 'center' : 'left'
       }}>
         <span style={{ ...amiri, fontSize:18, color:G }}>UrbanMap المغرب</span>
-        <div style={{ display:'flex', gap:24 }}>
+        <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 24, alignItems: isMobile ? 'center' : undefined }}>
           {['Documentation API','Confidentialité','Contact'].map(l=>(
             <span key={l} style={{ ...dm, fontSize:12, color:'rgba(242,237,230,0.35)', cursor:'pointer', transition:'color .15s' }}
               onMouseEnter={e=>e.target.style.color='rgba(242,237,230,0.7)'}

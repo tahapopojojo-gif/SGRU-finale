@@ -17,6 +17,7 @@ import FeedbackForm from '../components/FeedbackForm'
 import { driver as Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { Plus } from 'lucide-react'
+import { generateRemarkPDF } from '../services/pdfService'
 
 // Fix Leaflet Default Icon issue in Vite/React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -757,7 +758,13 @@ export default function MapPage() {
         formData.append('photo', formValues.photoFile);
       }
 
-      await api.createRemark(formData);
+      const response = await api.createRemark(formData);
+      const createdRemark = response?.data || response;
+      createdRemark.opinion = formValues.opinion || 'Signalement soumis sans description';
+      createdRemark.profile = formValues.profile;
+      createdRemark.duration = formValues.duration;
+      createdRemark.urgency = formValues.urgency;
+      createdRemark.categorie = formValues.problem_type;
 
       fetchData();
       setSubmitted(true);
@@ -769,6 +776,8 @@ export default function MapPage() {
       if (formValues.opinion_ai_validated) {
         toast.info("Avis analysé par l'IA");
       }
+
+      generateRemarkPDF(createdRemark);
     } catch (err) {
       toast.error('Erreur lors de la soumission');
       console.log('Validation errors:', err.response?.data?.errors);
@@ -921,7 +930,7 @@ export default function MapPage() {
           onClick={() => toast.info('Cliquez sur la carte pour placer votre signalement')}
           style={{
             position: 'fixed',
-            bottom: isMobile ? '24px' : '90px',
+            bottom: isMobile ? '80px' : '90px',
             right: '20px',
             width: '52px',
             height: '52px',
@@ -1022,12 +1031,13 @@ export default function MapPage() {
           </svg>
         </button>
 
-        {showLayersPanel && (
-          <div style={{
-            position: 'absolute',
-            top: '48px',
-            right: 0,
-            minWidth: '200px',
+            {showLayersPanel && (
+              <div style={{
+                position: 'absolute',
+                top: '48px',
+                right: 0,
+                minWidth: '200px',
+                maxWidth: 'calc(100vw - 80px)',
             background: 'rgba(8,6,3,0.96)',
             border: '0.5px solid rgba(242,237,230,0.1)',
             borderRadius: '10px',
@@ -1196,15 +1206,16 @@ export default function MapPage() {
       {drawMode === 'polygon' && (
         <div style={{
           position: 'absolute', bottom: '70px',
-          left: '50%', transform: 'translateX(-50%)',
+          left: isMobile ? '16px' : '50%', right: isMobile ? '16px' : undefined,
+          transform: isMobile ? 'none' : 'translateX(-50%)',
           zIndex: 150,
           background: 'rgba(8,6,3,0.88)',
           border: '0.5px solid rgba(193,68,14,0.3)',
-          borderRadius: '10px', padding: '10px 24px',
+          borderRadius: '10px', padding: isMobile ? '8px 14px' : '10px 24px',
           display: 'flex', alignItems: 'center', gap: '12px',
           backdropFilter: 'blur(18px)',
           boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
-          fontSize: '13px', color: '#F2EDE6', fontWeight: 500,
+          fontSize: isMobile ? '11px' : '13px', color: '#F2EDE6', fontWeight: 500,
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" strokeWidth="2">
@@ -1359,6 +1370,7 @@ export default function MapPage() {
       {selectedParcel && (
         <div style={{
           position: 'absolute', top: 0, right: 0, bottom: 0,
+          paddingTop: isMobile ? '62px' : undefined,
           width: isMobile ? '100%' : '360px',
           background: 'rgba(8,6,3,0.88)',
           borderLeft: '0.5px solid rgba(242,237,230,0.08)',
@@ -1461,6 +1473,7 @@ export default function MapPage() {
           {/* Panel scrollable body */}
           <div style={{
             flex: 1, overflowY: 'auto', padding: '14px 18px',
+            paddingBottom: isMobile ? 'env(safe-area-inset-bottom, 16px)' : undefined,
             scrollbarWidth: 'thin',
             scrollbarColor: 'rgba(193,68,14,0.3) transparent',
           }}>
@@ -1538,7 +1551,8 @@ export default function MapPage() {
           background: 'rgba(8,6,3,0.96)',
           border: '0.5px solid rgba(193,68,14,0.35)',
           borderRadius: '12px', padding: '24px',
-          width: '280px',
+          width: isMobile ? 'calc(100vw - 48px)' : '280px',
+          maxWidth: '320px',
           backdropFilter: 'blur(20px)',
           boxShadow: '0 0 0 0.5px rgba(193,68,14,0.15), 0 24px 48px rgba(0,0,0,0.7)',
         }}>

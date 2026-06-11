@@ -443,11 +443,11 @@ export default function AdminStatistiquesTab({ isActive = true }) {
         {stats.monthlyData.length === 0 ? (
           <NoData text="Aucun signalement ou zone enregistré pour l'instant" />
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={stats.monthlyData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={isMobile ? 200 : 260}>
+            <LineChart data={stats.monthlyData} margin={isMobile ? { top: 4, right: 8, left: 0, bottom: 0 } : { top: 8, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,237,230,0.06)" />
-              <XAxis dataKey="label" tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="label" tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: isMobile ? 9 : 11 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: isMobile ? 9 : 11 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={chartTooltipStyle} />
               <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(242,237,230,0.5)' }} />
               <Line type="monotone" dataKey="remarks" name="Signalements" stroke="#C1440E" strokeWidth={2.5} dot={{ r: 4, fill: '#C1440E' }} />
@@ -468,7 +468,7 @@ export default function AdminStatistiquesTab({ isActive = true }) {
               <BarChart data={stats.zoneBarData} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,237,230,0.06)" horizontal={false} />
                 <XAxis type="number" allowDecimals={false} tick={{ fill: 'rgba(242,237,230,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="zone" width={100} tick={{ fill: 'rgba(242,237,230,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="zone" width={isMobile ? 70 : 100} tick={{ fill: 'rgba(242,237,230,0.5)', fontSize: isMobile ? 9 : 11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={chartTooltipStyle} cursor={false} />
                 <Bar dataKey="count" name="Signalements" radius={[0, 4, 4, 0]} activeBar={false} isAnimationActive={false}>
                   {stats.zoneBarData.map((entry, i) => {

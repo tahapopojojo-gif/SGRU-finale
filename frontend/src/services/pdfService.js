@@ -257,82 +257,198 @@ export async function generateZoneReport(zone, urbanisteName) {
 }
 
 /**
+ * Reverse geocode coordinates to an address using Nominatim.
+ */
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`,
+      { headers: { 'User-Agent': 'UrbanMap/1.0' } }
+    )
+    const data = await res.json()
+    return data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+  } catch {
+    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+  }
+}
+
+/**
+ * Draws the UrbanMap logo using basic shapes (map pin icon).
+ */
+function drawLogo(doc, x, y, size) {
+  const r = size * 0.4
+  const pinX = x + r
+  const pinY = y + r
+  const tipY = y + size * 0.9
+  
+  doc.setFillColor(193, 68, 14)
+  doc.circle(pinX, pinY + 1, r, 'F')
+  doc.setDrawColor(193, 68, 14)
+  doc.setLineWidth(0.8)
+  doc.line(pinX, pinY + r + 1, pinX, tipY)
+}
+
+const DURATION_LABELS = {
+  days: "Vient d'apparaître",
+  months: 'Quelques mois',
+  year: 'Plus d\'un an',
+  always: 'Aussi longtemps que je m\'en souvienne',
+}
+
+/**
  * Generates and automatically downloads a PDF receipt for a submitted remark.
  */
-export function generateRemarkPDF(remarque) {
+export async function generateRemarkPDF(remarque) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  
-  // Title & subtitle
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(193, 68, 14); // RGB(193, 68, 14)
-  doc.text('UrbanMap Maroc', 20, 20);
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(14);
-  doc.setTextColor(55, 65, 81);
-  doc.text('Récépissé de signalement', 20, 28);
-  
-  // Separation line
-  doc.setDrawColor(193, 68, 14);
-  doc.setLineWidth(0.5);
-  doc.line(20, 32, 190, 32);
-  
-  // Format dates
-  const dateStr = remarque.created_at 
+
+  // ── HEADER BANNER ──────────────────────────────────────────
+  doc.setFillColor(193, 68, 14)
+  doc.rect(0, 0, 210, 38, 'F')
+
+  drawLogo(doc, 16, 9, 12)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(20)
+  doc.setTextColor(255, 255, 255)
+  doc.text('UrbanMap Maroc', 34, 18)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(11)
+  doc.setTextColor(255, 220, 200)
+  doc.text('Récépissé officiel de signalement', 34, 25)
+
+  doc.setFontSize(9)
+  doc.setTextColor(255, 200, 180)
+  const dateStr = remarque.created_at
     ? new Date(remarque.created_at).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-    : new Date().toLocaleDateString('fr-FR');
-    
-  // Table with data
+    : new Date().toLocaleDateString('fr-FR')
+  doc.text(`Émis le ${dateStr}`, 34, 31)
+
+  // ── REFERENCE BAR ─────────────────────────────────────────
+  doc.setFillColor(245, 235, 230)
+  doc.rect(20, 46, 170, 10, 'F')
+  doc.setFont('courier', 'bold')
+  doc.setFontSize(11)
+  doc.setTextColor(193, 68, 14)
+  const ref = `RÉF : #URB-${String(remarque.id || 'N/A').padStart(6, '0')}`
+  doc.text(ref, 105, 53, { align: 'center' })
+
+  // ── ADDRESS (reverse geocoded) ────────────────────────────
+  let address = 'Recherche en cours...'
+  if (remarque.latitude && remarque.longitude) {
+    address = await reverseGeocode(remarque.latitude, remarque.longitude)
+  }
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(100, 100, 100)
+  const addrLines = doc.splitTextToSize(address, 160)
+  doc.text(addrLines, 20, 67)
+
+  // ── DATA TABLE ────────────────────────────────────────────
+  const yAfterAddr = 65 + (addrLines.length * 4)
+
   const tableData = [
-    ['Numéro de référence', `#${remarque.id || 'N/A'}`],
-    ['Date', dateStr],
-    ['Zone', remarque.zone_nom || (remarque.zone?.nom) || 'Non spécifiée'],
-    ['Catégorie', CAT_LABELS[remarque.categorie] || remarque.categorie || 'Autre'],
-    ['Urgence', `${remarque.urgency || 3}/5`],
-    ['Statut', STATUT_LABELS[remarque.statut] || remarque.statut || 'Non spécifié'],
-    ['Coordonnées', remarque.latitude && remarque.longitude ? `${parseFloat(remarque.latitude).toFixed(5)}, ${parseFloat(remarque.longitude).toFixed(5)}` : 'Non disponibles'],
-    ['Durée du problème', remarque.duration === 'recent' ? 'Récemment' : remarque.duration === 'months' ? 'Quelques mois' : remarque.duration === 'years' ? 'Depuis des années' : 'Non précisée'],
-    ['Profil', remarque.profile || 'Non précisé']
-  ];
-  
+    ['Catégorie', remarque.categorie ? (CAT_LABELS[remarque.categorie] || remarque.categorie) : 'Autre'],
+    ['Urgence', `${remarque.urgency || 3} / 5`],
+    ['Durée du problème', DURATION_LABELS[remarque.duration] || remarque.duration || 'Non précisée'],
+    ['Profil', remarque.profile ? (PROFILE_LABELS[remarque.profile] || remarque.profile) : 'Non précisé'],
+    ['Statut', STATUT_LABELS[remarque.statut] || remarque.statut || 'En cours'],
+    ['Zone', remarque.zone_nom || (remarque.zone?.nom) || 'Non assignée'],
+    ['Coordonnées', remarque.latitude && remarque.longitude
+      ? `${parseFloat(remarque.latitude).toFixed(5)}, ${parseFloat(remarque.longitude).toFixed(5)}`
+      : 'Non disponibles'],
+  ]
+
   autoTable(doc, {
     body: tableData,
-    startY: 38,
+    startY: yAfterAddr + 4,
     margin: { left: 20, right: 20 },
     theme: 'plain',
-    styles: { fontSize: 11, cellPadding: 4, fontStyle: 'normal', textColor: [55, 65, 81] },
+    styles: { fontSize: 10, cellPadding: 3.5, fontStyle: 'normal', textColor: [55, 65, 81] },
     columnStyles: {
-      0: { cellWidth: 50, fontStyle: 'bold', textColor: [193, 68, 14] },
-      1: { cellWidth: 120 }
-    }
-  });
-  
-  let finalY = doc.lastAutoTable.finalY || 80;
-  
-  // Description section
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(193, 68, 14);
-  doc.text('Description', 20, finalY + 12);
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(31, 41, 55);
-  const opinionText = remarque.opinion || 'Aucune description fournie.';
-  const splitText = doc.splitTextToSize(opinionText, 170);
-  doc.text(splitText, 20, finalY + 18);
-  
-  // Footer on the bottom of page
-  doc.setFontSize(9);
-  doc.setTextColor(156, 163, 175);
-  const footerText = "Ce document est un récépissé officiel de votre signalement sur UrbanMap Maroc. Conservez-le pour vos démarches.";
-  const splitFooter = doc.splitTextToSize(footerText, 170);
-  doc.text(splitFooter, 20, 275);
-  
-  // Save PDF
-  const remarkId = remarque.id || 'new';
-  const fileDate = remarque.created_at ? remarque.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10);
-  doc.save(`UrbanMap_Signalement_${remarkId}_${fileDate}.pdf`);
+      0: { cellWidth: 45, fontStyle: 'bold', textColor: [193, 68, 14] },
+      1: { cellWidth: 125 },
+    },
+    alternateRowStyles: { fillColor: [249, 245, 242] },
+  })
+
+  let y = doc.lastAutoTable.finalY + 10
+
+  // ── DESCRIPTION ───────────────────────────────────────────
+  const pageH = doc.internal.pageSize.getHeight()
+  if (y + 50 > pageH) {
+    doc.addPage()
+    y = 20
+  }
+
+  doc.setFillColor(193, 68, 14, 0.08)
+  doc.rect(20, y, 170, 6, 'F')
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(193, 68, 14)
+  doc.text('DESCRIPTION DÉTAILLÉE', 24, y + 4)
+  y += 12
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(55, 65, 81)
+  const opinionText = remarque.opinion || 'Aucune description fournie.'
+  const splitText = doc.splitTextToSize(opinionText, 170)
+  doc.text(splitText, 20, y)
+  y += splitText.length * 4.5 + 6
+
+  // ── PHOTO INDICATOR ────────────────────────────────────────
+  if (remarque.photo_path) {
+    doc.setFont('helvetica', 'italic')
+    doc.setFontSize(9)
+    doc.setTextColor(100, 100, 100)
+    const photoUrl = remarque.photo_path
+    doc.text(`📷 Photo attachée : ${photoUrl}`, 20, y)
+    y += 8
+  }
+
+  // ── SIGNATURE RECTANGLE ────────────────────────────────────
+  if (y + 40 > pageH) {
+    doc.addPage()
+    y = 20
+  }
+
+  y = Math.max(y, pageH - 80)
+
+  doc.setDrawColor(193, 68, 14)
+  doc.setLineWidth(0.3)
+  doc.rect(120, y, 70, 35)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(193, 68, 14)
+  doc.text('SIGNATURE DU CITOYEN', 155, y + 6, { align: 'center' })
+
+  doc.setLineWidth(0.2)
+  doc.setDrawColor(180, 180, 180)
+  doc.line(125, y + 25, 185, y + 25)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(150, 150, 150)
+  doc.text('Signature', 155, y + 30, { align: 'center' })
+
+  // ── FOOTER ─────────────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFontSize(8)
+    doc.setTextColor(180, 180, 180)
+    doc.text('UrbanMap Maroc — Plateforme citoyenne · Document officiel', 20, 290)
+    doc.text(`Page ${i} / ${pageCount}`, 190, 290, { align: 'right' })
+  }
+
+  // ── SAVE ───────────────────────────────────────────────────
+  const remarkId = remarque.id || 'new'
+  const fileDate = remarque.created_at
+    ? remarque.created_at.slice(0, 10)
+    : new Date().toISOString().slice(0, 10)
+  doc.save(`UrbanMap_Signalement_${String(remarkId).padStart(6, '0')}_${fileDate}.pdf`)
 }
 

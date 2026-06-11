@@ -210,13 +210,13 @@ export default function AdminExportTab({ isActive = true }) {
             onFocus={e => e.currentTarget.style.outline = 'none'}
             style={{
               flex: '1 1 200px',
-              minWidth: '180px',
+              minWidth: isMobile ? '140px' : '180px',
               background: exportFormat === opt.key ? 'rgba(193,68,14,0.08)' : 'rgba(255,255,255,0.02)',
               border: exportFormat === opt.key
                 ? `0.5px solid ${opt.iconColor}`
                 : '0.5px solid rgba(242,237,230,0.07)',
               borderRadius: '10px',
-              padding: '20px 16px',
+              padding: isMobile ? '14px 10px' : '20px 16px',
               cursor: 'pointer',
               transition: 'all 0.2s',
               textAlign: 'center',
@@ -233,13 +233,13 @@ export default function AdminExportTab({ isActive = true }) {
               }} />
             )}
             <div style={{ 
-              width: '44px', height: '44px', borderRadius: '10px',
+              width: isMobile ? '36px' : '44px', height: isMobile ? '36px' : '44px', borderRadius: '10px',
               background: `${opt.iconColor}18`,
               border: `0.5px solid ${opt.iconColor}40`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 12px',
             }}>
-              <opt.icon size={22} color={opt.iconColor} strokeWidth={1.5} />
+              <opt.icon size={isMobile ? 18 : 22} color={opt.iconColor} strokeWidth={1.5} />
             </div>
             <div style={{ fontSize: '13px', fontWeight: 500, color: '#F2EDE6', marginBottom: '4px' }}>{opt.name}</div>
             <div style={{ fontSize: '11px', color: 'rgba(242,237,230,0.35)', lineHeight: 1.5 }}>{opt.desc}</div>
@@ -383,7 +383,7 @@ export default function AdminExportTab({ isActive = true }) {
             outline: 'none',
           }}
         >
-          {isExporting ? 'Génération en cours…' : `⬇ Générer et télécharger (${exportFormat.toUpperCase()})`}
+          {isExporting ? 'Génération en cours…' : isMobile ? `⬇ Télécharger (${exportFormat.toUpperCase()})` : `⬇ Générer et télécharger (${exportFormat.toUpperCase()})`}
         </button>
       </div>
 

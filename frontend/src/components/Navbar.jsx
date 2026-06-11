@@ -32,12 +32,23 @@ const Navbar = ({
   const isMapPage = location.pathname === '/map'
 
   return (
+    <>
+    <style>{`
+  @media (max-width: 767px) {
+    .navbar-mobile-hide { display: none !important; }
+    .navbar-city-badge { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .navbar-dropdown { right: auto !important; left: 50% !important; transform: translateX(-50%) !important; }
+  }
+  @media (max-width: 480px) {
+    .navbar-city-badge { max-width: 70px; }
+  }
+`}</style>
     <nav className="navbar" style={{
       background: 'rgba(8,6,3,0.96)',
       borderBottom: '0.5px solid rgba(193,68,14,0.2)',
       display: 'flex', alignItems: 'center', gap: 0,
       padding: '0 16px', height: '50px',
-      position: 'fixed', top: 0, left: 0, right: 0,
+      position: 'fixed', top: 0, left: 0, right: 0, overflow: 'hidden',
       zIndex: 200, backdropFilter: 'blur(12px)',
       fontFamily: 'DM Sans, sans-serif',
     }}>
@@ -65,7 +76,7 @@ const Navbar = ({
       {isMapPage && (
         <>
           {/* Search */}
-          <div style={{
+          <div className="navbar-mobile-hide" style={{
             flex: 1, maxWidth: '320px',
             marginLeft: '14px', position: 'relative',
           }}>
@@ -102,7 +113,7 @@ const Navbar = ({
           </div>
 
           {/* Filter pills */}
-          <div style={{
+          <div className="navbar-mobile-hide" style={{
             display: 'flex', gap: '5px', alignItems: 'center',
             padding: '0 14px',
             borderLeft: '0.5px solid rgba(242,237,230,0.07)',
@@ -177,7 +188,7 @@ const Navbar = ({
         alignItems: 'center', gap: '10px', flexShrink: 0,
       }}>
         {/* City badge */}
-        <div style={{
+        <div className="navbar-city-badge" style={{
           display: 'flex', alignItems: 'center', gap: '6px',
           border: '0.5px solid rgba(193,68,14,0.35)',
           borderRadius: '4px', padding: '5px 10px',
@@ -193,7 +204,7 @@ const Navbar = ({
 
         {/* Dashboard button / Return to Map */}
         {isMapPage && ['admin', 'urbaniste', 'super_admin'].includes(user?.role) && (
-          <button
+          <button className="navbar-mobile-hide"
             onClick={() => {
               if (user?.role === 'admin') navigate('/admin/dashboard')
               else if (user?.role === 'urbaniste') navigate('/urbaniste/dashboard')
@@ -214,7 +225,7 @@ const Navbar = ({
         )}
 
         {!isMapPage && user?.role === 'citoyen' && (
-          <button
+          <button className="navbar-mobile-hide"
             onClick={() => navigate('/map')}
             style={{
               padding: '5px 10px', borderRadius: '4px',
@@ -247,7 +258,7 @@ const Navbar = ({
           </div>
 
           {dropdownOpen && (
-            <div style={{
+            <div className="navbar-dropdown" style={{
               position: 'absolute', right: 0, top: 'calc(100% + 8px)',
               background: 'rgba(8,6,3,0.96)',
               border: '0.5px solid rgba(193,68,14,0.25)',
@@ -337,6 +348,7 @@ const Navbar = ({
       </div>
 
     </nav>
+    </>
   )
 }
 

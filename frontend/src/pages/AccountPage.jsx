@@ -153,7 +153,7 @@ export default function AccountPage() {
   if (!user) return null
 
   // Backend image base URL
-  const backendUrl = 'http://localhost:8000'
+  const backendUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:8000';
 
   // Role meta for badge styling
   const roleMeta = (() => {

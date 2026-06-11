@@ -33,12 +33,12 @@ export default function AdminUsersTab() {
 
   // Fetch zones and remarks on mount
   useEffect(() => {
-    fetch('http://localhost:8000/api/zones')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/zones`)
       .then(res => res.json())
       .then(data => setZones(unwrap(data)))
       .catch(() => {});
 
-    fetch('http://localhost:8000/api/remarques')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/remarques`)
       .then(res => res.json())
       .then(data => setRemarks(unwrap(data)))
       .catch(() => {});
@@ -327,7 +327,8 @@ export default function AdminUsersTab() {
       transition: 'border-color 0.2s'
     },
     submitBtn: {
-      alignSelf: 'flex-start',
+      alignSelf: isMobile ? 'stretch' : 'flex-start',
+      width: isMobile ? '100%' : 'auto',
       padding: '9px 20px',
       background: 'transparent',
       color: '#C1440E',
@@ -340,6 +341,7 @@ export default function AdminUsersTab() {
       fontFamily: 'DM Sans, sans-serif',
       display: 'flex',
       alignItems: 'center',
+      justifyContent: isMobile ? 'center' : 'flex-start',
       gap: '7px',
     },
     recipientBadge: {
