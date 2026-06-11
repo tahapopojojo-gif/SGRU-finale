@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getZones, getRemarks } from '../../services/adminApi';
 import { useToast } from '../../hooks/useToast.js';
 import { useAuth } from '../../context/AuthContext';
+import useResponsive from '../../hooks/useResponsive';
 import { getCityMapConfig } from '../../utils/cityBounds';
 import { unwrap } from '../../utils/unwrap';
 import { FileSpreadsheet, Globe, BarChart2, FileText } from 'lucide-react'
@@ -59,6 +60,7 @@ const getPeriodLabel = (filters) => {
 };
 
 export default function AdminExportTab({ isActive = true }) {
+  const { isMobile } = useResponsive();
   const { toast } = useToast();
   const { user } = useAuth();
   const userCity = user?.city || 'marrakech';

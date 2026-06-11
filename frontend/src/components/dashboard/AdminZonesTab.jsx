@@ -175,9 +175,13 @@ function ZoneDrawManager({ isDrawing, color, onShapeCreated, onCancel, onDrawerR
     if (isDrawing) {
       drawer = new L.Draw.Polygon(map, {
         shapeOptions: { color: '#C1440E', fillOpacity: 0.04, weight: 2.5 },
-        showArea: true,
-        allowIntersection: false,
-        drawError: { color: '#ef4444', message: 'Intersection interdite' },
+        showArea: false,
+        allowIntersection: true,
+        repeatMode: false,
+        touchIcon: new L.DivIcon({
+          iconSize: new L.Point(20, 20),
+          className: 'leaflet-div-icon leaflet-editing-icon',
+        }),
       });
       drawer.enable();
       onDrawerReady?.(drawer);
@@ -513,7 +517,7 @@ const AdminZonesTab = ({ zoneFocus = null, onZoneFocusClear, startDrawZone = fal
 
   const handleDeleteLastPoint = () => {
     if (!drawerRef.current) return;
-    if (drawerRef.current._markers?.length <= 1) {
+    if (!drawerRef.current._markers || drawerRef.current._markers.length <= 0) {
       handleCancelDraw();
       return;
     }

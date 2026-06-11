@@ -26,7 +26,11 @@ const Navbar = ({
       }
     }
     document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('touchstart', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      document.removeEventListener('touchstart', handleOutsideClick)
+    }
   }, [])
 
   const isMapPage = location.pathname === '/map'
@@ -48,8 +52,8 @@ const Navbar = ({
       borderBottom: '0.5px solid rgba(193,68,14,0.2)',
       display: 'flex', alignItems: 'center', gap: 0,
       padding: '0 16px', height: '50px',
-      position: 'fixed', top: 0, left: 0, right: 0, overflow: 'hidden',
-      zIndex: 200, backdropFilter: 'blur(12px)',
+      position: 'fixed', top: 0, left: 0, right: 0,
+      zIndex: 1000, backdropFilter: 'blur(12px)',
       fontFamily: 'DM Sans, sans-serif',
     }}>
 
@@ -242,7 +246,7 @@ const Navbar = ({
         )}
 
         {/* User avatar dropdown */}
-        <div ref={dropdownRef} style={{ position: 'relative' }}>
+        <div ref={dropdownRef} style={{ position: 'relative', zIndex: 9999 }}>
           <div style={{
             width: '28px', height: '28px', borderRadius: '50%',
             background: 'rgba(193,68,14,0.2)',
@@ -250,8 +254,14 @@ const Navbar = ({
             display: 'flex', alignItems: 'center',
             justifyContent: 'center', cursor: 'pointer',
             fontSize: '12px', color: '#C1440E', fontWeight: 600,
+            WebkitTapHighlightColor: 'transparent',
+            touchAction: 'manipulation',
+            userSelect: 'none',
           }}
-            onClick={() => setDropdownOpen(!dropdownOpen)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setDropdownOpen(prev => !prev)
+            }}
             title="Menu utilisateur"
           >
             {user?.nom?.[0]?.toUpperCase() || 'U'}
@@ -263,10 +273,11 @@ const Navbar = ({
               background: 'rgba(8,6,3,0.96)',
               border: '0.5px solid rgba(193,68,14,0.25)',
               borderRadius: '8px', padding: '6px 0',
-              minWidth: '150px', zIndex: 1000,
+              minWidth: '150px', zIndex: 9999,
               boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
               backdropFilter: 'blur(16px)',
               display: 'flex', flexDirection: 'column',
+              WebkitOverflowScrolling: 'touch',
             }}>
               <button
                 onClick={() => {

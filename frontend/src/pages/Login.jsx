@@ -247,8 +247,8 @@ const Login = () => {
                   onClick={() => navigate('/')}
                   style={{
                     position: 'absolute',
-                    top: '24px',
-                    left: '24px',
+                    top: isMobile ? '16px' : '20px',
+                    left: isMobile ? '16px' : '20px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
@@ -259,7 +259,7 @@ const Login = () => {
                     fontSize: '11px',
                     fontFamily: 'DM Sans, sans-serif',
                     cursor: 'pointer',
-                    padding: '6px 12px',
+                    padding: '5px 10px',
                     transition: 'all 0.2s',
                     zIndex: 2,
                   }}
@@ -297,7 +297,7 @@ const Login = () => {
                 )}
 
                 {/* FORM CONTENT */}
-                <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ position: 'relative', zIndex: 1, paddingTop: isMobile ? '48px' : '40px' }}>
                     {/* Tag */}
                     <div style={{
                       display: 'inline-flex', alignItems: 'center', gap: '6px',
