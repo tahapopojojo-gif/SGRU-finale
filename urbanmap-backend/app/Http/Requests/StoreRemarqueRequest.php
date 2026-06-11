@@ -40,6 +40,13 @@ class StoreRemarqueRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->sometimes('opinion', ['required', 'string', 'min:10'], function ($input) {
+            return ($input->categorie ?? '') === 'Autre';
+        });
+    }
+
     protected function prepareForValidation(): void
     {
         if (!$this->has('profile') || empty($this->profile)) {

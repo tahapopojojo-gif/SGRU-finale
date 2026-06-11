@@ -87,7 +87,7 @@ class ZoneController extends Controller
         $autoAssignIds = [];
 
         foreach ($unassigned as $remarque) {
-            if ($this->isPointInPolygon($remarque->latitude, $remarque->longitude, $coordonnees)) {
+            if (Zone::pointInPolygon($remarque->latitude, $remarque->longitude, $coordonnees)) {
                 $autoAssignIds[] = $remarque->id;
             }
         }
@@ -112,7 +112,7 @@ class ZoneController extends Controller
         $notified = 0;
 
         foreach ($enCours as $remarque) {
-            if ($this->isPointInPolygon($remarque->latitude, $remarque->longitude, $coordonnees)) {
+            if (Zone::pointInPolygon($remarque->latitude, $remarque->longitude, $coordonnees)) {
                 $resolvedIds[] = $remarque->id;
 
                 if ($remarque->user) {
@@ -131,31 +131,6 @@ class ZoneController extends Controller
         }
 
         return count($resolvedIds);
-    }
-
-    private function isPointInPolygon(float $lat, float $lng, array $polygon): bool
-    {
-        $inside = false;
-        $n = count($polygon);
-        $j = $n - 1;
-
-        for ($i = 0; $i < $n; $i++) {
-            $xi = $polygon[$i][0];
-            $yi = $polygon[$i][1];
-            $xj = $polygon[$j][0];
-            $yj = $polygon[$j][1];
-
-            $intersect = (($yi > $lng) !== ($yj > $lng))
-                && ($lat < ($xj - $xi) * ($lng - $yi) / ($yj - $yi) + $xi);
-
-            if ($intersect) {
-                $inside = !$inside;
-            }
-
-            $j = $i;
-        }
-
-        return $inside;
     }
 
     public function destroy(Zone $zone)

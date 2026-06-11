@@ -17,10 +17,11 @@
 4. [Key Features Implemented](#4-key-features-implemented)
 5. [Roles & Permissions](#5-roles--permissions)
 6. [Running the App](#6-running-the-app)
-7. [Diagrams & Reports (Data Flow)](#7-diagrams--reports-data-flow)
-8. [Known Quirks & Conventions](#8-known-quirks--conventions)
-9. [UI/UX Design System](#9-uiux-design-system-lucide--css-overhaul)
-10. [Recent Changes & Fixes](#10-recent-changes--fixes)
+7. [Testing](#7-testing)
+8. [Diagrams & Reports (Data Flow)](#8-diagrams--reports-data-flow)
+9. [Known Quirks & Conventions](#9-known-quirks--conventions)
+10. [UI/UX Design System](#10-uiux-design-system-lucide--css-overhaul)
+11. [Recent Changes & Fixes](#11-recent-changes--fixes)
 
 ---
 
@@ -386,6 +387,7 @@ frontend/
 │   │   ├── Navbar.jsx              ← Top navigation bar
 │   │   ├── Toast.jsx               ← Toast notification system
 │   │   ├── EmptyState.jsx          ← Empty state placeholder
+│   │   ├── FeedbackForm.jsx        ← Citizen report form (extracted for testing)
 │   │   ├── ErrorBoundary.jsx       ← React error boundary
 │   │   ├── ProtectedRoute.jsx      ← Auth + role gate wrapper
 │   │   ├── SkeletonCard.jsx        ← Card skeleton loader
@@ -444,6 +446,11 @@ frontend/
 │   │   ├── useAuth.js              ← Auth hook
 │   │   ├── useToast.js             ← Toast hook
 │   │   └── useResponsive.js        ← Responsive breakpoint hook
+│   ├── test/
+│   │   └── setup.js                ← Vitest setup (jest-dom matchers)
+│   ├── __tests__/
+│   │   ├── Register.test.jsx       ← Registration wizard tests
+│   │   └── FeedbackForm.test.jsx   ← Feedback form "Autre" guardrail tests
 │   ├── utils/
 │   │   ├── cityBounds.js           ← Map bounds per city
 │   │   ├── cityCoordinates.js      ← City center coordinates
@@ -679,7 +686,20 @@ npm install
 npm run dev                    # http://localhost:5173
 ```
 
-### 6.3 Default Credentials
+### 6.4 Running Tests
+
+```bash
+# Backend tests
+cd urbanmap-backend
+php artisan test
+
+# Frontend tests
+cd frontend
+npm test                # Single run
+npm run test:watch      # Watch mode
+```
+
+### 6.5 Default Credentials
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -690,13 +710,67 @@ npm run dev                    # http://localhost:5173
 
 ---
 
-## 7. Diagrams & Reports (Data Flow)
+## 7. Testing
 
-### 7.1 Data Source
+### 7.1 Backend (PHPUnit)
+
+The backend uses **PHPUnit 11.x** with in-memory SQLite for testing.
+
+**Test command:**
+```bash
+cd urbanmap-backend
+php artisan test
+```
+
+**Test files** (4 feature test suites, 16 tests total):
+
+| Test file | What it covers |
+|-----------|---------------|
+| `tests/Feature/AuthTest.php` | Register citoyen (active), register urbaniste (pending), login, pending user blocked, invalid credentials |
+| `tests/Feature/RemarqueValidationTest.php` | Valid store, missing/short opinion for 'Autre' category, non-Autre bypass, missing required fields |
+| `tests/Feature/RemarqueGeolocationTest.php` | Auto `zone_id` assignment when point falls inside zone polygon, null zone_id when outside |
+| `tests/Feature/RolePermissionTest.php` | Citoyen gets 403 on status change, urbaniste can update, admin can update, unauthenticated gets 401 |
+
+**Test configuration** (`phpunit.xml`):
+- `DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:` — isolated in-memory DB per test
+- `MAIL_MAILER=array` — mail trapped in memory, not sent
+- `QUEUE_CONNECTION=sync` — jobs run inline
+- All tests use `RefreshDatabase` trait for clean state
+
+### 7.2 Frontend (Vitest + React Testing Library)
+
+The frontend uses **Vitest 3.x** with **React Testing Library 16.x** and **jsdom**.
+
+**Test commands:**
+```bash
+cd frontend
+npm test            # Single run
+npm run test:watch  # Watch mode
+```
+
+**Test files** (2 suites, 11 tests total):
+
+| Test file | What it covers |
+|-----------|---------------|
+| `src/__tests__/Register.test.jsx` | 3-step wizard: role selection advances step 2 → step 3; citoyen shows quartier selector; admin/urbaniste show department autocomplete; back button returns |
+| `src/__tests__/FeedbackForm.test.jsx` | "Autre" guardrail: label changes to `(obligatoire)`, placeholder becomes mandatory, submit disabled when empty, enabled when filled; non-Autre shows `(optionnel)` |
+
+**Test configuration** (`vite.config.js`):
+- `environment: 'jsdom'` — browser-like DOM in Node
+- `globals: true` — Vitest API available without imports
+- `setupFiles: './src/test/setup.js'` — jest-dom matchers + global React
+
+**Architecture note:** The `FeedbackForm` component was extracted from `CitizenMapPage.jsx` into its own file (`src/components/FeedbackForm.jsx`) to enable isolated testing without requiring Leaflet, Driver.js, or other heavy map dependencies.
+
+---
+
+## 8. Diagrams & Reports (Data Flow)
+
+### 8.1 Data Source
 
 All analytics and exports start from the **`remarques`** (remarks) table. The backend exposes remarks via `GET /api/remarques` with query filters: `ville` (city), `statut` (status), `categorie` (category), `urgence` (urgency).
 
-### 7.2 Computing Statistics
+### 8.2 Computing Statistics
 
 All detailed statistics are computed **client-side** in `urbanApi.js` via `getUrbanStatsByZone()`. The backend `DashboardController::stats()` only provides aggregate counts (total by statut/zone/category).
 
@@ -715,7 +789,7 @@ All detailed statistics are computed **client-side** in `urbanApi.js` via `getUr
 }
 ```
 
-### 7.3 Category System
+### 8.3 Category System
 
 Category colors are defined inline in each component that uses them — there is no shared constants file. Each component (CitizenMapPage.jsx, MapPage.jsx, UrbanCarteTab.jsx, etc.) has its own `CATEGORY_COLORS` or equivalent object.
 
@@ -745,7 +819,7 @@ Category icons from Lucide:
 | transport | Bus |
 | autre | MapPin |
 
-### 7.4 Building a New Diagram / Report
+### 8.4 Building a New Diagram / Report
 
 1. **Fetch data:** Call `getValidatedRemarks({ ville: 'Marrakesh' })` from `urbanApi.js`, or use `adminApi.getDashboardStats()` for aggregates
 2. **Normalize:** Each remark has all needed fields directly (no nested unwrapping needed for basic fields). For exports, use `normalizeRemarkRow(remark, zones, city)` from `exportService.js`
@@ -753,7 +827,7 @@ Category icons from Lucide:
 4. **Render:** Use `recharts` components (`BarChart`, `PieChart`, `AreaChart`, `LineChart`) with the dark theme palette
 5. **Export:** Use `exportService.exportExcel(remarks, zones, city)` for Excel with multiple sheets, or the CSV generator
 
-### 7.5 Theme Colors for Charts
+### 8.5 Theme Colors for Charts
 
 ```js
 const CHART_COLORS = {
@@ -769,7 +843,7 @@ const CHART_COLORS = {
 
 ---
 
-## 8. Known Quirks & Conventions
+## 9. Known Quirks & Conventions
 
 - **Driver.js v1.4.0** — uses `{ driver as Driver }` named export, constructor with `steps` array, `.drive()` method.
 - **Zone polygon data:** Stored as coordinate arrays `[[lat, lng], ...]` directly in DB and seeders (not GeoJSON format).
@@ -800,9 +874,9 @@ const CHART_COLORS = {
 
 ---
 
-## 9. UI/UX Design System (Lucide & CSS Overhaul)
+## 10. UI/UX Design System (Lucide & CSS Overhaul)
 
-### 9.1 Design Tokens
+### 10.1 Design Tokens
 
 | Token | Value | Usage |
 |-------|-------|-------|
@@ -815,7 +889,7 @@ const CHART_COLORS = {
 | `border-accent` | `rgba(193,68,14,0.35)` | Accent borders |
 | Font | `'DM Sans', sans-serif` | Body text |
 
-### 9.2 Lucide React Icon System
+### 10.2 Lucide React Icon System
 
 All UI icons across the app have been migrated from emoji characters to **Lucide React v1.14.0** icons. This provides:
 
@@ -856,7 +930,7 @@ All UI icons across the app have been migrated from emoji characters to **Lucide
 | `DashboardLayout.jsx` | Menu |
 | `Sidebar.jsx` | LayoutDashboard, Map, BarChart2, MessageSquare, BookMarked, FileText, Download, Sparkles, Users, Settings, LogOut, ChevronLeft, ChevronRight |
 
-### 9.3 CSS Animations
+### 10.3 CSS Animations
 
 Defined in `index.css`:
 
@@ -873,13 +947,13 @@ Defined in `index.css`:
 | `@keyframes adpulse` | Opacity pulse (recharts active bar) |
 | `prefers-reduced-motion` | Respects OS motion settings |
 
-### 9.4 Glassmorphic Elements
+### 10.4 Glassmorphic Elements
 
 - **Leaflet layers control:** `backdrop-filter: blur(18px)` with semi-transparent background.
 - **Map panels:** Semi-transparent dark backgrounds with border accents.
 - **Zone create panel:** `background: rgba(8,6,3,0.98)` with `box-shadow` and border accents.
 
-### 9.5 Navbar Design
+### 10.5 Navbar Design
 
 - Fixed position with `z-index: 1100`.
 - Bottom gradient line (`rgba(193,68,14,0.45)` accent).
@@ -887,7 +961,7 @@ Defined in `index.css`:
 - Scrim on mobile overlay.
 - Responsive — collapses search bar on mobile.
 
-### 9.6 Accessibility (WCAG 2.1 AA)
+### 10.6 Accessibility (WCAG 2.1 AA)
 
 - Universal `:focus-visible` outline (3px indigo ring).
 - `.sr-only` utility for screen-reader-only content.
@@ -900,9 +974,9 @@ Defined in `index.css`:
 
 ---
 
-## 10. Recent Changes & Fixes
+## 11. Recent Changes & Fixes
 
-### 10.1 Lucide React Icon Migration (2026-06-09/10)
+### 11.1 Lucide React Icon Migration (2026-06-09/10)
 
 Replaced all emoji characters (⚠️, 🚛, 💡, 🗑️, 💧, 🌳, 🚌, etc.) with Lucide React components across **17+ components**:
 
@@ -913,7 +987,7 @@ Replaced all emoji characters (⚠️, 🚛, 💡, 🗑️, 💧, 🌳, 🚌, et
 - Admin zones tab icons
 - Super admin page stats cards
 
-### 10.2 CSS Dark Theme Enhancement (2026-06-09/10)
+### 11.2 CSS Dark Theme Enhancement (2026-06-09/10)
 
 - Added `livePulse` animation for navbar live indicator
 - Enhanced glassmorphic Leaflet controls with `backdrop-filter`
@@ -924,41 +998,41 @@ Replaced all emoji characters (⚠️, 🚛, 💡, 🗑️, 💧, 🌳, 🚌, et
 - Focus outline accessibility improvements
 - Zone tooltip styling (text-shadow for readability on maps)
 
-### 10.3 Toast Notification System (2026-06-09/10)
+### 11.3 Toast Notification System (2026-06-09/10)
 
 - New `Toast.jsx` component with Lucide icons for each type: success (CheckCircle), error (XCircle), warning (AlertTriangle), info (Info)
 - Auto-dismiss with progress bar
 - Click-to-close with X icon
 - Positioned fixed at top-right
 
-### 10.4 Users Tab — Send Email Feature (2026-06-09/10)
+### 11.4 Users Tab — Send Email Feature (2026-06-09/10)
 
 - Added "Send Email" button to each user row in `AdminUsersTab.jsx`
 - Individual email modal with subject/message fields
 - Group email functionality (filter by role, send to all matching users)
 - Uses `GroupEmailMailable` and `AccountStatusChangedMailable`
 
-### 10.5 UrbanCarteTab Grid Fix (2026-06-10)
+### 11.5 UrbanCarteTab Grid Fix (2026-06-10)
 
 - Fixed grid layout to show zone cards in a proper row layout
 - Added horizontal scroll for overflow
 - Each zone card shows remark count with accent background and Lucide icons
 
-### 10.6 Pagination Hook Rename (2026-06-10)
+### 11.6 Pagination Hook Rename (2026-06-10)
 
 - `useAppPaginator` renamed to `usePaginator` across all imports
 - All references updated in dashboard tabs
 
-### 10.7 Period Typo Fix (2026-06-10)
+### 11.7 Period Typo Fix (2026-06-10)
 
 - Fixed French typo: `année` → `année` in date period aggregation labels
 
-### 10.8 Urbaniste Password Change (2026-06-10)
+### 11.8 Urbaniste Password Change (2026-06-10)
 
 - Changed urbaniste password from `password` to `admin123` in `DatabaseSeeder.php`
 - All dev passwords now consistent: `admin123` for admin/urbaniste, `super123` for super_admin, `citoyen123` for citizen
 
-### 10.9 Bug Fixes & Cleanups
+### 11.9 Bug Fixes & Cleanups
 
 - Fixed `UserController.php` import path for `GroupEmailMailable`
 - Removed unused imports and variables across components
@@ -971,7 +1045,7 @@ Replaced all emoji characters (⚠️, 🚛, 💡, 🗑️, 💧, 🌳, 🚌, et
 - Fixed `UrbanRapportTab.jsx` skeleton loader integration
 - Fixed all Lucide import paths and SVG element type conflicts
 
-### 10.10 Mandatory Description for "Autre" Category (2026-06-10)
+### 11.10 Mandatory Description for "Autre" Category (2026-06-10)
 
 - When a citizen selects "Autre" as the problem type in the report form (`CitizenMapPage.jsx`), the description field becomes **mandatory** (not optional)
 - Label changes dynamically from `(optionnel)` to `(obligatoire)` 
@@ -980,7 +1054,7 @@ Replaced all emoji characters (⚠️, 🚛, 💡, 🗑️, 💧, 🌳, 🚌, et
 - A validation error is shown if the user tries to proceed without filling the description
 - Only affects the "Autre" category — all other categories keep description as optional
 
-### 10.11 Register.jsx — Visual Changes (2026-06-10)
+### 11.11 Register.jsx — Visual Changes (2026-06-10)
 
 - **Step 2 continue button:** Changed from solid (`#C1440E` background) to ghost style (`transparent` background, `#C1440E` text/border). Hover fills solid `#C1440E` with white text only when a city is selected.
 - **Step 3 submit button:** Changed from solid to ghost style matching the Step 2 pattern. Hover fills solid only when not loading.
@@ -988,13 +1062,34 @@ Replaced all emoji characters (⚠️, 🚛, 💡, 🗑️, 💧, 🌳, 🚌, et
 - Added `Building2` import from `lucide-react` (line 3).
 - Added `display: flex`, `alignItems: 'center'`, `gap: '8px'` to suggestion items for proper icon alignment.
 
-### 10.12 PROJECT.md Alignment (2026-06-10)
+### 11.12 Backend Tests (PHPUnit) — 4 Feature Suites (2026-06-11)
 
-- Updated project description to reflect support for **24+ Moroccan cities** (removed "initially Marrakesh" limitation).
-- Updated frontend directory structure to include all missing pages (AccountPage, ForgotPassword, NotFound), components (Skeleton*, EmptyState, ErrorBoundary, ProtectedRoute, Badge, Card, Input, Avatar, Tooltip, etc.), services (axiosInstance, errorHandler, validationService), context (ToastContext, UrbanZoneContext), and hooks (useResponsive).
-- Updated routing section with all actual routes (/forgot-password, /registre, /account, /super-admin/users, *).
-- Updated services, context, hooks, and UI patterns sections.
-- Noted that category colors are defined inline per-component (not centralized).
-- Added Register.jsx 3-step wizard feature description.
-- Expanded SuperAdminPage.jsx feature description with KPIs, role chart, pagination.
-- Updated Lucide icon mapping for Register.jsx (Building2).
+- Created `tests/Feature/AuthTest.php` (5 tests): register citoyen (active), register urbaniste (pending), login, pending user blocked, invalid credentials
+- Created `tests/Feature/RemarqueValidationTest.php` (5 tests): valid store, missing/short opinion for 'Autre' category, non-Autre bypass, missing required fields
+- Created `tests/Feature/RemarqueGeolocationTest.php` (2 tests): auto zone_id assignment, null when outside zone
+- Created `tests/Feature/RolePermissionTest.php` (4 tests): citoyen 403 on status change, urbaniste can update, admin can update, unauthenticated 401
+- Added `withValidator` guardrail to `StoreRemarqueRequest.php` (requires min:10 opinion when categorie === 'Autre')
+- Added `Zone::findContainingPoint()` and `Zone::pointInPolygon()` methods to `app/Models/Zone.php`
+- Refactored `ZoneController` to use `Zone::pointInPolygon()` instead of private method
+- Added auto zone_id assignment in `RemarqueController::store()` via `Zone::findContainingPoint()`
+- Added `urbaniste` role to PATCH `/remarques/{remarque}` route
+- All 16 tests, 45 assertions passing — in-memory SQLite via RefreshDatabase
+
+### 11.13 Frontend Tests (Vitest + RTL) — 2 Suites (2026-06-11)
+
+- Installed vitest, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, jsdom
+- Configured `vite.config.js` with test block (jsdom, globals, setupFiles)
+- Added `test` and `test:watch` scripts to `package.json`
+- Created `src/test/setup.js` (imports jest-dom + global React)
+- Extracted `FeedbackForm` from `CitizenMapPage.jsx` to `src/components/FeedbackForm.jsx` for isolated testing
+- Created `src/__tests__/Register.test.jsx` (5 tests): role visibility in 3-step wizard
+- Created `src/__tests__/FeedbackForm.test.jsx` (6 tests): "Autre" category guardrail behavior
+- All 11 frontend tests passing
+
+### 11.14 PROJECT.md — Testing Section & File Updates (2026-06-11)
+
+- Added section 7 (Testing) documenting both backend and frontend test suites
+- Added 6.4 (Running Tests) with test commands
+- Updated frontend directory structure: FeedbackForm.jsx, test/, __tests__/
+- Updated ToC to include Testing section
+- Renumbered sections (7→8, 8→9, 9→10, 10→11) and all subsections to accommodate new section 7

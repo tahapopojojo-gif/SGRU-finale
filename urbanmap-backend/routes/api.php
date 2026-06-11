@@ -37,8 +37,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/zones', [ZoneController::class, 'store']);
         Route::patch('/zones/{zone}', [ZoneController::class, 'update']);
         Route::delete('/zones/{zone}', [ZoneController::class, 'destroy']);
-        Route::patch('/remarques/{remarque}', [RemarqueController::class, 'update']);
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+    });
+
+    Route::middleware('role:admin,super_admin,urbaniste')->group(function (): void {
+        Route::patch('/remarques/{remarque}', [RemarqueController::class, 'update']);
     });
 
     Route::middleware('role:admin,super_admin')->group(function (): void {

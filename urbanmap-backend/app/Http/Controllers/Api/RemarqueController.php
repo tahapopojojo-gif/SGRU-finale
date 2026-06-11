@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRemarqueRequest;
 use App\Http\Requests\UpdateRemarqueRequest;
 use App\Models\Remarque;
+use App\Models\Zone;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use App\Mail\RemarqueConfirmationMailable;
@@ -62,6 +63,14 @@ class RemarqueController extends Controller
             }
 
             $remarque = Remarque::create($payload);
+
+            if (empty($payload['zone_id'])) {
+                $zone = Zone::findContainingPoint($remarque->latitude, $remarque->longitude);
+                if ($zone) {
+                    $remarque->update(['zone_id' => $zone->id]);
+                }
+            }
+
             $remarque->load('zone');
 
             try {
