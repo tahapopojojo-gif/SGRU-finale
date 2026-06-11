@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { User, Compass, Shield, Search, Building2 } from 'lucide-react'
 import api from '../services/api'
+import useResponsive from '../hooks/useResponsive'
 
 const QUARTIERS = {
   casablanca: ['Maarif', 'Anfa', 'Ain Diab', 'Hay Hassani', 'Sidi Bernoussi', 'Ain Sebaa', 'Roches Noires', 'Derb Sultan', 'Gauthier', 'Bourgogne', 'Californie', 'Sidi Maarouf', 'Oulfa', 'Habous'],
@@ -64,6 +65,7 @@ const STATUS_COLORS = {
 }
 
 export default function Register() {
+  const { isMobile } = useResponsive()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
@@ -151,10 +153,11 @@ export default function Register() {
       }} />
 
       <aside style={{
-        width: '420px', minWidth: '420px',
+        width: isMobile ? '0' : '420px',
+        minWidth: isMobile ? '0' : '420px',
         background: 'rgba(193,68,14,0.06)',
         borderRight: '0.5px solid rgba(193,68,14,0.2)',
-        display: 'flex', flexDirection: 'column',
+        display: isMobile ? 'none' : 'flex', flexDirection: 'column',
         padding: '48px 40px',
         position: 'relative', zIndex: 1,
       }}>
@@ -283,9 +286,27 @@ export default function Register() {
       <main style={{
         flex: 1, display: 'flex',
         alignItems: 'center', justifyContent: 'center',
-        padding: '48px', position: 'relative', zIndex: 1,
+        padding: isMobile ? '32px 20px' : '48px',
+        width: isMobile ? '100%' : 'auto',
+        position: 'relative', zIndex: 1,
       }}>
         <div style={{ width: '100%', maxWidth: '480px' }}>
+
+          {isMobile && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              fontFamily: 'Amiri, serif', fontSize: '16px',
+              color: '#E8B87A', marginBottom: '28px',
+            }}>
+              <div style={{
+                width: '7px', height: '7px', background: '#C1440E',
+                borderRadius: '50%',
+              }} />
+              UrbanMap
+              <span style={{ opacity: 0.3, margin: '0 6px' }}>|</span>
+              المغرب
+            </div>
+          )}
 
         {/* STEP 1 — Role */}
         {step === 1 && (
@@ -753,7 +774,7 @@ export default function Register() {
 
                 {/* Nom + Email side by side */}
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr',
+                  display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
                   gap: '12px', marginBottom: '14px',
                 }}>
                   <div>
@@ -899,7 +920,7 @@ export default function Register() {
 
                 {/* Password + Confirm side by side */}
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr',
+                  display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
                   gap: '12px', marginBottom: '20px',
                 }}>
                   <div>

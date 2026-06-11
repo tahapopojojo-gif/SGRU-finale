@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { User, Compass, Shield } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import useResponsive from '../hooks/useResponsive'
 
 const Login = () => {
+    const { isMobile } = useResponsive()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -44,8 +46,9 @@ const Login = () => {
             fontFamily: 'DM Sans, sans-serif',
             background: '#0E0B08',
             minHeight: '100vh',
-            display: 'grid',
-            gridTemplateColumns: '1fr 480px',
+            display: isMobile ? 'flex' : 'grid',
+            flexDirection: isMobile ? 'column' : undefined,
+            gridTemplateColumns: isMobile ? undefined : '1fr 480px',
             position: 'relative',
             overflow: 'hidden',
         }}>
@@ -55,7 +58,7 @@ const Login = () => {
                 position: 'relative',
                 overflow: 'hidden',
                 background: '#080604',
-                display: 'flex',
+                display: isMobile ? 'none' : 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 padding: '48px',
@@ -228,7 +231,7 @@ const Login = () => {
                 borderLeft: '0.5px solid rgba(242,237,230,0.07)',
                 display: 'flex', flexDirection: 'column',
                 justifyContent: 'center',
-                padding: '56px 48px',
+                padding: isMobile ? '48px 24px 32px' : '56px 48px',
                 position: 'relative', zIndex: 1,
             }}>
                 {/* Zellige on right panel */}
@@ -275,6 +278,23 @@ const Login = () => {
                   </svg>
                   Accueil
                 </button>
+
+                {isMobile && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    fontFamily: 'Amiri, serif', fontSize: '16px',
+                    color: '#E8B87A', marginBottom: '24px',
+                    position: 'relative', zIndex: 1,
+                  }}>
+                    <div style={{
+                      width: '7px', height: '7px', background: '#C1440E',
+                      borderRadius: '50%',
+                    }} />
+                    UrbanMap
+                    <span style={{ opacity: 0.3, margin: '0 6px' }}>|</span>
+                    المغرب
+                  </div>
+                )}
 
                 {/* FORM CONTENT */}
                 <div style={{ position: 'relative', zIndex: 1 }}>
@@ -516,8 +536,10 @@ const Login = () => {
                         disabled={loading}
                         style={{
                           width: '100%', padding: '13px',
-                          background: loading ? 'rgba(193,68,14,0.5)' : '#C1440E',
-                          color: '#fff', border: 'none', borderRadius: '6px',
+                          background: 'transparent',
+                          color: loading ? 'rgba(193,68,14,0.5)' : '#C1440E',
+                          border: loading ? '0.5px solid rgba(193,68,14,0.4)' : '0.5px solid #C1440E',
+                          borderRadius: '6px',
                           fontSize: '14px', fontWeight: 500,
                           fontFamily: 'DM Sans, sans-serif',
                           cursor: loading ? 'not-allowed' : 'pointer',
@@ -528,10 +550,12 @@ const Login = () => {
                           marginTop: '6px',
                         }}
                         onMouseEnter={e => {
-                          if (!loading) e.currentTarget.style.background = '#A8380C';
+                          if (!loading) e.currentTarget.style.background = '#C1440E';
+                          if (!loading) e.currentTarget.style.color = '#fff';
                         }}
                         onMouseLeave={e => {
-                          if (!loading) e.currentTarget.style.background = '#C1440E';
+                          if (!loading) e.currentTarget.style.background = 'transparent';
+                          if (!loading) e.currentTarget.style.color = '#C1440E';
                         }}
                       >
                         <span>{loading ? 'Connexion en cours...' : 'Se connecter'}</span>

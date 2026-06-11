@@ -230,24 +230,6 @@ const Navbar = ({
           </button>
         )}
 
-        {/* Carte publique */}
-        {user?.role !== 'admin' && user?.role !== 'urbaniste' && user?.role !== 'super_admin' && (
-          <button
-            onClick={() => navigate('/map')}
-            style={{
-              padding: '5px 10px', borderRadius: '4px',
-              fontSize: '11px',
-              border: '0.5px solid rgba(193,68,14,0.3)',
-              color: '#E8B87A',
-              background: 'rgba(193,68,14,0.08)',
-              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            Carte publique
-          </button>
-        )}
-
         {/* User avatar dropdown */}
         <div ref={dropdownRef} style={{ position: 'relative' }}>
           <div style={{

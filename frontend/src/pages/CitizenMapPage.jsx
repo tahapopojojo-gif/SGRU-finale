@@ -921,7 +921,7 @@ export default function MapPage() {
           onClick={() => toast.info('Cliquez sur la carte pour placer votre signalement')}
           style={{
             position: 'fixed',
-            bottom: '90px',
+            bottom: isMobile ? '24px' : '90px',
             right: '20px',
             width: '52px',
             height: '52px',
@@ -1104,8 +1104,8 @@ export default function MapPage() {
 
       <div id="live-counter" style={{
         position: 'absolute',
-        left: '66px',
-        bottom: '16px',
+        left: isMobile ? '12px' : '66px',
+        bottom: isMobile ? '16px' : '16px',
         display: 'flex',
         gap: '8px',
         zIndex: 100,
@@ -1146,7 +1146,7 @@ export default function MapPage() {
           padding: '8px 14px',
           backdropFilter: 'blur(18px)',
           boxShadow: '0 0 0 0.5px rgba(193,68,14,0.12), 0 8px 32px rgba(0,0,0,0.5)',
-          display: 'flex',
+          display: isMobile ? 'none' : 'flex',
           alignItems: 'center',
           gap: '8px',
         }}>
@@ -1354,7 +1354,7 @@ export default function MapPage() {
         )}
       </MapContainer>
 
-      <Legend role={user?.role} />
+      <Legend role={user?.role} isMobile={isMobile} />
 
       {selectedParcel && (
         <div style={{
@@ -1614,12 +1614,13 @@ export default function MapPage() {
   )
 }
 
-function Legend({ role }) {
+function Legend({ role, isMobile }) {
 
   return (
     <div id="legend-box" style={{
       position: 'absolute', bottom: '80px', left: '60px',
       zIndex: 100,
+      display: isMobile ? 'none' : 'block',
       background: 'rgba(8,6,3,0.88)',
       border: '0.5px solid rgba(242,237,230,0.08)',
       borderRadius: '10px', padding: '12px 14px',

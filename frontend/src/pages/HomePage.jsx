@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { User, Shield, Compass, Maximize2 } from 'lucide-react'
+import useResponsive from '../hooks/useResponsive'
 
 const R = '#C1440E', G = '#E8B87A', T = '#F2EDE6'
 const amiri = { fontFamily:"'Amiri',serif" }
@@ -23,11 +24,12 @@ function HoverDiv({ base, hover, className='', children, style={}, ...rest }) {
 
 /* ─── NAVBAR ─── */
 function Navbar() {
+  const { isMobile } = useResponsive()
   const navLinkStyle = { color:'rgba(242,237,230,0.65)', textTransform:'uppercase', fontSize:11,
     letterSpacing:'0.12em', cursor:'pointer', ...dm, textDecoration:'none', transition:'color .15s' }
   return (
     <nav style={{ position:'sticky', top:0, zIndex:50, display:'flex', alignItems:'center',
-      justifyContent:'space-between', padding:'0 48px', height:64,
+      justifyContent:'space-between', padding: isMobile ? '0 16px' : '0 48px', height:64,
       background:'rgba(14,11,8,0.9)', backdropFilter:'blur(12px)',
       borderBottom:'0.5px solid rgba(193,68,14,0.25)' }}>
 
@@ -43,7 +45,7 @@ function Navbar() {
       </div>
 
       {/* Links */}
-      <div style={{ display:'flex', gap:36 }}>
+      <div style={{ display: isMobile ? 'none' : 'flex', gap:36 }}>
         <Link to="/map" style={navLinkStyle}
           onMouseEnter={e=>e.target.style.color=G}
           onMouseLeave={e=>e.target.style.color='rgba(242,237,230,0.65)'}>Carte Publique</Link>
@@ -65,7 +67,7 @@ function Navbar() {
       </div>
 
       {/* CTA */}
-      <div style={{ display:'flex', gap:12 }}>
+      <div style={{ display: isMobile ? 'none' : 'flex', gap:12 }}>
         <Link to="/login" style={{ border:'0.5px solid rgba(242,237,230,0.3)', background:'transparent',
           color:T, padding:'8px 20px', borderRadius:6, fontSize:13, ...dm, textDecoration:'none' }}>
           Connexion
@@ -134,10 +136,15 @@ function MapSVG() {
 
 /* ─── HERO ─── */
 function Hero() {
+  const { isMobile } = useResponsive()
   return (
     <section style={{ position:'relative', zIndex:10 }}>
-      <div style={{ maxWidth:1152, margin:'0 auto', padding:'112px 48px',
-        display:'grid', gridTemplateColumns:'1fr 1fr', gap:64, alignItems:'center' }}>
+      <div style={{ maxWidth:1152, margin:'0 auto',
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: isMobile ? 32 : 64,
+        padding: isMobile ? '60px 20px 40px' : '112px 48px',
+        alignItems:'center' }}>
 
         {/* Left */}
         <div>
@@ -148,11 +155,11 @@ function Hero() {
             ● Plateforme citoyenne · IA intégrée
           </span>
 
-          <h1 style={{ ...amiri, fontSize:64, color:T, lineHeight:1.12, marginBottom:16 }}>
+          <h1 style={{ ...amiri, fontSize: isMobile ? 40 : 64, color:T, lineHeight:1.12, marginBottom:16 }}>
             La ville,<br/>redessinée<br/>par <span style={{color:R}}>vous.</span>
           </h1>
 
-          <p style={{ ...dm, fontSize:15, color:'rgba(242,237,230,0.6)', maxWidth:420,
+          <p style={{ ...dm, fontSize:15, color:'rgba(242,237,230,0.6)', maxWidth: isMobile ? '100%' : 420,
             lineHeight:1.7, fontWeight:300, marginBottom:40 }}>
             Participez à l'aménagement urbain du Maroc. Signalez, analysez, et planifiez — ensemble, avec l'intelligence artificielle.
           </p>
@@ -196,7 +203,7 @@ function Hero() {
         {/* Right — map card */}
         <div style={{ borderRadius:12, overflow:'hidden',
           border:'0.5px solid rgba(193,68,14,0.3)', background:'#100D0A',
-          aspectRatio:'4/3', position:'relative' }}>
+          aspectRatio:'4/3', position:'relative', display: isMobile ? 'none' : 'block' }}>
           <MapSVG/>
           <div style={{ position:'absolute', bottom:16, left:16, right:16,
             display:'flex', gap:8 }}>
@@ -221,6 +228,7 @@ function Hero() {
 
 /* ─── STATS BAR ─── */
 function StatsBar() {
+  const { isMobile } = useResponsive()
   const [data, setData] = useState({
     citoyens: '—',
     signalements: '—',
@@ -253,13 +261,18 @@ function StatsBar() {
       borderTop:'1px solid rgba(242,237,230,0.08)',
       borderBottom:'1px solid rgba(242,237,230,0.08)'
     }}>
-      <div style={{ maxWidth:1152, margin:'0 auto', padding:'32px 48px',
-        display:'flex' }}>
+      <div style={{ maxWidth:1152, margin:'0 auto',
+        display: 'flex',
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
+        padding: isMobile ? '24px 20px' : '32px 48px' }}>
         {stats.map(({n,l},i)=>(
-          <div key={l} style={{ flex:1, textAlign:'center', padding:'0 24px',
-            borderRight: i<stats.length-1
-              ? '1px solid rgba(242,237,230,0.1)' : 'none' }}>
-            <div style={{ fontFamily:"'Amiri',serif", fontSize:38,
+          <div key={l} style={{
+            flex: isMobile ? '0 0 50%' : 1,
+            padding: isMobile ? '12px 8px' : '0 24px',
+            borderRight: isMobile ? 'none' : (i < stats.length - 1 ? '1px solid rgba(242,237,230,0.1)' : 'none'),
+            borderBottom: isMobile && i < 4 ? '1px solid rgba(242,237,230,0.06)' : 'none',
+            textAlign: 'center' }}>
+            <div style={{ fontFamily:"'Amiri',serif", fontSize: isMobile ? 28 : 38,
               color:'#E8B87A' }}>{n}</div>
             <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10,
               letterSpacing:'0.12em', textTransform:'uppercase',
@@ -273,6 +286,7 @@ function StatsBar() {
 
 /* ─── HOW IT WORKS ─── */
 function HowItWorks() {
+  const { isMobile } = useResponsive()
   const steps=[
     {n:'01',t:'Signalez sur la carte',d:'Localisez précisément votre observation, ajoutez une photo et décrivez le problème en 5 étapes guidées.'},
     {n:'02',t:"L'IA modère & résume",d:"Claude analyse chaque soumission, filtre le contenu inapproprié et génère un résumé structuré automatiquement."},
@@ -281,18 +295,18 @@ function HowItWorks() {
   ]
   return (
     <section id="comment-ca-fonctionne" style={{ position:'relative', zIndex:10 }}>
-      <div style={{ maxWidth:1152, margin:'0 auto', padding:'96px 48px' }}>
+      <div style={{ maxWidth:1152, margin:'0 auto', padding: isMobile ? '56px 20px' : '96px 48px' }}>
         <p style={{ ...dm, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:R, marginBottom:16 }}>
           Comment ça fonctionne
         </p>
-        <h2 style={{ ...amiri, fontSize:42, color:T, lineHeight:1.2, maxWidth:520, marginBottom:16 }}>
+        <h2 style={{ ...amiri, fontSize: isMobile ? 28 : 42, color:T, lineHeight:1.2, maxWidth:520, marginBottom:16 }}>
           De l'observation à l'action urbaine
         </h2>
         <p style={{ ...dm, fontSize:13, color:'rgba(242,237,230,0.5)', maxWidth:460,
           lineHeight:1.75, fontWeight:300, marginBottom:56 }}>
           Un flux simplifié pour transformer chaque signalement citoyen en décision d'aménagement concrète.
         </p>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:20 }}>
+        <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 12 : 20 }}>
           {steps.map(({n,t,d})=>(
             <div key={n}
               style={{ background:'rgba(255,255,255,0.03)', border:'0.5px solid rgba(242,237,230,0.09)',
@@ -312,6 +326,7 @@ function HowItWorks() {
 
 /* ─── ROLES ─── */
 function Roles() {
+  const { isMobile } = useResponsive()
   const roles=[
     {bg:'rgba(193,68,14,0.15)',ic:'#C1440E',Icon:User,name:'Citoyen',desc:"Signalez des problèmes urbains géolocalisés et suivez leur statut en temps réel.",tag:'Accès public',to:'/register'},
     {bg:'rgba(26,82,118,0.25)',ic:'#5DADE2',Icon:Shield,name:'Administrateur',desc:"Gérez les zones, modérez les signalements et administrez le territoire assigné.",tag:'Accès restreint',to:null},
@@ -322,10 +337,10 @@ function Roles() {
   return (
     <section style={{ background:'rgba(255,255,255,0.015)',
       borderTop:'1px solid rgba(242,237,230,0.06)', borderBottom:'1px solid rgba(242,237,230,0.06)' }}>
-      <div style={{ maxWidth:1152, margin:'0 auto', padding:'80px 48px' }}>
+      <div style={{ maxWidth:1152, margin:'0 auto', padding: isMobile ? '48px 20px' : '80px 48px' }}>
         <p style={{ ...dm, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:R, marginBottom:16 }}>Accès par rôle</p>
-        <h2 style={{ ...amiri, fontSize:42, color:T }}>Un outil pour chaque acteur de la ville</h2>
-        <div style={{ display:'grid',           gridTemplateColumns:'repeat(3,1fr)', gap:16, marginTop:48 }}>
+        <h2 style={{ ...amiri, fontSize: isMobile ? 28 : 42, color:T }}>Un outil pour chaque acteur de la ville</h2>
+        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? 10 : 16, marginTop:48 }}>
           {roles.map(({bg,ic,Icon,name,desc,tag,to})=>{
             const card=(
               <div style={cardBase}
@@ -356,13 +371,14 @@ function Roles() {
 
 /* ─── AI BANNER ─── */
 function AIBanner() {
+  const { isMobile } = useResponsive()
   const features=['Modération automatique','Résumé par zone','Analyse de sentiment','Rapport PDF intelligent',"Détection d'urgence"]
   return (
     <section style={{ position:'relative', zIndex:10 }}>
-      <div style={{ maxWidth:1152, margin:'0 auto', padding:'96px 48px' }}>
+      <div style={{ maxWidth:1152, margin:'0 auto', padding: isMobile ? '40px 20px' : '96px 48px' }}>
         <div style={{ background:'linear-gradient(135deg,rgba(193,68,14,0.13) 0%,rgba(26,82,118,0.13) 100%)',
-          border:'0.5px solid rgba(193,68,14,0.38)', borderRadius:14, padding:'64px',
-          display:'grid', gridTemplateColumns:'1fr auto', gap:40, alignItems:'center' }}>
+          border:'0.5px solid rgba(193,68,14,0.38)', borderRadius:14, padding: isMobile ? '28px 20px' : '64px',
+          display:'grid', gridTemplateColumns: '1fr', gap:40, alignItems:'center' }}>
           <div>
             <span style={{ display:'inline-flex', alignItems:'center', gap:6,
               background:'rgba(193,68,14,0.15)', border:'0.5px solid rgba(193,68,14,0.4)',
@@ -370,7 +386,7 @@ function AIBanner() {
               textTransform:'uppercase', color:R, marginBottom:20, ...dm }}>
               ● Intelligence Artificielle · Claude API
             </span>
-            <h2 style={{ ...amiri, fontSize:38, color:T, lineHeight:1.22, marginBottom:14 }}>
+            <h2 style={{ ...amiri, fontSize: isMobile ? 26 : 38, color:T, lineHeight:1.22, marginBottom:14 }}>
               L'IA au service<br/>de la ville marocaine
             </h2>
             <p style={{ ...dm, fontSize:14, color:'rgba(242,237,230,0.55)', lineHeight:1.75,
@@ -379,7 +395,7 @@ function AIBanner() {
               Les urbanistes disposent d'une vue agrégée et intelligente de chaque quartier.
             </p>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:210 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth: isMobile ? 'auto' : 210, marginTop: isMobile ? '20px' : 0 }}>
             {features.map(f=>(
               <div key={f} style={{ display:'flex', alignItems:'center', gap:10,
                 fontSize:13, color:'rgba(242,237,230,0.72)', ...dm }}>
@@ -396,6 +412,7 @@ function AIBanner() {
 
 /* ─── CITIES ─── */
 function Cities() {
+  const { isMobile } = useResponsive()
   const cities=[
     {name:'Marrakech',count:'18 zones · 542 signalements',barColor:R,barW:'85%',pct:'85%',fes:false},
     {name:'Casablanca',count:'12 zones · 389 signalements',barColor:'#1A5276',barW:'60%',pct:'60%',fes:false},
@@ -404,10 +421,15 @@ function Cities() {
   ]
   return (
     <section id="villes" style={{ background:'rgba(255,255,255,0.015)', borderTop:'1px solid rgba(242,237,230,0.06)' }}>
-      <div style={{ maxWidth:1152, margin:'0 auto', padding:'80px 48px' }}>
+      <div style={{ maxWidth:1152, margin:'0 auto', padding: isMobile ? '48px 20px' : '80px 48px' }}>
         <p style={{ ...dm, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:R, marginBottom:16 }}>Villes actives</p>
-        <h2 style={{ ...amiri, fontSize:42, color:T }}>Disponible à travers le Maroc</h2>
-        <div style={{ display:'flex', gap:16, marginTop:40 }}>
+        <h2 style={{ ...amiri, fontSize: isMobile ? 28 : 42, color:T }}>Disponible à travers le Maroc</h2>
+        <div style={{
+          display: isMobile ? 'grid' : 'flex',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : undefined,
+          gap: 12,
+          marginTop:40
+        }}>
           {cities.map(({name,count,barColor,barW,pct,fes})=>(
             <div key={name} style={{
               flex:1, borderRadius:10,
@@ -434,10 +456,19 @@ function Cities() {
 
 /* ─── FOOTER ─── */
 function Footer() {
+  const { isMobile } = useResponsive()
   return (
     <footer id="a-propos" style={{ borderTop:'1px solid rgba(242,237,230,0.08)' }}>
-      <div style={{ maxWidth:1152, margin:'0 auto', padding:'48px 48px',
-        display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+      <div style={{
+        maxWidth:1152, margin:'0 auto',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: isMobile ? 'center' : 'space-between',
+        alignItems: isMobile ? 'center' : 'center',
+        gap: isMobile ? '20px' : '0',
+        padding: isMobile ? '32px 20px' : '48px 48px',
+        textAlign: isMobile ? 'center' : 'left'
+      }}>
         <span style={{ ...amiri, fontSize:18, color:G }}>UrbanMap المغرب</span>
         <div style={{ display:'flex', gap:24 }}>
           {['Documentation API','Confidentialité','Contact'].map(l=>(

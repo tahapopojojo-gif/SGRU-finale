@@ -30,11 +30,11 @@ const getCategoryDetails = (value) => {
 }
 
 const STATUT_CONFIG = {
-  en_attente: { label: 'En attente',  color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)',  border: 'rgba(245, 158, 11, 0.25)', icon: null },
-  en_cours:   { label: 'En cours',    color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.08)',  border: 'rgba(59, 130, 246, 0.25)', icon: null },
-  resolu:     { label: 'Résolu',      color: '#52BE80', bg: 'rgba(82, 190, 128, 0.08)', border: 'rgba(82, 190, 128, 0.25)', icon: null },
-  validee:    { label: 'Validée',     color: '#52BE80', bg: 'rgba(82, 190, 128, 0.08)', border: 'rgba(82, 190, 128, 0.25)', icon: null },
-  rejete:     { label: 'Rejetée',     color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)',  border: 'rgba(239, 68, 68, 0.25)',  icon: null },
+  en_attente: { label: 'En attente', color: '#E8B87A',              bg: 'rgba(232,184,122,0.08)', border: 'rgba(232,184,122,0.25)', icon: null },
+  en_cours:   { label: 'En cours',   color: '#E8B87A',              bg: 'rgba(232,184,122,0.08)', border: 'rgba(232,184,122,0.25)', icon: null },
+  resolu:     { label: 'Résolu',     color: 'rgba(242,237,230,0.5)', bg: 'rgba(242,237,230,0.05)', border: 'rgba(242,237,230,0.15)', icon: null },
+  validee:    { label: 'Validée',    color: 'rgba(242,237,230,0.5)', bg: 'rgba(242,237,230,0.05)', border: 'rgba(242,237,230,0.15)', icon: null },
+  rejete:     { label: 'Rejetée',    color: '#C1440E',              bg: 'rgba(193,68,14,0.08)',   border: 'rgba(193,68,14,0.25)',   icon: null },
 }
 
 const getStatutBadge = (statut) => STATUT_CONFIG[statut] || { label: statut || 'Inconnu', color: 'rgba(242,237,230,0.5)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(242,237,230,0.1)', icon: '?' }
